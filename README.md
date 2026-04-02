@@ -1,2 +1,3 @@
-# flare
+# Flare
 
+Project Flare.

@@ -1,3 +1,0 @@
-# Flare
-
-Project Flare.
