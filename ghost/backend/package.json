@@ -1,0 +1,32 @@
+{
+  "name": "ghost-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "nodemon --exec ts-node src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.ts"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "*",
+    "better-sqlite3": "*",
+    "cors": "*",
+    "dotenv": "*",
+    "express": "*",
+    "firebase-admin": "*",
+    "node-cron": "*",
+    "uuid": "*",
+    "x402-stellar": "*"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "*",
+    "@types/cors": "*",
+    "@types/express": "*",
+    "@types/node": "*",
+    "@types/uuid": "*",
+    "nodemon": "*",
+    "ts-node": "*",
+    "typescript": "*"
+  }
+}
