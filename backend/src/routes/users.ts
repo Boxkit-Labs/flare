@@ -1,10 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { Keypair, Asset, TransactionBuilder, Networks, Operation, Horizon } from '@stellar/stellar-sdk';
 import * as queries from '../db/queries';
 import { encrypt, decrypt } from '../utils/crypto';
+import { stellarService } from '../services/stellar';
 
 const router = Router();
-const server = new Horizon.Server('https://horizon-testnet.stellar.org');
 
 interface User {
     user_id: string;
@@ -20,11 +19,6 @@ interface User {
     created_at: string;
 }
 
-// USDC Testnet Configuration
-const USDC_ASSET = new Asset(
-    'USDC',
-    'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5'
-);
 
 /**
  * POST /api/users/register
@@ -43,9 +37,9 @@ router.post('/register', async (req: Request, res: Response) => {
         }
 
         // Generate Stellar Keypair
-        const kp = Keypair.random();
-        const publicKey = kp.publicKey();
-        const secretKey = kp.secret();
+        const kp = stellarService.generateKeypair();
+        const publicKey = kp.publicKey;
+        const secretKey = kp.secretKey;
 
         // Encrypt Secret Key
         const encryptionKey = process.env.ENCRYPTION_KEY;
@@ -91,46 +85,24 @@ router.post('/:id/fund', async (req: Request, res: Response) => {
         const publicKey = user.stellar_public_key;
         const encryptionKey = process.env.ENCRYPTION_KEY!;
         const decryptedSecret = decrypt(user.stellar_secret_key_encrypted, encryptionKey);
-        const userKp = Keypair.fromSecret(decryptedSecret);
-
         // 1. Friendbot Funding (XLM)
-        await fetch(`https://friendbot.stellar.org?addr=${publicKey}`);
+        await stellarService.fundWithFriendbot(publicKey);
 
         // 2. Add USDC Trustline
-        const account = await server.loadAccount(publicKey);
-        const txTrust = new TransactionBuilder(account, { fee: '100', networkPassphrase: Networks.TESTNET })
-            .addOperation(Operation.changeTrust({ asset: USDC_ASSET }))
-            .setTimeout(30)
-            .build();
-        txTrust.sign(userKp);
-        await server.submitTransaction(txTrust);
+        await stellarService.addUsdcTrustline(decryptedSecret);
 
         // 3. Transfer 10 USDC from Operator
-        const operatorSecret = process.env.OPERATOR_SECRET;
-        if (operatorSecret) {
-            const operatorKp = Keypair.fromSecret(operatorSecret);
-            const operatorAccount = await server.loadAccount(operatorKp.publicKey());
-            const txPay = new TransactionBuilder(operatorAccount, { fee: '100', networkPassphrase: Networks.TESTNET })
-                .addOperation(Operation.payment({
-                    destination: publicKey,
-                    asset: USDC_ASSET,
-                    amount: '10.0'
-                }))
-                .setTimeout(30)
-                .build();
-            txPay.sign(operatorKp);
-            await server.submitTransaction(txPay);
+        if (process.env.OPERATOR_SECRET) {
+            await stellarService.fundNewUserWithUsdc(publicKey, '10.0');
         }
 
         // Fetch final balances
-        const finalAccount = await server.loadAccount(publicKey);
-        const xlmBalance = finalAccount.balances.find(b => b.asset_type === 'native')?.balance;
-        const usdcBalance = finalAccount.balances.find(b => (b as any).asset_code === 'USDC')?.balance;
+        const balances = await stellarService.getBalances(publicKey);
 
         res.json({
             funded: true,
-            xlm_balance: xlmBalance,
-            usdc_balance: usdcBalance || '0.0'
+            xlm_balance: balances.xlm,
+            usdc_balance: balances.usdc
         });
     } catch (error: any) {
         console.error('Funding error:', error);
@@ -150,15 +122,10 @@ router.get('/:id', async (req: Request, res: Response) => {
 
         const { stellar_secret_key_encrypted, ...profile } = user;
 
-        let balances: any[] = [];
-        try {
-            const account = await server.loadAccount(user.stellar_public_key);
-            balances = account.balances;
-        } catch (e) {
-            // Account might not be funded/created on ledger yet
-        }
-
-        res.json({ ...profile, balances });
+        const balancesResponse = await stellarService.getBalances(user.stellar_public_key);
+        // Map to match the previous response format if frontend expects array, but mapping to object is better.
+        // I will return the object directly as the frontend hasn't been built yet.
+        res.json({ ...profile, balances: balancesResponse });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
