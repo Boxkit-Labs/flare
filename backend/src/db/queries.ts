@@ -138,9 +138,30 @@ export const getFindingById = (id: string) => {
   return row;
 };
 
-export const getFindingsByUserId = (userId: string, limit: number = 50) => {
-  const rows: any[] = db.prepare('SELECT * FROM findings WHERE user_id = ? ORDER BY found_at DESC LIMIT ?').all(userId, limit);
+export const getFindingsByUserId = (userId: string, limit: number = 50, offset: number = 0) => {
+  const rows: any[] = db.prepare(`
+    SELECT f.*, w.name as watcher_name, w.type as watcher_type 
+    FROM findings f
+    JOIN watchers w ON f.watcher_id = w.watcher_id
+    WHERE f.user_id = ? 
+    ORDER BY f.found_at DESC LIMIT ? OFFSET ?
+  `).all(userId, limit, offset);
   return rows.map(row => ({ ...row, data: JSON.parse(row.data) }));
+};
+
+export const getFindingDetail = (id: string) => {
+  const row: any = db.prepare(`
+    SELECT f.*, w.name as watcher_name, w.type as watcher_type, c.checked_at as check_time, c.response_data as check_data
+    FROM findings f
+    JOIN watchers w ON f.watcher_id = w.watcher_id
+    JOIN checks c ON f.check_id = c.check_id
+    WHERE f.finding_id = ?
+  `).get(id);
+  if (row) {
+    row.data = JSON.parse(row.data);
+    row.check_data = JSON.parse(row.check_data);
+  }
+  return row;
 };
 
 export const getFindingsByWatcherId = (watcherId: string) => {
@@ -196,11 +217,24 @@ export const createTransaction = (tx: any) => {
 };
 
 export const getTransactionsByUserId = (userId: string, limit: number = 20, offset: number = 0) => {
-  return db.prepare('SELECT * FROM transactions WHERE user_id = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?').all(userId, limit, offset);
+  return db.prepare(`
+    SELECT t.*, w.name as watcher_name, c.finding_detected
+    FROM transactions t
+    LEFT JOIN watchers w ON t.watcher_id = w.watcher_id
+    LEFT JOIN checks c ON t.check_id = c.check_id
+    WHERE t.user_id = ? 
+    ORDER BY t.timestamp DESC LIMIT ? OFFSET ?
+  `).all(userId, limit, offset);
 };
 
-export const getTransactionsByWatcherId = (watcherId: string) => {
-  return db.prepare('SELECT * FROM transactions WHERE watcher_id = ? ORDER BY timestamp DESC').all(watcherId);
+export const getTransactionsByWatcherId = (watcherId: string, limit: number = 20, offset: number = 0) => {
+  return db.prepare(`
+    SELECT t.*, c.finding_detected
+    FROM transactions t
+    LEFT JOIN checks c ON t.check_id = c.check_id
+    WHERE t.watcher_id = ? 
+    ORDER BY t.timestamp DESC LIMIT ? OFFSET ?
+  `).all(watcherId, limit, offset);
 };
 
 export const getSpendingStats = (userId: string) => {
@@ -212,4 +246,39 @@ export const getSpendingStats = (userId: string) => {
       FROM transactions 
       WHERE user_id = ?
     `).get(userId);
+};
+
+export const getWalletAnalytics = (userId: string) => {
+  const dailySpending = db.prepare(`
+    SELECT date(timestamp) as date, SUM(amount_usdc) as amount
+    FROM transactions
+    WHERE user_id = ? AND timestamp >= date('now', '-7 days')
+    GROUP BY date(timestamp)
+    ORDER BY date ASC
+  `).all(userId);
+
+  const perWatcherSpending = db.prepare(`
+    SELECT w.watcher_id, w.name as watcher_name, SUM(t.amount_usdc) as amount
+    FROM transactions t
+    JOIN watchers w ON t.watcher_id = w.watcher_id
+    WHERE t.user_id = ? AND t.timestamp >= date('now', 'weekday 0', '-7 days') -- Start of current week (Sunday)
+    GROUP BY w.watcher_id
+  `).all(userId);
+
+  const totals = db.prepare(`
+    SELECT 
+      (SELECT COUNT(*) FROM checks WHERE user_id = ? AND checked_at >= date('now','start of day')) as total_checks_today,
+      (SELECT COUNT(*) FROM findings WHERE user_id = ? AND found_at >= date('now','start of day')) as total_findings_today,
+      (SELECT COUNT(*) FROM findings WHERE user_id = ?) as total_findings_all_time,
+      (SELECT SUM(amount_usdc) FROM transactions WHERE user_id = ?) as total_spent_all_time
+  `).get(userId, userId, userId, userId) as any;
+
+  return {
+    daily_spending: dailySpending,
+    per_watcher_spending: perWatcherSpending,
+    total_checks_today: totals.total_checks_today,
+    total_findings_today: totals.total_findings_today,
+    total_findings_all_time: totals.total_findings_all_time,
+    total_spent_all_time: totals.total_spent_all_time
+  };
 };
