@@ -43,3 +43,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Agent and Tool folders
+.agent/
+.agents/
+.agentss/
+.claude/
+.codex/
+.cursor/
+.husky/
+.marscode/
+.opencode/

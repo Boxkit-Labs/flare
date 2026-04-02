@@ -5,3 +5,16 @@ dist
 .dart_tool
 build/
 .flutter-plugins
+
+
+
+
+.agent/
+.agents/
+.agentss/
+.claude/
+.codex/
+.cursor/
+.husky/
+.marscode/
+.opencode/
