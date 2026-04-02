@@ -1,7 +1,15 @@
-import { Keypair, Networks, nativeToScVal, rpc, contract } from '@stellar/stellar-sdk';
+import { Keypair, Networks, nativeToScVal, rpc, contract, Asset, Contract } from '@stellar/stellar-sdk';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
+export interface X402Challenge {
+  amount: string;
+  payTo: string;
+  asset: string; // Contract ID or common code
+  network: string;
+  route?: string;
+}
 
 export class X402Client {
     private rpcUrl: string;
@@ -11,10 +19,88 @@ export class X402Client {
     }
 
     /**
+     * Resolves a Soroban SAC contract ID from an asset identifier.
+     */
+    private getContractId(assetId: string, network: string): string {
+        // If it's already a contract ID (starts with C)
+        if (assetId.startsWith('C') && assetId.length === 56) {
+            return assetId;
+        }
+
+        // If it's "USDC" or "USDC:issuer"
+        if (assetId.toUpperCase().startsWith('USDC')) {
+            const usdcCode = process.env.USDC_ASSET_CODE || 'USDC';
+            const usdcIssuer = process.env.USDC_ISSUER || 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5';
+            
+            let asset: Asset;
+            if (assetId.includes(':')) {
+                const [, issuer] = assetId.split(':');
+                asset = new Asset('USDC', issuer);
+            } else {
+                asset = new Asset(usdcCode, usdcIssuer);
+            }
+
+            const passphrase = network.includes('testnet') ? Networks.TESTNET : Networks.PUBLIC;
+            return asset.contractId(passphrase);
+        }
+
+        // Handle generic code:issuer format
+        if (assetId.includes(':')) {
+            const [code, issuer] = assetId.split(':');
+            const asset = new Asset(code, issuer);
+            const passphrase = network.includes('testnet') ? Networks.TESTNET : Networks.PUBLIC;
+            return asset.contractId(passphrase);
+        }
+
+        throw new Error(`Cannot resolve contract ID for asset: ${assetId}`);
+    }
+
+    /**
+     * Parses a 402 challenge from various formats.
+     */
+    private parseChallenge(challenge: any): X402Challenge {
+        // 1. Standard x402 v2
+        if (challenge.accepts && challenge.accepts.length > 0) {
+            const accept = challenge.accepts[0];
+            return {
+                amount: accept.amount,
+                payTo: accept.payTo,
+                asset: accept.asset,
+                network: accept.network || 'stellar:testnet',
+                route: challenge.route
+            };
+        }
+
+        // 2. xlm402.com format
+        if (challenge.assets && challenge.pay_to) {
+            // Find USDC or take first
+            const assetInfo = challenge.assets.find((a: any) => a.asset === 'USDC') || challenge.assets[0];
+            
+            // xlm402.com price_usd might need conversion to atomic units (7 decimals for USDC)
+            // But usually 'price' field in assets is already atomic or needs conversion.
+            // Let's assume 'price' is a string.
+            let atomicAmount = assetInfo.price;
+            if (atomicAmount.includes('.')) {
+                atomicAmount = (parseFloat(atomicAmount) * 10000000).toFixed(0);
+            }
+
+            return {
+                amount: atomicAmount,
+                payTo: challenge.pay_to,
+                asset: assetInfo.asset,
+                network: challenge.network === 'testnet' ? 'stellar:testnet' : 'stellar:pubnet',
+                route: challenge.route
+            };
+        }
+
+        throw new Error('Invalid x402 challenge shape');
+    }
+
+    /**
      * Helper to make a preflight request to check what an endpoint charges.
      * Returns the required amount and asset contract ID without paying.
      */
-    async getPaymentCost(url: string, method: string = 'GET', body?: any): Promise<{ amount: string, asset: string } | null> {
+    async getPaymentCost(url: string, method: string = 'GET', body?: any): Promise<X402Challenge | null> {
         const fetchOptions: RequestInit = {
             method,
             headers: {
@@ -28,15 +114,8 @@ export class X402Client {
         const response = await fetch(url, fetchOptions);
         
         if (response.status === 402) {
-            const challenge = await response.json();
-            if (challenge && challenge.accepts && challenge.accepts.length > 0) {
-                 const accept = challenge.accepts[0];
-                 return {
-                     amount: accept.amount,
-                     asset: accept.asset
-                 };
-            }
-            throw new Error('402 Response received, but invalid x402 challenge format.');
+            const challengeBody = await response.json();
+            return this.parseChallenge(challengeBody);
         } else if (response.ok) {
             return null; // No payment required
         } else {
@@ -45,11 +124,14 @@ export class X402Client {
     }
 
     /**
+     * Checks if the given asset string is a valid Soroban contract ID.
+     */
+    private isContractId(asset: string): boolean {
+        return /^C[A-Z2-7]{55}$/.test(asset);
+    }
+
+    /**
      * Executes the full x402 payment flow.
-     * 1. Fetches the URL.
-     * 2. If 402, constructs and signs a Soroban auth entry for a USDC transfer.
-     * 3. Retries the URL with the X-PAYMENT header.
-     * 4. Returns the successful payload and transaction info.
      */
     async payAndFetch(params: {
         url: string,
@@ -59,6 +141,14 @@ export class X402Client {
     }): Promise<{ data: any, txHash: string | null, amountPaid: string }> {
 
         const { url, method, body, payerSecretKey } = params;
+
+        // User-requested debug logs
+        const keypair = Keypair.fromSecret(payerSecretKey);
+        console.log('[X402] Keypair type:', typeof keypair);
+        console.log('[X402] publicKey():', keypair.publicKey());
+        try {
+           console.log('[X402] x402-stellar package version: v1 compatibility mode');
+        } catch(e) {}
 
         const fetchOptions: RequestInit = {
             method,
@@ -70,80 +160,108 @@ export class X402Client {
         }
 
         // 1. Initial Request
-        const initialResponse = await fetch(url, fetchOptions);
+        let response = await fetch(url, fetchOptions);
 
-        if (initialResponse.ok) {
-            // Not paywalled or already authorized
-            const data = await initialResponse.json().catch(() => null);
+        if (response.status !== 402) {
             return {
-                data,
+                data: await response.json(),
                 txHash: null,
                 amountPaid: "0"
             };
         }
 
-        if (initialResponse.status !== 402) {
-            throw new Error(`Endpoint returned non-402 status: ${initialResponse.status}`);
-        }
+        // 2. Parse 402 Challenge
+        const challenge = await response.json();
+        const parsed = this.parseChallenge(challenge);
 
-        // 2. Parse 402 Challenge Requirements
-        const challenge = await initialResponse.json();
-        if (!challenge || !challenge.accepts || challenge.accepts.length === 0) {
-             throw new Error('Invalid x402 challenge shape');
-        }
+        // 3. Resolve Soroban Contract ID
+        const contractId = this.isContractId(parsed.asset)
+            ? parsed.asset
+            : this.getContractId(parsed.asset, parsed.network);
 
-        const accept = challenge.accepts[0];
-        
-        // 3. Build the Soroban USDC Transfer
-        const keypair = Keypair.fromSecret(payerSecretKey);
+        const passphrase = parsed.network === 'stellar-testnet' || parsed.network === 'testnet' || parsed.network === 'stellar:testnet'
+            ? Networks.TESTNET
+            : Networks.PUBLIC;
+
+        // 4. Build the Soroban USDC Transfer
         const publicKey = keypair.publicKey();
+        const contractInstance = new Contract(contractId);
 
+        console.log(`[X402] Building v1 transfer: from=${publicKey} to=${parsed.payTo} amount=${parsed.amount} contract=${contractId}`);
+
+        const rpcServer = new rpc.Server(this.rpcUrl);
         const assembledTx = await contract.AssembledTransaction.build({
-            contractId: accept.asset,
+            contractId: contractId,
             method: "transfer",
             args: [
               nativeToScVal(publicKey, { type: "address" }),
-              nativeToScVal(accept.payTo, { type: "address" }),
-              nativeToScVal(BigInt(accept.amount), { type: "i128" }),
+              nativeToScVal(parsed.payTo, { type: "address" }),
+              nativeToScVal(BigInt(parsed.amount), { type: "i128" }),
             ],
-            networkPassphrase: Networks.TESTNET, // Assuming testnet for now as per project context
+            networkPassphrase: passphrase,
             rpcUrl: this.rpcUrl,
             parseResultXdr: (r: any) => r,
         });
 
-        // 4. Sign Auth Entries
-        const signer = contract.basicNodeSigner(keypair, Networks.TESTNET);
+        // 5. Sign Auth Entries
         const simData = assembledTx.simulation as any;
+        
+        // Normalize simulation data (auth entries might be nested in result)
+        if (!simData.auth && simData.result && simData.result.auth) {
+            console.log('[X402] Promoting auth entries from result object');
+            simData.auth = simData.result.auth;
+        }
+
+        if (!simData.auth || simData.auth.length === 0) {
+            throw new Error("No auth entries returned for Soroban transfer simulation. check if account has enough balance/trustline.");
+        }
+
+        const signer = contract.basicNodeSigner(keypair, passphrase);
         const latestLedger = simData.latestLedger;
 
         await assembledTx.signAuthEntries({
+            publicKey: publicKey,
             signAuthEntry: signer.signAuthEntry,
-            expiration: latestLedger + 12, // Expiration bounded slightly in the future
+            expiration: simData.latestLedger + 20,
         });
 
-        // 5. Re-simulate in Enforcing Mode
-        await assembledTx.simulate();
-        
-        if (!assembledTx.built) {
-            throw new Error("Failed to build assembled transaction after simulation.");
+        // Re-simulate to ensure all fine and get the built tx
+        const finalAssembled = await assembledTx.simulate();
+        if (!finalAssembled.built) {
+            throw new Error("Failed to build final transaction after signing auth entries");
         }
+
+        const finalXDR = finalAssembled.built.toEnvelope().toXDR('base64');
         
-        const finalXDR = assembledTx.built.toXDR();
+        // Nonce extraction from the first auth entry
+        let nonce = "0";
+        try {
+            const auth0 = simData.auth[0] as any;
+            // Handle both raw XDR objects and plain JSON if already parsed
+            nonce = auth0._attributes?.credentials?._value?._attributes?.nonce?._value?.toString() 
+                    || auth0.credentials?.address?.nonce?.toString()
+                    || "0";
+            console.log(`[X402] Extracted nonce: ${nonce}`);
+        } catch (e) {
+            console.warn(`[X402] Nonce extraction failed, defaulting to "0":`, e);
+        }
 
-        // 6. Build the X-PAYMENT Payload Header
-        const paymentPayload = Buffer.from(JSON.stringify({
+        const paymentPayloadJSON = JSON.stringify({
             x402Version: 2,
-            accepted: accept,
-            payload: { transaction: finalXDR },
-        })).toString("base64");
+            payload: {
+                transaction: finalXDR
+            }
+        });
 
-        // 7. Retry Original Request with X-PAYMENT
-        const retryHeaders = new Headers(fetchOptions.headers);
-        retryHeaders.set("X-PAYMENT", paymentPayload);
+        const paymentPayload = Buffer.from(paymentPayloadJSON).toString("base64");
+
+        console.log(`[X402] Retrying with defensive payload... hash=${finalAssembled.built.hash().toString('hex')} nonce=${nonce}`);
 
         const paidResponse = await fetch(url, {
-            ...fetchOptions,
-            headers: retryHeaders
+            method,
+            headers: {
+                'X-PAYMENT': paymentPayload,
+            },
         });
 
         if (!paidResponse.ok) {
@@ -151,15 +269,13 @@ export class X402Client {
            throw new Error(`Payment failed or rejected by server (Status ${paidResponse.status}): ${errorBody}`);
         }
 
-        const finalData = await paidResponse.json().catch(() => null);
-
-        // Check if the server returned the executed transaction hash to us (standard x402 pattern)
-        const returnedTxHash = paidResponse.headers.get('X-TRANSACTION-HASH') || null;
+        const data = await paidResponse.json();
+        const txHash = paidResponse.headers.get('X-STELLAR-TX-HASH');
 
         return {
-            data: finalData,
-            txHash: returnedTxHash, // In a perfectly tracked system, the facilitator returns this
-            amountPaid: accept.amount
+            data,
+            txHash,
+            amountPaid: parsed.amount
         };
     }
 }

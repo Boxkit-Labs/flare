@@ -1,0 +1,2 @@
+◇ injecting env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Terminate batch job (Y/N)? Terminate batch job (Y/N)? 
