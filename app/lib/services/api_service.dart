@@ -173,6 +173,11 @@ class ApiService {
     return BriefingModel.fromJson(response.data);
   }
 
+  /// Mark a briefing as read.
+  Future<void> markBriefingRead(String briefingId) async {
+    await _dio.post('/api/briefings/$briefingId/read');
+  }
+
   // ─── WALLET METHODS ────────────────────────────────────────
 
   /// Get wallet balances (USDC + XLM).
