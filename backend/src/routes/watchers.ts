@@ -247,4 +247,29 @@ router.delete('/:id', (req: Request, res: Response) => {
     }
 });
 
+/**
+ * POST /api/watchers/:id/check
+ * Manually triggers a check for a watcher.
+ */
+router.post('/:id/check', async (req: Request, res: Response) => {
+    try {
+        const watcherId = req.params.id as string;
+        const watcher = queries.getWatcherById(watcherId) as WatcherRow | undefined;
+        if (!watcher) return res.status(404).json({ error: 'Watcher not found' });
+
+        console.log(`Manual check triggered for watcher: ${watcher.name} (${watcherId})`);
+        
+        // Execute the check immediately through the scheduler/executor
+        // We use a small interval here just as a placeholder, the execution isn't rescheduled by this call
+        // although executeScheduledCheck DOES reschedule if status is active.
+        await scheduler.executeScheduledCheck(watcherId, watcher.check_interval_minutes * 60 * 1000);
+        
+        const updatedWatcher = queries.getWatcherById(watcherId);
+        res.json({ message: 'Check executed', watcher: updatedWatcher });
+    } catch (error: any) {
+        console.error('Manual check failed:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 export default router;

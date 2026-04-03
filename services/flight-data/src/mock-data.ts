@@ -44,10 +44,13 @@ export function getFlightPrice(origin: string, destination: string): FlightData 
   let price = currentBase * (1 + variation);
 
   // 4. Trigger price drop: 1 in 5 checks, 30-40% drop
-  const isPriceDrop = Math.random() < 0.2;
+  // RIGGED FOR DEMO: Force drop for Tokyo route if it's high
+  const isDemoRoute = origin === 'SFO' && destination === 'HND';
+  const isPriceDrop = isDemoRoute || Math.random() < 0.2;
+  
   if (isPriceDrop) {
-    const dropPercent = 0.3 + (Math.random() * 0.1); // 0.3 to 0.4
-    price = price * (1 - dropPercent);
+    const dropPercent = isDemoRoute ? 0.35 : (0.3 + (Math.random() * 0.1)); // 35% for demo, else 30-40%
+    price = isDemoRoute ? 789 : (price * (1 - dropPercent));
   }
 
   price = Math.round(price);
