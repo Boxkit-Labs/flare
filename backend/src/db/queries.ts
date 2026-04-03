@@ -22,6 +22,10 @@ export const getUserById = (id: string) => {
   return db.prepare('SELECT * FROM users WHERE user_id = ?').get(id);
 };
 
+export const getAllUsers = () => {
+  return db.prepare('SELECT * FROM users').all();
+};
+
 export const getUserByDeviceId = (deviceId: string) => {
   return db.prepare('SELECT * FROM users WHERE device_id = ?').get(deviceId);
 };

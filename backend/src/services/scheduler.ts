@@ -1,7 +1,8 @@
 import cron from 'node-cron';
-import { getActiveWatchers, getWatcherById, updateWatcher } from '../db/queries.js';
+import { getActiveWatchers, getWatcherById, updateWatcher, getAllUsers, getTodayBriefing } from '../db/queries.js';
 import { WatcherRow } from '../types.js';
 import { CheckExecutor } from './check-executor.js';
+import { briefingGenerator } from './briefing-generator.js';
 
 export class SchedulerService {
   private activeJobs: Map<string, NodeJS.Timeout>;
@@ -29,6 +30,9 @@ export class SchedulerService {
 
     // Initialize Midnight Budget Reset Cron
     this.initWeeklyBudgetCron();
+
+    // Initialize 15-minute Morning Briefing Cron
+    this.initBriefingCron();
   }
 
   scheduleWatcher(watcher: WatcherRow): void {
@@ -181,6 +185,37 @@ export class SchedulerService {
        
     }, {
       timezone: "UTC"
+    });
+  }
+
+  private initBriefingCron(): void {
+    cron.schedule('*/15 * * * *', async () => {
+        console.log('Running 15-minute check for Morning Briefings...');
+        try {
+            const users = getAllUsers() as any[];
+            for (const user of users) {
+                if (!user.briefing_time || !user.timezone) continue;
+
+                // Format current time in user's timezone HH:MM
+                const userTimeStr = new Date().toLocaleTimeString('en-US', { 
+                    timeZone: user.timezone, 
+                    hour12: false, 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+
+                // e.g. "07:00"
+                if (userTimeStr === user.briefing_time) {
+                    const existingBriefing = getTodayBriefing(user.user_id);
+                    if (!existingBriefing) {
+                        console.log(`Generating morning briefing for user: ${user.user_id}`);
+                        await briefingGenerator.generateBriefing(user.user_id);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Error during briefing cron execution:', err);
+        }
     });
   }
 }
