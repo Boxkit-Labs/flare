@@ -6,6 +6,8 @@ import 'package:ghost_app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:ghost_app/features/auth/presentation/screens/onboarding/onboarding_screen.dart';
 import 'package:ghost_app/features/home/presentation/screens/home_screen.dart';
 import 'package:ghost_app/features/watchers/presentation/screens/watchers_list_screen.dart';
+import 'package:ghost_app/features/watchers/presentation/screens/create_watcher_screen.dart';
+import 'package:ghost_app/features/watchers/presentation/screens/watcher_detail_screen.dart';
 import 'package:ghost_app/features/home/presentation/screens/shell_screen.dart';
 
 class AppRouter {
@@ -45,14 +47,15 @@ class AppRouter {
         GoRoute(
           path: '/watchers/create',
           name: 'createWatcher',
-          builder: (context, state) => const PlaceholderScreen(title: 'Create Watcher'),
+          builder: (context, state) => const CreateWatcherScreen(),
         ),
         GoRoute(
           path: '/watchers/:id',
           name: 'watcherDetail',
-          builder: (context, state) => PlaceholderScreen(
-            title: 'Watcher ${state.pathParameters['id']}',
-          ),
+          builder: (context, state) {
+             final id = state.pathParameters['id']!;
+             return WatcherDetailScreen(watcherId: id);
+          },
         ),
         GoRoute(
           path: '/findings/:id',
