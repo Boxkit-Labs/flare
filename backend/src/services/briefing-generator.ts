@@ -1,0 +1,184 @@
+import { v4 as uuidv4 } from 'uuid';
+import { getUserById, getChecksSince, getWatchersByUserId, createBriefing } from '../db/queries.js';
+import { notificationService, NotificationService } from './notification.js';
+
+export class BriefingGenerator {
+  private notificationSvc: NotificationService;
+
+  constructor() {
+    this.notificationSvc = notificationService;
+  }
+
+  /**
+   * Generates a morning briefing for the overnight period and returns the Briefing Row
+   */
+  async generateBriefing(userId: string): Promise<any> {
+    // 1. Load user settings
+    const user = getUserById(userId) as any;
+    if (!user) throw new Error(`User ${userId} not found`);
+
+    // 2. Determine the briefing period
+    const now = new Date();
+    const periodEnd = now.toISOString();
+    
+    // Parse the user's dnd_start (e.g. '23:00'). If missing, default to 12 hours ago.
+    let periodStart: string;
+    
+    if (user.dnd_start) {
+      const [h, m] = user.dnd_start.split(':').map(Number);
+      const startDt = new Date(now);
+      
+      startDt.setUTCHours(h, m, 0, 0);
+      
+      // If the resulting time is in the future (e.g. now is 07:00, dnd_start is 23:00),
+      // that means dnd_start happened yesterday.
+      if (startDt > now) {
+          startDt.setUTCDate(startDt.getUTCDate() - 1);
+      }
+      periodStart = startDt.toISOString();
+    } else {
+      // Default to last 12 hours
+      const twelveHoursAgo = new Date(now.getTime() - (12 * 60 * 60 * 1000));
+      periodStart = twelveHoursAgo.toISOString();
+    }
+
+    // 3. Query all checks for this user since period_start
+    const checks = getChecksSince(userId, periodStart) as any[];
+
+    // 4. Separate findings from non-findings
+    const checkIds = checks.map(c => c.check_id);
+    const findingsIds = checks.filter(c => c.finding_detected === 1).map(c => c.finding_id).filter(id => id);
+
+    // Get all user's watchers to seed the summaries (even if 0 checks)
+    const watchers = getWatchersByUserId(userId) as any[];
+
+    // 5. Group checks by watcher
+    const summaryMap = new Map<string, any>();
+    
+    for (const w of watchers) {
+      summaryMap.set(w.watcher_id, {
+        watcher_id: w.watcher_id,
+        watcher_name: w.name,
+        type: w.type,
+        checks_run: 0,
+        findings_count: 0,
+        spent: 0,
+        latest_data_summary: "No checks run overnight."
+      });
+    }
+
+    // Process all checks
+    // We sort ascending to evaluate the "latest" at the end, or descending. 'getChecksSince' isn't explicitly sorted by us in memory, let's sort by checked_at ASC
+    checks.sort((a, b) => new Date(a.checked_at).getTime() - new Date(b.checked_at).getTime());
+
+    for (const check of checks) {
+       const wId = check.watcher_id;
+       if (!summaryMap.has(wId)) continue; // Watcher deleted?
+
+       const target = summaryMap.get(wId);
+       target.checks_run += 1;
+       if (check.finding_detected === 1) target.findings_count += 1;
+       target.spent += (check.cost_usdc || 0);
+
+       // Update latest_data_summary based on this most recent check's data
+       if (check.response_data && !check.response_data.error) {
+           target.latest_data_summary = this.buildLatestDataSummary(target.type, check.response_data);
+       } else if (check.response_data && check.response_data.error) {
+           target.latest_data_summary = "Service error occurred.";
+       }
+    }
+
+    const watcherSummaries = Array.from(summaryMap.values()).map(summary => {
+       // Strip out 'type' from final json if not wanted, but we keep it
+       return summary;
+    });
+
+    // 6. Calculate totals
+    const totalChecks = checks.length;
+    const totalFindings = findingsIds.length;
+    let totalCost = 0;
+    for (const summary of watcherSummaries) {
+       totalCost += summary.spent;
+    }
+
+    // 7. Generate summary text
+    const activeWatchersRan = watcherSummaries.filter(s => s.checks_run > 0).length;
+    const generatedSummary = `Overnight, ${activeWatchersRan} of your watchers ran ${totalChecks} checks costing $${totalCost.toFixed(2)} total. We found ${totalFindings} new matches.`;
+
+    // 8. Create DB Record
+    const today = now.toISOString().split('T')[0];
+    const briefingId = uuidv4();
+    
+    const briefingData = {
+        briefingId: briefingId,
+        userId: userId,
+        date: today,
+        periodStart: periodStart,
+        periodEnd: periodEnd,
+        totalChecks: totalChecks,
+        totalFindings: totalFindings,
+        totalCostUsdc: totalCost,
+        findingsJson: findingsIds,
+        watcherSummariesJson: watcherSummaries,
+        generatedSummary: generatedSummary
+    };
+
+    createBriefing(briefingData);
+
+    // 9. Fire Notification
+    // briefing payload for notificationService expects exact keys or we can map them
+    const notifyPayload = {
+       briefing_id: briefingData.briefingId,
+       total_findings: briefingData.totalFindings,
+       total_cost_usdc: briefingData.totalCostUsdc
+    };
+
+    try {
+        await this.notificationSvc.sendBriefingNotification(userId, notifyPayload);
+    } catch (e) {
+        console.warn(`Failed to send briefing push notification to user ${userId}`, e);
+    }
+
+    return briefingData;
+  }
+
+  private buildLatestDataSummary(type: string, data: any): string {
+     try {
+         switch (type.toLowerCase()) {
+            case 'flight':
+               if (data && data.price) {
+                  return `${data.origin || 'Unknown'}->${data.destination || 'Unknown'}: $${data.price}`;
+               }
+               return "No flight data returned.";
+               
+            case 'crypto':
+               if (data && data.priceUsd) {
+                   const change = data.changePercent24Hr ? ` (${Number(data.changePercent24Hr) > 0 ? '+' : ''}${Number(data.changePercent24Hr).toFixed(2)}%)` : '';
+                   return `${data.id || 'Crypto'}: $${Number(data.priceUsd).toFixed(2)}${change}`;
+               }
+               return "No valid crypto pricing.";
+               
+            case 'news':
+               const newsCount = Array.isArray(data.articles) ? data.articles.length : 0;
+               return newsCount === 0 ? "No new matches" : `${newsCount} articles found`;
+               
+            case 'product':
+               if (data && data.price) {
+                   return `${data.title ? data.title.substring(0, 20) : 'Product'}: $${data.price}`;
+               }
+               return "No pricing returned.";
+               
+            case 'job':
+               const jobCount = Array.isArray(data.jobs) ? data.jobs.length : 0;
+               return jobCount === 0 ? "0 new listings" : `${jobCount} new matches`;
+               
+            default:
+               return "Data collected successfully.";
+         }
+     } catch (e) {
+         return "Summary parsing failed.";
+     }
+  }
+}
+
+export const briefingGenerator = new BriefingGenerator();
