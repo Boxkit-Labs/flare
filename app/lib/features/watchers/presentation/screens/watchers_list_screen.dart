@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/core/widgets/shimmer_placeholder.dart';
+import 'package:ghost_app/core/widgets/error_state.dart';
+import 'package:ghost_app/core/widgets/shimmer_utilities.dart';
 import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ghost_app/features/watchers/presentation/bloc/watchers_bloc.dart';
 import 'package:ghost_app/features/watchers/presentation/bloc/watchers_event.dart';
@@ -38,7 +39,7 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Watchers', style: TextStyle(fontWeight: FontWeight.bold)),
-        automaticallyImplyLeading: false, // No back button as it's a main tab
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.sort),
@@ -55,52 +56,14 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
             child: RefreshIndicator(
               onRefresh: () async {
                 _refresh();
-                await Future.delayed(const Duration(milliseconds: 500));
+                await Future.delayed(const Duration(milliseconds: 800));
               },
               child: BlocBuilder<WatchersBloc, WatchersState>(
                 builder: (context, state) {
-                  if (state is WatchersLoaded) {
-                    final filteredWatchers = _applyFilter(state.watchers);
-                    
-                    if (filteredWatchers.isEmpty) {
-                      return _buildEmptyState();
-                    }
-
-                    return ListView.separated(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      itemCount: filteredWatchers.length,
-                      separatorBuilder: (context, index) => const Divider(height: 1, color: Colors.grey),
-                      itemBuilder: (context, index) {
-                         final watcher = filteredWatchers[index];
-                         return WatcherListTile(
-                           watcher: watcher,
-                           onToggle: (isActive) {
-                             context.read<WatchersBloc>().add(ToggleWatcher(watcher.watcherId));
-                           },
-                           onDelete: () {
-                             context.read<WatchersBloc>().add(DeleteWatcher(watcher.watcherId));
-                           },
-                         );
-                      },
-                    );
-                  }
-                  
-                  if (state is WatchersError) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text('Failed to load watchers'),
-                          ElevatedButton(
-                            onPressed: _refresh,
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return _buildShimmerList();
+                  return AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    child: _buildWatcherListContent(context, state),
+                  );
                 },
               ),
             ),
@@ -112,6 +75,50 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
         backgroundColor: AppTheme.primary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
+    );
+  }
+
+  Widget _buildWatcherListContent(BuildContext context, WatchersState state) {
+    if (state is WatchersLoaded) {
+      final filteredWatchers = _applyFilter(state.watchers);
+      
+      if (filteredWatchers.isEmpty) {
+        return _buildEmptyState();
+      }
+
+      return ListView.separated(
+        key: const ValueKey('loaded'),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        itemCount: filteredWatchers.length,
+        separatorBuilder: (context, index) => const Divider(height: 1, color: Colors.grey),
+        itemBuilder: (context, index) {
+           final watcher = filteredWatchers[index];
+           return WatcherListTile(
+             watcher: watcher,
+             onToggle: (isActive) {
+               context.read<WatchersBloc>().add(ToggleWatcher(watcher.watcherId));
+             },
+             onDelete: () {
+               context.read<WatchersBloc>().add(DeleteWatcher(watcher.watcherId));
+             },
+           );
+        },
+      );
+    }
+    
+    if (state is WatchersError) {
+      return ErrorState(
+        key: const ValueKey('error'),
+        message: state.message,
+        onRetry: _refresh,
+      );
+    }
+
+    return ShimmerList(
+      key: const ValueKey('loading'),
+      itemCount: 6,
+      itemHeight: 100,
+      padding: const EdgeInsets.all(16),
     );
   }
 
@@ -149,6 +156,7 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
 
   Widget _buildEmptyState() {
      return Center(
+       key: const ValueKey('empty'),
        child: Column(
          mainAxisAlignment: MainAxisAlignment.center,
          children: [
@@ -171,17 +179,6 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
          ],
        ),
      );
-  }
-
-  Widget _buildShimmerList() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: 5,
-      itemBuilder: (context, index) => const Padding(
-        padding: EdgeInsets.only(bottom: 16),
-        child: ShimmerPlaceholder(width: double.infinity, height: 100, borderRadius: 12),
-      ),
-    );
   }
 
   List<dynamic> _applyFilter(List<dynamic> watchers) {

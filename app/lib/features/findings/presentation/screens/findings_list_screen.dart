@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ghost_app/core/theme/app_theme.dart';
 import 'package:ghost_app/core/models/models.dart';
+import 'package:ghost_app/core/widgets/error_state.dart';
+import 'package:ghost_app/core/widgets/shimmer_utilities.dart';
 import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ghost_app/features/findings/presentation/bloc/findings_bloc.dart';
 import 'package:ghost_app/features/findings/presentation/bloc/findings_event.dart';
@@ -38,8 +40,11 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
   }
 
   void _refresh() {
-    final userId = (context.read<AuthBloc>().state as dynamic).user.userId;
-    context.read<FindingsBloc>().add(LoadFindings(userId));
+    final authState = context.read<AuthBloc>().state;
+    try {
+      final userId = (authState as dynamic).user.userId;
+      context.read<FindingsBloc>().add(LoadFindings(userId));
+    } catch (_) {}
   }
 
   @override
@@ -58,69 +63,106 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
       ),
       body: BlocBuilder<FindingsBloc, FindingsState>(
         builder: (context, state) {
-          if (state is FindingsLoading) {
-             return const Center(child: CircularProgressIndicator());
-          }
-
-          if (state is FindingsLoaded) {
-            final filteredFindings = _applyFilter(state.findings);
-            
-            if (filteredFindings.isEmpty) {
-              return _buildEmptyState();
-            }
-
-            final grouped = _groupFindingsByDate(filteredFindings);
-
-            return RefreshIndicator(
-              onRefresh: () async {
-                _refresh();
-                await Future.delayed(const Duration(milliseconds: 500));
-              },
-              child: Column(
-                children: [
-                  _buildFilterChips(state.unreadCount),
-                  Expanded(
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: grouped.keys.length,
-                      itemBuilder: (context, index) {
-                        final dateLabel = grouped.keys.elementAt(index);
-                        final items = grouped[dateLabel]!;
-                        
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              child: Text(
-                                dateLabel.toUpperCase(),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textSecondary,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                            ),
-                            ...items.map((f) => FindingCard(finding: f)),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          if (state is FindingsError) {
-             return Center(child: Text(state.message));
-          }
-
-          return const SizedBox.shrink();
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 500),
+            child: _buildFindingsContent(context, state),
+          );
         },
       ),
+    );
+  }
+
+  Widget _buildFindingsContent(BuildContext context, FindingsState state) {
+    if (state is FindingsLoaded) {
+      final filteredFindings = _applyFilter(state.findings);
+      
+      if (filteredFindings.isEmpty) {
+        return _buildEmptyState();
+      }
+
+      final grouped = _groupFindingsByDate(filteredFindings);
+
+      return RefreshIndicator(
+        onRefresh: () async {
+          _refresh();
+          await Future.delayed(const Duration(milliseconds: 800));
+        },
+        child: Column(
+          key: const ValueKey('loaded'),
+          children: [
+            _buildFilterChips(state.unreadCount),
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: grouped.keys.length,
+                itemBuilder: (context, index) {
+                  final dateLabel = grouped.keys.elementAt(index);
+                  final items = grouped[dateLabel]!;
+                  
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          dateLabel.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textSecondary,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                      ...items.asMap().entries.map((entry) {
+                        final idx = entry.key;
+                        final finding = entry.value;
+                        return TweenAnimationBuilder<double>(
+                          duration: Duration(milliseconds: 400 + (idx * 50)),
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          builder: (context, value, child) {
+                            return Opacity(
+                              opacity: value,
+                              child: Transform.translate(
+                                offset: Offset(0, 20 * (1 - value)),
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: FindingCard(finding: finding),
+                        );
+                      }),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (state is FindingsError) {
+      return ErrorState(
+        key: const ValueKey('error'),
+        message: state.message,
+        onRetry: _refresh,
+      );
+    }
+
+    return Column(
+      key: const ValueKey('loading'),
+      children: [
+        const ShimmerGrid(itemCount: 5, itemHeight: 40, padding: EdgeInsets.all(16)),
+        Expanded(
+          child: ShimmerList(
+            itemCount: 8,
+            itemHeight: 120,
+            padding: const EdgeInsets.all(20),
+          ),
+        ),
+      ],
     );
   }
 

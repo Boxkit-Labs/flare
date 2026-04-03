@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:ghost_app/core/mixins/auto_refresh_mixin.dart';
 import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ghost_app/features/home/presentation/screens/home_content.dart';
 import 'package:ghost_app/features/watchers/presentation/bloc/watchers_bloc.dart';
@@ -18,11 +19,12 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with AutoRefreshMixin {
   @override
   void initState() {
     super.initState();
     _refreshData();
+    startAutoRefresh(const Duration(seconds: 30), _refreshData);
   }
 
   void _refreshData() {
@@ -46,7 +48,8 @@ class _HomeScreenState extends State<HomeScreen> {
         child: RefreshIndicator(
           onRefresh: () async {
             _refreshData();
-            await Future.delayed(const Duration(milliseconds: 500));
+            // Wait for at least one bloc to finish or a small delay
+            await Future.delayed(const Duration(milliseconds: 800));
           },
           child: const HomeContent(),
         ),

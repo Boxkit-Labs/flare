@@ -2,17 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/core/widgets/shimmer_placeholder.dart';
+import 'package:ghost_app/core/widgets/shimmer_utilities.dart';
+import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ghost_app/features/watchers/presentation/bloc/watchers_bloc.dart';
+import 'package:ghost_app/features/watchers/presentation/bloc/watchers_event.dart';
 import 'package:ghost_app/features/watchers/presentation/bloc/watchers_state.dart';
 import 'package:ghost_app/features/watchers/presentation/widgets/watcher_card.dart';
 import 'package:ghost_app/features/findings/presentation/bloc/findings_bloc.dart';
+import 'package:ghost_app/features/findings/presentation/bloc/findings_event.dart';
 import 'package:ghost_app/features/findings/presentation/bloc/findings_state.dart';
 import 'package:ghost_app/features/findings/presentation/widgets/finding_card.dart';
 import 'package:ghost_app/features/briefing/presentation/bloc/briefing_bloc.dart';
 import 'package:ghost_app/features/briefing/presentation/bloc/briefing_state.dart';
 import 'package:ghost_app/features/briefing/presentation/bloc/briefing_event.dart';
 import 'package:ghost_app/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:ghost_app/features/wallet/presentation/bloc/wallet_event.dart';
 import 'package:ghost_app/features/wallet/presentation/bloc/wallet_state.dart';
 
 class HomeContent extends StatelessWidget {
@@ -23,6 +27,18 @@ class HomeContent extends StatelessWidget {
     if (hour < 12) return 'Good morning';
     if (hour < 17) return 'Good afternoon';
     return 'Good evening';
+  }
+
+  void _onRetry(BuildContext context) {
+    final authState = context.read<AuthBloc>().state;
+    try {
+      final userId = (authState as dynamic).user.userId;
+      // Triggers for any screen refresh
+      context.read<WalletBloc>().add(LoadWallet(userId));
+      context.read<WatchersBloc>().add(LoadWatchers(userId));
+      context.read<FindingsBloc>().add(LoadFindings(userId));
+      context.read<BriefingBloc>().add(LoadTodayBriefing(userId));
+    } catch (_) {}
   }
 
   @override
@@ -60,39 +76,10 @@ class HomeContent extends StatelessWidget {
                 ),
                 BlocBuilder<WalletBloc, WalletState>(
                   builder: (context, state) {
-                    if (state is WalletLoaded) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          InkWell(
-                            onTap: () => context.push('/wallet'),
-                            borderRadius: BorderRadius.circular(20),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: AppTheme.surface,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.3)),
-                              ),
-                              child: Text(
-                                '\$${state.wallet?.balanceUsdc.toStringAsFixed(2) ?? "0.00"} USDC',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.secondary,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Spent \$${state.stats?.spentToday?.toStringAsFixed(2) ?? "0.00"} today',
-                            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-                          ),
-                        ],
-                      );
-                    }
-                    return const ShimmerPlaceholder(width: 100, height: 40, borderRadius: 20);
+                    return AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: _buildWalletCapsule(context, state),
+                    );
                   },
                 ),
               ],
@@ -101,57 +88,13 @@ class HomeContent extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // ─── MORNING BRIEFING BANNER (Conditional) ───
+          // ─── MORNING BRIEFING BANNER ───
           BlocBuilder<BriefingBloc, BriefingState>(
             builder: (context, state) {
-              if (state is BriefingLoaded && state.todayBriefing != null && !state.todayBriefing!.isRead) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  child: Dismissible(
-                    key: Key(state.todayBriefing!.briefingId),
-                    onDismissed: (_) {
-                       context.read<BriefingBloc>().add(MarkBriefingRead(state.todayBriefing!.briefingId));
-                    },
-                    child: InkWell(
-                      onTap: () => context.push('/briefing'),
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Colors.purple, Colors.teal],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          children: [
-                            const Text('☀️', style: TextStyle(fontSize: 32)),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Morning Briefing',
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                                  ),
-                                  Text(
-                                    '${state.todayBriefing!.totalFindings} findings, \$${state.todayBriefing!.totalCostUsdc.toStringAsFixed(2)} overnight',
-                                    style: const TextStyle(fontSize: 14, color: Colors.white70),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }
-              return const SizedBox.shrink();
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 400),
+                child: _buildBriefingBanner(context, state),
+              );
             },
           ),
 
@@ -161,27 +104,10 @@ class HomeContent extends StatelessWidget {
           const SizedBox(height: 16),
           BlocBuilder<WatchersBloc, WatchersState>(
             builder: (context, state) {
-              if (state is WatchersLoaded) {
-                final watchers = state.watchers;
-                return SizedBox(
-                  height: 180,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    itemCount: watchers.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index < watchers.length) {
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 16),
-                          child: WatcherCard(watcher: watchers[index]),
-                        );
-                      }
-                      return _buildAddButton(context);
-                    },
-                  ),
-                );
-              }
-              return _buildShimmerGrid();
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 500),
+                child: _buildWatchersSection(context, state),
+              );
             },
           ),
 
@@ -191,30 +117,10 @@ class HomeContent extends StatelessWidget {
           const SizedBox(height: 16),
           BlocBuilder<FindingsBloc, FindingsState>(
             builder: (context, state) {
-              if (state is FindingsLoaded) {
-                final findings = state.findings;
-                if (findings.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(
-                      child: Text(
-                        'No findings yet. Your agents are checking... 👻',
-                        style: TextStyle(color: AppTheme.textSecondary),
-                      ),
-                    ),
-                  );
-                }
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: findings.length.clamp(0, 5),
-                    itemBuilder: (context, index) => FindingCard(finding: findings[index]),
-                  ),
-                );
-              }
-              return _buildShimmerList();
+              return AnimatedSwitcher(
+                duration: const Duration(milliseconds: 500),
+                child: _buildFindingsSection(context, state),
+              );
             },
           ),
 
@@ -232,7 +138,7 @@ class HomeContent extends StatelessWidget {
                         ? state.watchers.where((w) => w.status == 'active').length 
                         : 0;
                     return Text(
-                      '$activeCount watchers active · Next check in 14 min',
+                      '$activeCount watchers active · Next check in periodically',
                       style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
                     );
                   },
@@ -244,6 +150,181 @@ class HomeContent extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildWalletCapsule(BuildContext context, WalletState state) {
+    if (state is WalletLoaded) {
+      return Column(
+        key: const ValueKey('wallet_loaded'),
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          InkWell(
+            onTap: () => context.push('/wallet'),
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                '\$${state.wallet?.balanceUsdc.toStringAsFixed(2) ?? "0.00"} USDC',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.secondary,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Spent \$${state.stats?.spentToday?.toStringAsFixed(2) ?? "0.00"} today',
+            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+          ),
+        ],
+      );
+    }
+    if (state is WalletError) {
+      return IconButton(
+        key: const ValueKey('wallet_error'),
+        icon: const Icon(Icons.refresh, color: AppTheme.error),
+        onPressed: () => _onRetry(context),
+      );
+    }
+    return const ShimmerPlaceholder(
+      key: ValueKey('wallet_loading'),
+      width: 100,
+      height: 40,
+      borderRadius: 20,
+    );
+  }
+
+  Widget _buildBriefingBanner(BuildContext context, BriefingState state) {
+    if (state is BriefingLoaded && state.todayBriefing != null && !state.todayBriefing!.isRead) {
+      return Padding(
+        key: ValueKey('briefing_${state.todayBriefing!.briefingId}'),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        child: Dismissible(
+          key: Key(state.todayBriefing!.briefingId),
+          onDismissed: (_) {
+             context.read<BriefingBloc>().add(MarkBriefingRead(state.todayBriefing!.briefingId));
+          },
+          child: InkWell(
+            onTap: () => context.push('/briefing'),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Colors.purple, Colors.teal],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  const Text('☀️', style: TextStyle(fontSize: 32)),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Morning Briefing',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        ),
+                        Text(
+                          '${state.todayBriefing!.totalFindings} findings, \$${state.todayBriefing!.totalCostUsdc.toStringAsFixed(2)} overnight',
+                          style: const TextStyle(fontSize: 14, color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink(key: ValueKey('briefing_none'));
+  }
+
+  Widget _buildWatchersSection(BuildContext context, WatchersState state) {
+    if (state is WatchersLoaded) {
+      final watchers = state.watchers;
+      return SizedBox(
+        key: const ValueKey('watchers_loaded'),
+        height: 180,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          itemCount: watchers.length + 1,
+          itemBuilder: (context, index) {
+            if (index < watchers.length) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: WatcherCard(watcher: watchers[index]),
+              );
+            }
+            return _buildAddButton(context);
+          },
+        ),
+      );
+    }
+    if (state is WatchersError) {
+      return Center(
+        key: const ValueKey('watchers_error'),
+        child: TextButton.icon(
+          onPressed: () => _onRetry(context),
+          icon: const Icon(Icons.refresh),
+          label: const Text('Reload Watchers'),
+        ),
+      );
+    }
+    return const ShimmerGrid(key: ValueKey('watchers_loading'), itemCount: 3);
+  }
+
+  Widget _buildFindingsSection(BuildContext context, FindingsState state) {
+    if (state is FindingsLoaded) {
+      final findings = state.findings;
+      if (findings.isEmpty) {
+        return const Padding(
+          key: ValueKey('findings_empty'),
+          padding: EdgeInsets.all(24),
+          child: Center(
+            child: Text(
+              'No findings yet. Your agents are checking... 👻',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+          ),
+        );
+      }
+      return Padding(
+        key: const ValueKey('findings_loaded'),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: findings.length.clamp(0, 5),
+          itemBuilder: (context, index) => FindingCard(finding: findings[index]),
+        ),
+      );
+    }
+    if (state is FindingsError) {
+      return Center(
+        key: const ValueKey('findings_error'),
+        child: TextButton.icon(
+          onPressed: () => _onRetry(context),
+          icon: const Icon(Icons.refresh),
+          label: const Text('Reload Findings'),
+        ),
+      );
+    }
+    return const ShimmerList(key: ValueKey('findings_loading'), itemCount: 3);
   }
 
   Widget _buildSectionHeader(BuildContext context, String title, String route) {
@@ -278,33 +359,6 @@ class HomeContent extends StatelessWidget {
           border: Border.all(color: AppTheme.surface.withAlpha(100), style: BorderStyle.solid),
         ),
         child: const Icon(Icons.add, size: 32, color: AppTheme.textSecondary),
-      ),
-    );
-  }
-
-  Widget _buildShimmerGrid() {
-    return SizedBox(
-      height: 180,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        itemCount: 3,
-        itemBuilder: (context, index) => const Padding(
-           padding: EdgeInsets.only(right: 16),
-           child: ShimmerPlaceholder(width: 180, height: 180, borderRadius: 16),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildShimmerList() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        children: List.generate(3, (index) => const Padding(
-           padding: EdgeInsets.only(bottom: 12),
-           child: ShimmerPlaceholder(width: double.infinity, height: 80, borderRadius: 12),
-        )),
       ),
     );
   }

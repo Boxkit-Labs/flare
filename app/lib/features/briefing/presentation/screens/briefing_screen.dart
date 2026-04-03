@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ghost_app/core/theme/app_theme.dart';
 import 'package:ghost_app/core/models/models.dart';
+import 'package:ghost_app/core/widgets/error_state.dart';
+import 'package:ghost_app/core/widgets/shimmer_utilities.dart';
 import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ghost_app/features/briefing/presentation/bloc/briefing_bloc.dart';
 import 'package:ghost_app/features/briefing/presentation/bloc/briefing_event.dart';
@@ -27,9 +29,12 @@ class _BriefingScreenState extends State<BriefingScreen> {
   }
 
   void _refresh() {
-    final userId = (context.read<AuthBloc>().state as dynamic).user.userId;
-    context.read<BriefingBloc>().add(LoadTodayBriefing(userId));
-    context.read<BriefingBloc>().add(LoadBriefingHistory(userId, limit: 7));
+    final authState = context.read<AuthBloc>().state;
+    try {
+      final userId = (authState as dynamic).user.userId;
+      context.read<BriefingBloc>().add(LoadTodayBriefing(userId));
+      context.read<BriefingBloc>().add(LoadBriefingHistory(userId, limit: 7));
+    } catch (_) {}
   }
 
   void _changeDate(int days) {
@@ -64,29 +69,62 @@ class _BriefingScreenState extends State<BriefingScreen> {
         ),
         body: BlocBuilder<BriefingBloc, BriefingState>(
           builder: (context, state) {
-            if (state is BriefingLoading || state is BriefingGenerating) {
-               return const Center(child: CircularProgressIndicator());
-            }
-
-            if (state is BriefingLoaded) {
-               final briefing = state.todayBriefing; // For now assuming today
-               
-               if (briefing == null && _selectedDate.day == DateTime.now().day) {
-                  return _buildNoBriefingState();
-               }
-
-               if (briefing != null) {
-                  return _buildBriefingContent(briefing);
-               }
-            }
-
-            if (state is BriefingError) {
-               return Center(child: Text(state.message));
-            }
-
-            return _buildNoBriefingState(); 
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 500),
+              child: _buildBriefingBody(context, state),
+            );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildBriefingBody(BuildContext context, BriefingState state) {
+    if (state is BriefingLoaded) {
+      final briefing = state.todayBriefing; // For now assuming today
+      
+      if (briefing == null && _selectedDate.day == DateTime.now().day) {
+        return _buildNoBriefingState();
+      }
+
+      if (briefing != null) {
+        return RefreshIndicator(
+          key: const ValueKey('loaded'),
+          onRefresh: () async {
+            _refresh();
+            await Future.delayed(const Duration(milliseconds: 800));
+          },
+          child: _buildBriefingContent(briefing),
+        );
+      }
+    }
+
+    if (state is BriefingError) {
+      return ErrorState(
+        key: const ValueKey('error'),
+        message: state.message,
+        onRetry: _refresh,
+      );
+    }
+
+    return SingleChildScrollView(
+      key: const ValueKey('loading'),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const ShimmerPlaceholder(width: 200, height: 32),
+          const SizedBox(height: 8),
+          const ShimmerPlaceholder(width: 250, height: 16),
+          const SizedBox(height: 40),
+          const ShimmerHeader(),
+          const SizedBox(height: 16),
+          const ShimmerList(itemCount: 2, itemHeight: 120, padding: EdgeInsets.zero),
+          const SizedBox(height: 32),
+          const ShimmerHeader(),
+          const SizedBox(height: 16),
+          const ShimmerList(itemCount: 3, itemHeight: 60, padding: EdgeInsets.zero),
+        ],
       ),
     );
   }

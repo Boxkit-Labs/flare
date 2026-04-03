@@ -3,6 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ghost_app/core/theme/app_theme.dart';
 import 'package:ghost_app/core/models/models.dart';
+import 'package:ghost_app/core/mixins/auto_refresh_mixin.dart';
+import 'package:ghost_app/core/widgets/error_state.dart';
+import 'package:ghost_app/core/widgets/shimmer_utilities.dart';
 import 'package:ghost_app/features/watchers/presentation/bloc/watchers_bloc.dart';
 import 'package:ghost_app/features/watchers/presentation/bloc/watchers_event.dart';
 import 'package:ghost_app/features/watchers/presentation/bloc/watchers_state.dart';
@@ -19,7 +22,7 @@ class WatcherDetailScreen extends StatefulWidget {
   State<WatcherDetailScreen> createState() => _WatcherDetailScreenState();
 }
 
-class _WatcherDetailScreenState extends State<WatcherDetailScreen> with SingleTickerProviderStateMixin {
+class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerProviderStateMixin, AutoRefreshMixin {
   late TabController _tabController;
 
   @override
@@ -27,6 +30,7 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with SingleTi
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _refresh();
+    startAutoRefresh(const Duration(seconds: 30), _refresh);
   }
 
   void _refresh() {
@@ -43,68 +47,87 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with SingleTi
   Widget build(BuildContext context) {
     return BlocBuilder<WatchersBloc, WatchersState>(
       builder: (context, state) {
-        if (state is WatcherDetailLoaded && state.watcher.watcherId == widget.watcherId) {
-          final watcher = state.watcher;
-          return Scaffold(
-            appBar: AppBar(
-              title: Text(watcher.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => context.push('/watchers/${watcher.watcherId}/edit'),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.more_vert),
-                  onPressed: () => _showOptions(context, watcher),
-                ),
-              ],
-            ),
-            body: RefreshIndicator(
-              onRefresh: () async {
-                _refresh();
-                await Future.delayed(const Duration(milliseconds: 500));
-              },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildStatusHeader(watcher),
-                    const SizedBox(height: 24),
-                    _buildStatsRow(watcher),
-                    const SizedBox(height: 32),
-                    _buildBudgetBar(watcher),
-                    const SizedBox(height: 32),
-                    _buildTabs(watcher),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
-
-        if (state is WatchersError) {
-           return Scaffold(
-             appBar: AppBar(),
-             body: Center(
-               child: Column(
-                 mainAxisAlignment: MainAxisAlignment.center,
-                 children: [
-                   Text(state.message),
-                   const SizedBox(height: 16),
-                   ElevatedButton(onPressed: _refresh, child: const Text('Retry')),
-                 ],
-               ),
-             ),
-           );
-        }
-
-        return Scaffold(
-          appBar: AppBar(),
-          body: const Center(child: CircularProgressIndicator()),
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 500),
+          child: _buildBody(context, state),
         );
       },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, WatchersState state) {
+    if (state is WatcherDetailLoaded && state.watcher.watcherId == widget.watcherId) {
+      final watcher = state.watcher;
+      return Scaffold(
+        key: const ValueKey('loaded'),
+        appBar: AppBar(
+          title: Text(watcher.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () => context.push('/watchers/${watcher.watcherId}/edit'),
+            ),
+            IconButton(
+              icon: const Icon(Icons.more_vert),
+              onPressed: () => _showOptions(context, watcher),
+            ),
+          ],
+        ),
+        body: RefreshIndicator(
+          onRefresh: () async {
+            _refresh();
+            await Future.delayed(const Duration(milliseconds: 800));
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildStatusHeader(watcher),
+                const SizedBox(height: 24),
+                _buildStatsRow(watcher),
+                const SizedBox(height: 32),
+                _buildBudgetBar(watcher),
+                const SizedBox(height: 32),
+                _buildTabs(watcher),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (state is WatchersError) {
+      return Scaffold(
+        key: const ValueKey('error'),
+        appBar: AppBar(),
+        body: ErrorState(
+          message: state.message,
+          onRetry: _refresh,
+        ),
+      );
+    }
+
+    return Scaffold(
+      key: const ValueKey('loading'),
+      appBar: AppBar(title: const ShimmerPlaceholder(width: 120, height: 20)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            const ShimmerPlaceholder(width: double.infinity, height: 100, borderRadius: 16),
+            const SizedBox(height: 24),
+            const ShimmerHeader(height: 40),
+            const SizedBox(height: 32),
+            const ShimmerPlaceholder(width: double.infinity, height: 40),
+            const SizedBox(height: 32),
+            const ShimmerHeader(),
+            const SizedBox(height: 16),
+            const ShimmerList(itemCount: 4, itemHeight: 80, padding: EdgeInsets.zero),
+          ],
+        ),
+      ),
     );
   }
 

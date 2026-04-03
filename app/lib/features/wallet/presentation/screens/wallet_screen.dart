@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ghost_app/core/theme/app_theme.dart';
 import 'package:ghost_app/core/models/models.dart';
+import 'package:ghost_app/core/widgets/error_state.dart';
+import 'package:ghost_app/core/widgets/shimmer_utilities.dart';
 import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ghost_app/features/wallet/presentation/bloc/wallet_bloc.dart';
 import 'package:ghost_app/features/wallet/presentation/bloc/wallet_event.dart';
@@ -45,43 +47,78 @@ class _WalletScreenState extends State<WalletScreen> {
       ),
       body: BlocBuilder<WalletBloc, WalletState>(
         builder: (context, state) {
-          if (state is WalletLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (state is WalletLoaded) {
-            return RefreshIndicator(
-              onRefresh: () async {
-                _refresh();
-                await Future.delayed(const Duration(milliseconds: 500));
-              },
-              child: ListView(
-                padding: const EdgeInsets.all(24),
-                children: [
-                  _buildBalanceHeader(state.wallet),
-                  const SizedBox(height: 32),
-                  _buildTodayStats(state.stats),
-                  const SizedBox(height: 32),
-                  _buildSpendingChart(state.stats),
-                  const SizedBox(height: 32),
-                  _buildWatcherBreakdown(state.stats),
-                  const SizedBox(height: 32),
-                  _buildSavingsBanner(state.stats),
-                  const SizedBox(height: 32),
-                  _buildTransactionHistory(state.transactions),
-                  const SizedBox(height: 60),
-                ],
-              ),
-            );
-          }
-
-          if (state is WalletError) {
-            return Center(child: Text(state.message));
-          }
-
-          return const SizedBox.shrink();
+          return AnimatedSwitcher(
+            duration: const Duration(milliseconds: 500),
+            child: _buildWalletContent(context, state),
+          );
         },
       ),
+    );
+  }
+
+  Widget _buildWalletContent(BuildContext context, WalletState state) {
+    if (state is WalletLoaded) {
+      return RefreshIndicator(
+        key: const ValueKey('loaded'),
+        onRefresh: () async {
+          _refresh();
+          await Future.delayed(const Duration(milliseconds: 800));
+        },
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            _buildBalanceHeader(state.wallet),
+            const SizedBox(height: 32),
+            _buildTodayStats(state.stats),
+            const SizedBox(height: 32),
+            _buildSpendingChart(state.stats),
+            const SizedBox(height: 32),
+            _buildWatcherBreakdown(state.stats),
+            const SizedBox(height: 32),
+            _buildSavingsBanner(state.stats),
+            const SizedBox(height: 32),
+            _buildTransactionHistory(state.transactions),
+            const SizedBox(height: 60),
+          ],
+        ),
+      );
+    }
+
+    if (state is WalletError) {
+      return ErrorState(
+        key: const ValueKey('error'),
+        message: state.message,
+        onRetry: _refresh,
+      );
+    }
+
+    return ListView(
+      key: const ValueKey('loading'),
+      padding: const EdgeInsets.all(24),
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        const Center(
+          child: Column(
+            children: [
+              ShimmerPlaceholder(width: 150, height: 16),
+              SizedBox(height: 8),
+              ShimmerPlaceholder(width: 200, height: 60),
+              SizedBox(height: 24),
+              ShimmerPlaceholder(width: 120, height: 40, borderRadius: 20),
+            ],
+          ),
+        ),
+        const SizedBox(height: 40),
+        const ShimmerGrid(itemCount: 3, itemHeight: 80, padding: EdgeInsets.zero),
+        const SizedBox(height: 40),
+        const ShimmerPlaceholder(width: 150, height: 24),
+        const SizedBox(height: 24),
+        const ShimmerPlaceholder(width: double.infinity, height: 200, borderRadius: 20),
+        const SizedBox(height: 40),
+        const ShimmerHeader(),
+        const SizedBox(height: 16),
+        const ShimmerList(itemCount: 5, padding: EdgeInsets.zero),
+      ],
     );
   }
 
