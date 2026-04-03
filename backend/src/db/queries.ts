@@ -173,6 +173,10 @@ export const markFindingRead = (id: string) => {
   return db.prepare('UPDATE findings SET read = 1 WHERE finding_id = ?').run(id);
 };
 
+export const markFindingNotified = (id: string) => {
+  return db.prepare('UPDATE findings SET notified = 1 WHERE finding_id = ?').run(id);
+};
+
 // --- BRIEFING QUERIES ---
 
 export const createBriefing = (briefing: any) => {

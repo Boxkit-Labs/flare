@@ -2,7 +2,7 @@ import { getWatcherById, getUserById, updateWatcher, createCheck, createTransact
 import { decrypt } from '../utils/crypto.js';
 import { payForService } from './stellar-pay-client.js';
 import { FindingDetector } from './finding-detector.js';
-import { sendPushNotification } from '../utils/notifications.js';
+import { notificationService } from './notification.js';
 import { WatcherRow } from '../types.js';
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
@@ -46,11 +46,7 @@ export class CheckExecutor {
       if (watcher.spent_this_week_usdc >= watcher.weekly_budget_usdc) {
         console.warn(`CheckExecutor: Watcher ${watcherId} exceeded weekly budget. Pausing.`);
         updateWatcher(watcherId, { status: 'paused_budget' });
-        await sendPushNotification(
-            watcher.user_id, 
-            "Wallet Paused", 
-            `Watcher '${watcher.name}' paused — weekly budget reached.`
-        );
+        await notificationService.sendBudgetExhausted(watcher.user_id, watcher);
         return;
       }
 
@@ -133,11 +129,7 @@ export class CheckExecutor {
           
           if (isBalanceIssue) {
               updateWatcher(watcherId, { status: 'paused_wallet', error_message: 'Insufficient USDC Balance' });
-              await sendPushNotification(
-                 watcher.user_id, 
-                 "Insufficient Funds", 
-                 `Watcher '${watcher.name}' paused. Please deposit more USDC.`
-              );
+              await notificationService.sendLowBalance(watcher.user_id, '0.00');
           } else {
               updateWatcher(watcherId, { status: 'error', error_message: errorMsg });
           }
@@ -177,11 +169,7 @@ export class CheckExecutor {
           agentReasoning = finding.agent_reasoning || 'Finding matched conditions.';
           console.log(`FINDING: ${finding.headline}`);
           
-          await sendPushNotification(
-              watcher.user_id, 
-              `Alert: ${watcher.name}`, 
-              finding.headline
-          );
+          await notificationService.sendFindingNotification(watcher.user_id, finding, watcher);
       } else {
           // 14. If No Finding
           agentReasoning = "No finding matched the alert criteria.";
@@ -208,6 +196,12 @@ export class CheckExecutor {
       const newSpentThisWeek = (watcher.spent_this_week_usdc || 0) + costUsdc;
       const newTotalSpent = ((watcher as any).total_spent_usdc || 0) + costUsdc;
       const nowStr = new Date().toISOString();
+
+      // Check for 80% budget warning
+      const percentUsed = (newSpentThisWeek / watcher.weekly_budget_usdc) * 100;
+      if (percentUsed >= 80 && watcher.spent_this_week_usdc / watcher.weekly_budget_usdc * 100 < 80) {
+          await notificationService.sendBudgetWarning(watcher.user_id, watcher, Math.round(percentUsed));
+      }
 
       const updates: any = {
         last_check_at: nowStr,

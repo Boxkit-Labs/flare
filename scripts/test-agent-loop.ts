@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 async function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -53,7 +51,7 @@ async function testFullLoop() {
         let elapsed = 0;
         const intervalId = setInterval(() => {
             elapsed += 5;
-            process.stdout.write(`\rWaiting... ${elapsed}s / 65s`);
+            console.log(`Waiting... ${elapsed}s / 65s`);
         }, 5000);
 
         await delay(65000);
