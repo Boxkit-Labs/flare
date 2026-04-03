@@ -10,6 +10,8 @@ import 'package:ghost_app/features/watchers/presentation/screens/create_watcher_
 import 'package:ghost_app/features/watchers/presentation/screens/watcher_detail_screen.dart';
 import 'package:ghost_app/features/findings/presentation/screens/findings_list_screen.dart';
 import 'package:ghost_app/features/findings/presentation/screens/finding_detail_screen.dart';
+import 'package:ghost_app/features/briefing/presentation/screens/briefing_screen.dart';
+import 'package:ghost_app/features/wallet/presentation/screens/wallet_screen.dart';
 import 'package:ghost_app/features/home/presentation/screens/shell_screen.dart';
 
 class AppRouter {
@@ -88,12 +90,12 @@ class AppRouter {
             GoRoute(
               path: '/briefing',
               name: 'briefing',
-              builder: (context, state) => const PlaceholderScreen(title: 'Briefing'),
+              builder: (context, state) => const BriefingScreen(),
             ),
             GoRoute(
               path: '/wallet',
               name: 'wallet',
-              builder: (context, state) => const PlaceholderScreen(title: 'Wallet'),
+              builder: (context, state) => const WalletScreen(),
             ),
           ],
         ),
