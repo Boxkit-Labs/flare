@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ghost_app/core/util/placeholder_screen.dart';
 import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ghost_app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:ghost_app/features/auth/presentation/screens/onboarding/onboarding_screen.dart';
@@ -8,10 +7,12 @@ import 'package:ghost_app/features/home/presentation/screens/home_screen.dart';
 import 'package:ghost_app/features/watchers/presentation/screens/watchers_list_screen.dart';
 import 'package:ghost_app/features/watchers/presentation/screens/create_watcher_screen.dart';
 import 'package:ghost_app/features/watchers/presentation/screens/watcher_detail_screen.dart';
+import 'package:ghost_app/features/watchers/presentation/screens/edit_watcher_screen.dart';
 import 'package:ghost_app/features/findings/presentation/screens/findings_list_screen.dart';
 import 'package:ghost_app/features/findings/presentation/screens/finding_detail_screen.dart';
 import 'package:ghost_app/features/briefing/presentation/screens/briefing_screen.dart';
 import 'package:ghost_app/features/wallet/presentation/screens/wallet_screen.dart';
+import 'package:ghost_app/features/settings/presentation/screens/settings_screen.dart';
 import 'package:ghost_app/features/home/presentation/screens/shell_screen.dart';
 
 class AppRouter {
@@ -46,7 +47,7 @@ class AppRouter {
         GoRoute(
           path: '/settings',
           name: 'settings',
-          builder: (context, state) => const PlaceholderScreen(title: 'Settings'),
+          builder: (context, state) => const SettingsScreen(),
         ),
         GoRoute(
           path: '/watchers/create',
@@ -59,6 +60,14 @@ class AppRouter {
           builder: (context, state) {
              final id = state.pathParameters['id']!;
              return WatcherDetailScreen(watcherId: id);
+          },
+        ),
+        GoRoute(
+          path: '/watchers/:id/edit',
+          name: 'editWatcher',
+          builder: (context, state) {
+             final id = state.pathParameters['id']!;
+             return EditWatcherScreen(watcherId: id);
           },
         ),
         GoRoute(

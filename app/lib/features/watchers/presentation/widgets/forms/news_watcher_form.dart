@@ -3,8 +3,9 @@ import 'package:ghost_app/core/theme/app_theme.dart';
 
 class NewsWatcherForm extends StatefulWidget {
   final Function(Map<String, dynamic>) onChanged;
+  final Map<String, dynamic>? initialData;
 
-  const NewsWatcherForm({super.key, required this.onChanged});
+  const NewsWatcherForm({super.key, required this.onChanged, this.initialData});
 
   @override
   State<NewsWatcherForm> createState() => _NewsWatcherFormState();
@@ -21,6 +22,13 @@ class _NewsWatcherFormState extends State<NewsWatcherForm> {
     super.initState();
     _nameController.addListener(_updateData);
     _nameController.text = 'News Watch';
+
+    if (widget.initialData != null) {
+      if (widget.initialData!['keywords'] != null) {
+        _keywords.addAll(List<String>.from(widget.initialData!['keywords']));
+      }
+      _minArticles = widget.initialData!['min_articles'] ?? 1;
+    }
   }
 
   void _updateData() {

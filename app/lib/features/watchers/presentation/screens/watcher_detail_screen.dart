@@ -51,9 +51,7 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with SingleTi
               actions: [
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
-                  onPressed: () {
-                     // TODO: Navigate to Edit screen
-                  },
+                  onPressed: () => context.push('/watchers/${watcher.watcherId}/edit'),
                 ),
                 IconButton(
                   icon: const Icon(Icons.more_vert),

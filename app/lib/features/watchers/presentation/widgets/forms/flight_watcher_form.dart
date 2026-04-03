@@ -4,8 +4,9 @@ import 'package:intl/intl.dart';
 
 class FlightWatcherForm extends StatefulWidget {
   final Function(Map<String, dynamic>) onChanged;
+  final Map<String, dynamic>? initialData;
 
-  const FlightWatcherForm({super.key, required this.onChanged});
+  const FlightWatcherForm({super.key, required this.onChanged, this.initialData});
 
   @override
   State<FlightWatcherForm> createState() => _FlightWatcherFormState();
@@ -26,6 +27,18 @@ class _FlightWatcherFormState extends State<FlightWatcherForm> {
     _destinationController.addListener(_updateData);
     _priceController.addListener(_updateData);
     _nameController.addListener(_updateNameManually);
+
+    if (widget.initialData != null) {
+      _originController.text = widget.initialData!['origin'] ?? '';
+      _destinationController.text = widget.initialData!['destination'] ?? '';
+      if (widget.initialData!['departure_date'] != null) {
+        _departureDate = DateTime.parse(widget.initialData!['departure_date']);
+      }
+      if (widget.initialData!['return_date'] != null) {
+        _returnDate = DateTime.parse(widget.initialData!['return_date']);
+      }
+      _priceController.text = widget.initialData!['price_below']?.toString() ?? '';
+    }
   }
 
   bool _isManualName = false;

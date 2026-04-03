@@ -3,8 +3,9 @@ import 'package:ghost_app/core/theme/app_theme.dart';
 
 class ProductWatcherForm extends StatefulWidget {
   final Function(Map<String, dynamic>) onChanged;
+  final Map<String, dynamic>? initialData;
 
-  const ProductWatcherForm({super.key, required this.onChanged});
+  const ProductWatcherForm({super.key, required this.onChanged, this.initialData});
 
   @override
   State<ProductWatcherForm> createState() => _ProductWatcherFormState();
@@ -23,6 +24,12 @@ class _ProductWatcherFormState extends State<ProductWatcherForm> {
     _currentPriceController.addListener(_updateData);
     _alertPriceController.addListener(_updateData);
     _nameController.addListener(_updateNameManually);
+
+    if (widget.initialData != null) {
+      _productController.text = widget.initialData!['product_name'] ?? '';
+      _currentPriceController.text = widget.initialData!['current_price']?.toString() ?? '';
+      _alertPriceController.text = widget.initialData!['price_below']?.toString() ?? '';
+    }
   }
 
   bool _isManualName = false;

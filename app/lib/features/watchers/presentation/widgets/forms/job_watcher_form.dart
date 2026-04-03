@@ -3,8 +3,9 @@ import 'package:ghost_app/core/theme/app_theme.dart';
 
 class JobWatcherForm extends StatefulWidget {
   final Function(Map<String, dynamic>) onChanged;
+  final Map<String, dynamic>? initialData;
 
-  const JobWatcherForm({super.key, required this.onChanged});
+  const JobWatcherForm({super.key, required this.onChanged, this.initialData});
 
   @override
   State<JobWatcherForm> createState() => _JobWatcherFormState();
@@ -25,6 +26,15 @@ class _JobWatcherFormState extends State<JobWatcherForm> {
     _locationController.addListener(_updateData);
     _salaryController.addListener(_updateData);
     _nameController.text = 'Job Watch';
+
+    if (widget.initialData != null) {
+      if (widget.initialData!['keywords'] != null) {
+        _keywords.addAll(List<String>.from(widget.initialData!['keywords']));
+      }
+      _locationController.text = widget.initialData!['location'] ?? '';
+      _isRemote = widget.initialData!['is_remote'] ?? false;
+      _salaryController.text = widget.initialData!['min_salary']?.toString() ?? '';
+    }
   }
 
   void _updateData() {

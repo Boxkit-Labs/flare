@@ -3,8 +3,9 @@ import 'package:ghost_app/core/theme/app_theme.dart';
 
 class CryptoWatcherForm extends StatefulWidget {
   final Function(Map<String, dynamic>) onChanged;
+  final Map<String, dynamic>? initialData;
 
-  const CryptoWatcherForm({super.key, required this.onChanged});
+  const CryptoWatcherForm({super.key, required this.onChanged, this.initialData});
 
   @override
   State<CryptoWatcherForm> createState() => _CryptoWatcherFormState();
@@ -28,6 +29,18 @@ class _CryptoWatcherFormState extends State<CryptoWatcherForm> {
     for (var coin in _coins) {
       _aboveControllers[coin] = TextEditingController()..addListener(_updateData);
       _belowControllers[coin] = TextEditingController()..addListener(_updateData);
+    }
+
+    if (widget.initialData != null) {
+      if (widget.initialData!['coins'] != null) {
+        _selectedCoins.clear();
+        _selectedCoins.addAll(List<String>.from(widget.initialData!['coins']));
+      }
+      _changeController.text = widget.initialData!['change_24h_percent']?.toString() ?? '';
+      for (var coin in _selectedCoins) {
+         _aboveControllers[coin]?.text = widget.initialData!['${coin.toLowerCase()}_above']?.toString() ?? '';
+         _belowControllers[coin]?.text = widget.initialData!['${coin.toLowerCase()}_below']?.toString() ?? '';
+      }
     }
   }
 
