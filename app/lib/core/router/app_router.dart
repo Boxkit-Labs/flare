@@ -18,10 +18,14 @@ import 'package:ghost_app/features/home/presentation/screens/shell_screen.dart';
 class AppRouter {
   AppRouter._();
 
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
   static late GoRouter router;
 
   static void init(AuthBloc authBloc) {
     router = GoRouter(
+      navigatorKey: navigatorKey,
       initialLocation: '/',
       refreshListenable: _AuthRefreshListenable(authBloc.stream),
       redirect: (context, state) {

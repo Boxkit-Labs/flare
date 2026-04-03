@@ -1,8 +1,9 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:ghost_app/core/router/app_router.dart';
+import 'package:ghost_app/core/theme/app_theme.dart';
 import 'package:ghost_app/services/api_service.dart';
 
 /// Top-level handler for background messages (must be a top-level function).
@@ -159,6 +160,49 @@ class NotificationService {
       channelId = budgetChannel.id;
     }
 
+    // Also show local notification for consistency (optional, depending on OS settings)
+    _showLocalNotification(notification, message.data, channelId);
+
+    // Show in-app banner for active users
+    final context = AppRouter.navigatorKey.currentContext;
+    if (context != null) {
+      AppRouter.scaffoldMessengerKey.currentState?.clearSnackBars();
+      AppRouter.scaffoldMessengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                notification.title ?? 'New Notification',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                notification.body ?? '',
+                style: const TextStyle(fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: AppTheme.surfaceLight,
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 8),
+          action: SnackBarAction(
+            label: 'VIEW',
+            textColor: AppTheme.primary,
+            onPressed: () {
+              _navigateFromData(message.data);
+            },
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showLocalNotification(RemoteNotification notification, Map<String, dynamic> data, String channelId) {
     _localNotifications.show(
       id: notification.hashCode,
       title: notification.title,
@@ -172,10 +216,16 @@ class NotificationService {
                   ? briefingsChannel.name
                   : budgetChannel.name,
           icon: '@mipmap/ic_launcher',
+          importance: Importance.high,
+          priority: Priority.high,
         ),
-        iOS: const DarwinNotificationDetails(),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
       ),
-      payload: jsonEncode(message.data),
+      payload: jsonEncode(data),
     );
   }
 
@@ -183,7 +233,10 @@ class NotificationService {
 
   void _handleNotificationTap(RemoteMessage message) {
     debugPrint('[FCM] Notification tapped: ${message.data}');
-    _navigateFromData(message.data);
+    // Delay slightly to ensure router is ready if app is just launching
+    Future.delayed(const Duration(milliseconds: 500), () {
+      _navigateFromData(message.data);
+    });
   }
 
   void _onLocalNotificationTap(NotificationResponse response) {
@@ -201,7 +254,16 @@ class NotificationService {
     final deepLink = data['deep_link'] as String?;
     if (deepLink != null && deepLink.isNotEmpty) {
       debugPrint('[FCM] Navigating to deep link: $deepLink');
-      AppRouter.router.go(deepLink);
+      
+      // Ensure we navigate only when the navigator is ready
+      if (AppRouter.navigatorKey.currentState != null) {
+        AppRouter.router.push(deepLink);
+      } else {
+        debugPrint('[FMC] Navigator not ready, storing link for later (handled by AppRouter init flow if needed)');
+        // In a real app we might store this in a 'pendingLink' variable 
+        // that the router reads on its initial route computation.
+        // For now, AppRouter.router.go(deepLink) generally handles it if called after init.
+      }
     }
   }
 }

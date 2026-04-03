@@ -17,6 +17,7 @@ class _GhostAppState extends State<GhostApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       routerConfig: AppRouter.router,
+      scaffoldMessengerKey: AppRouter.scaffoldMessengerKey,
     );
   }
 }
