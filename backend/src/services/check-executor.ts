@@ -2,6 +2,7 @@ import { getWatcherById, getUserById, updateWatcher, createCheck, createTransact
 import { decrypt } from '../utils/crypto.js';
 import { payForService } from './stellar-pay-client.js';
 import { FindingDetector } from './finding-detector.js';
+import { sendPushNotification } from '../utils/notifications.js';
 import { WatcherRow } from '../types.js';
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
@@ -19,35 +20,48 @@ export class CheckExecutor {
    * Runs the x402 payment, fetches the data, and runs finding detection logic.
    */
   async runCheck(watcherId: string): Promise<void> {
-    try {
-      // 1. Load watcher from database
-      const watcher: WatcherRow = getWatcherById(watcherId);
-      if (!watcher) {
-        console.error(`CheckExecutor: Watcher ${watcherId} not found.`);
-        return;
-      }
+    const checkId = uuidv4();
+    let watcher: WatcherRow;
 
+    // 1. Load watcher from database
+    try {
+        watcher = getWatcherById(watcherId);
+        if (!watcher) {
+            console.error(`CheckExecutor: Watcher ${watcherId} not found.`);
+            return;
+        }
+    } catch (e) {
+        console.error(`CheckExecutor: Failed to load watcher ${watcherId}`, e);
+        return;
+    }
+
+    try {
       // 2. Verify status
       if (watcher.status !== 'active') {
-        return; // Silently abort, as scheduler shouldn't have launched this anyway
+        console.log(`CheckExecutor: Watcher ${watcherId} is ${watcher.status}. Skipping.`);
+        return; 
       }
 
       // 3. Check budget limits
       if (watcher.spent_this_week_usdc >= watcher.weekly_budget_usdc) {
         console.warn(`CheckExecutor: Watcher ${watcherId} exceeded weekly budget. Pausing.`);
         updateWatcher(watcherId, { status: 'paused_budget' });
+        await sendPushNotification(
+            watcher.user_id, 
+            "Wallet Paused", 
+            `Watcher '${watcher.name}' paused — weekly budget reached.`
+        );
         return;
       }
 
-      // 4. Load user and decrypt secret
+      // 4 & 5. Load user and decrypt secret
       const user = getUserById(watcher.user_id) as any;
       if (!user) {
          throw new Error(`User ${watcher.user_id} not found for watcher ${watcherId}`);
       }
-      
       const payerSecretKey = decrypt(user.stellar_secret_key_encrypted, ENCRYPTION_KEY);
 
-      // 5. Build service URL based on type
+      // Extract service URL
       let serviceUrl = '';
       let method: 'GET' | 'POST' = 'POST';
       let body: any = watcher.parameters;
@@ -72,33 +86,68 @@ export class CheckExecutor {
           throw new Error(`Unknown watcher type: ${watcher.type}`);
       }
 
-      // 6 & 7. Call payForService
-      console.log(`Executing check for ${watcher.type} watcher: ${watcherId} ...`);
-      const { data: responseData, txHash, costPaid } = await payForService({
-        serviceUrl,
-        method,
-        body,
-        payerSecretKey,
-        rpcUrl: SOROBAN_RPC_URL
-      });
-
-      // Normalize cost format (paid amount is in stroops, divide by 10M for USDC)
-      const costUsdc = costPaid / 10000000;
-      const checkId = uuidv4();
-
-      // Retrieve previous check to do comparison logic
+      // 6. Retrieve previous check for comparison logic
       const checks = getChecksByWatcherId(watcherId, 1, 0);
       const previousCheckData = checks.length > 0 ? checks[0].response_data : null;
 
-      // Run Detector
-      const finding = await detector.detectFinding(watcher, responseData, previousCheckData, costUsdc, txHash);
-      if (finding) {
-          finding.check_id = checkId; // Link it
+      // 7. Execute X402 Payment
+      let responseData: any;
+      let txHash: string;
+      let costPaid: number;
+
+      try {
+          console.log(`Executing check for ${watcher.type} watcher: ${watcherId} ...`);
+          const result = await payForService({
+            serviceUrl,
+            method,
+            body,
+            payerSecretKey,
+            rpcUrl: SOROBAN_RPC_URL
+          });
+          responseData = result.data;
+          txHash = result.txHash;
+          costPaid = result.costPaid;
+      } catch (payError: any) {
+          // 8. If X402 Payment Fails
+          const errorMsg = payError instanceof Error ? payError.message : 'Unknown payment error';
+          console.error(`CheckExecutor Payment Error (Watcher ${watcherId}):`, errorMsg);
+          
+          createCheck({
+             checkId: checkId,
+             watcherId: watcherId,
+             userId: watcher.user_id,
+             serviceName: watcher.type,
+             requestPayload: body,
+             responseData: { error: errorMsg },
+             costUsdc: 0,
+             stellarTxHash: '',
+             findingDetected: false,
+             agentReasoning: `Payment failed: ${errorMsg}`
+          });
+          
+          // Check if it's a balance issue based on common Soroban/Stellar errors
+          const isBalanceIssue = errorMsg.toLowerCase().includes('insufficient balance') || 
+                                 errorMsg.toLowerCase().includes('balanceerror') ||
+                                 errorMsg.toLowerCase().includes('op_underfunded') ||
+                                 errorMsg.toLowerCase().includes('tx_insufficient_balance');
+          
+          if (isBalanceIssue) {
+              updateWatcher(watcherId, { status: 'paused_wallet', error_message: 'Insufficient USDC Balance' });
+              await sendPushNotification(
+                 watcher.user_id, 
+                 "Insufficient Funds", 
+                 `Watcher '${watcher.name}' paused. Please deposit more USDC.`
+              );
+          } else {
+              updateWatcher(watcherId, { status: 'error', error_message: errorMsg });
+          }
+          return;
       }
 
-      // 8. On Success: Commit to DB
-      
-      // Transaction Record
+      // 9. On Success
+      const costUsdc = costPaid / 10000000;
+
+      // 10. Transaction Record
       createTransaction({
         txId: uuidv4(),
         userId: watcher.user_id,
@@ -109,7 +158,36 @@ export class CheckExecutor {
         stellarTxHash: txHash
       });
 
-      // Check Record
+      // 11. Run Finding Detector
+      const finding = await detector.detectFinding(watcher, responseData, previousCheckData, costUsdc, txHash);
+      if (finding) {
+          finding.check_id = checkId;
+      }
+
+      // 12. Determine Logging & Check Record State
+      let findingDetected = false;
+      let findingId = null;
+      let agentReasoning = '';
+
+      if (finding) {
+          // 13. If Finding Detected
+          createFinding(finding);
+          findingDetected = true;
+          findingId = finding.finding_id;
+          agentReasoning = finding.agent_reasoning || 'Finding matched conditions.';
+          console.log(`FINDING: ${finding.headline}`);
+          
+          await sendPushNotification(
+              watcher.user_id, 
+              `Alert: ${watcher.name}`, 
+              finding.headline
+          );
+      } else {
+          // 14. If No Finding
+          agentReasoning = "No finding matched the alert criteria.";
+          console.log(`No finding: ${agentReasoning}`);
+      }
+
       createCheck({
         checkId: checkId,
         watcherId: watcherId,
@@ -119,31 +197,27 @@ export class CheckExecutor {
         responseData: responseData,
         costUsdc: costUsdc,
         stellarTxHash: txHash,
-        findingDetected: !!finding,
-        findingId: finding ? finding.finding_id : null,
-        agentReasoning: finding ? finding.agent_reasoning : null
+        findingDetected: findingDetected,
+        findingId: findingId,
+        agentReasoning: agentReasoning
       });
 
-      // Finding Record (if any)
-      if (finding) {
-        createFinding(finding);
-      }
-
-      // Update Watcher details
+      // 15. Update Watcher Details
       const newTotalChecks = (watcher as any).total_checks ? (watcher as any).total_checks + 1 : 1;
-      const newTotalFindings = finding ? ((watcher as any).total_findings ? (watcher as any).total_findings + 1 : 1) : (watcher as any).total_findings;
+      const newTotalFindings = findingDetected ? ((watcher as any).total_findings ? (watcher as any).total_findings + 1 : 1) : ((watcher as any).total_findings || 0);
       const newSpentThisWeek = (watcher.spent_this_week_usdc || 0) + costUsdc;
       const newTotalSpent = ((watcher as any).total_spent_usdc || 0) + costUsdc;
+      const nowStr = new Date().toISOString();
 
       const updates: any = {
-        last_check_at: new Date().toISOString(),
+        last_check_at: nowStr,
+        updated_at: nowStr,
         total_checks: newTotalChecks,
         total_findings: newTotalFindings,
         spent_this_week_usdc: newSpentThisWeek,
         total_spent_usdc: newTotalSpent
       };
 
-      // Recalculate next interval exactly based on current time + interval
       if (watcher.check_interval_minutes) {
          const nextDate = new Date();
          nextDate.setMinutes(nextDate.getMinutes() + watcher.check_interval_minutes);
@@ -151,12 +225,11 @@ export class CheckExecutor {
       }
 
       updateWatcher(watcherId, updates);
-      console.log(`Check completed for ${watcherId}. Cost: ${costUsdc} USDC. Result: ${finding ? 'Finding Generated' : 'No findings.'}`);
 
     } catch (e: any) {
-      // 9. On Failure
-      const errorMsg = e instanceof Error ? e.message : 'Unknown check execution error';
-      console.error(`CheckExecutor Error (Watcher ${watcherId}):`, errorMsg);
+      // Unhandled generic system errors
+      const errorMsg = e instanceof Error ? e.message : 'Unknown system error during execution';
+      console.error(`CheckExecutor Critical Error (Watcher ${watcherId}):`, errorMsg);
       updateWatcher(watcherId, { status: 'error', error_message: errorMsg });
     }
   }
