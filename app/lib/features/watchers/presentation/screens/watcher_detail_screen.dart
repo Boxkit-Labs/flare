@@ -6,11 +6,13 @@ import 'package:ghost_app/core/models/models.dart';
 import 'package:ghost_app/core/mixins/auto_refresh_mixin.dart';
 import 'package:ghost_app/core/widgets/error_state.dart';
 import 'package:ghost_app/core/widgets/shimmer_utilities.dart';
+import 'package:ghost_app/core/widgets/status_indicator.dart';
 import 'package:ghost_app/features/watchers/presentation/bloc/watchers_bloc.dart';
 import 'package:ghost_app/features/watchers/presentation/bloc/watchers_event.dart';
 import 'package:ghost_app/features/watchers/presentation/bloc/watchers_state.dart';
 import 'package:ghost_app/features/watchers/presentation/widgets/check_history_tile.dart';
 import 'package:ghost_app/features/watchers/presentation/widgets/analytics_chart.dart';
+import 'package:ghost_app/features/watchers/presentation/widgets/animated_budget_bar.dart';
 import 'package:ghost_app/features/findings/presentation/widgets/finding_card.dart';
 
 class WatcherDetailScreen extends StatefulWidget {
@@ -144,7 +146,7 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
       ),
       child: Row(
         children: [
-          _PulsingIndicator(isActive: isActive, color: isError ? Colors.red : (isPaused ? Colors.yellow : Colors.green)),
+          StatusIndicator(status: watcher.status, size: 12),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -201,7 +203,6 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
 
   Widget _buildBudgetBar(WatcherModel watcher) {
     final percentUsed = watcher.budgetPercentUsed ?? 0.0;
-    final budgetColor = percentUsed < 0.5 ? Colors.green : (percentUsed < 0.8 ? Colors.yellow : Colors.red);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,14 +215,9 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
            ],
         ),
         const SizedBox(height: 12),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: percentUsed.clamp(0.0, 1.0),
-            backgroundColor: Colors.grey[850],
-            valueColor: AlwaysStoppedAnimation<Color>(budgetColor),
-            minHeight: 8,
-          ),
+        AnimatedBudgetBar(
+          percentUsed: percentUsed,
+          minHeight: 8,
         ),
       ],
     );
@@ -317,38 +313,3 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
   }
 }
 
-class _PulsingIndicator extends StatefulWidget {
-  final bool isActive;
-  final Color color;
-
-  const _PulsingIndicator({required this.isActive, required this.color});
-
-  @override
-  State<_PulsingIndicator> createState() => _PulsingIndicatorState();
-}
-
-class _PulsingIndicatorState extends State<_PulsingIndicator> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(duration: const Duration(seconds: 1), vsync: this)..repeat(reverse: true);
-    _animation = Tween<double>(begin: 0.5, end: 1.0).animate(_controller);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!widget.isActive) {
-      return Container(width: 12, height: 12, decoration: BoxDecoration(color: widget.color.withValues(alpha: 0.5), shape: BoxShape.circle));
-    }
-    return FadeTransition(opacity: _animation, child: Container(width: 12, height: 12, decoration: BoxDecoration(color: widget.color, shape: BoxShape.circle)));
-  }
-}

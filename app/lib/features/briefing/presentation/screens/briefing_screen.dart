@@ -10,6 +10,7 @@ import 'package:ghost_app/features/briefing/presentation/bloc/briefing_event.dar
 import 'package:ghost_app/features/briefing/presentation/bloc/briefing_state.dart';
 import 'package:ghost_app/features/findings/presentation/widgets/finding_card.dart';
 import 'package:intl/intl.dart';
+import 'package:ghost_app/core/widgets/staggered_reveal.dart';
 
 class BriefingScreen extends StatefulWidget {
   const BriefingScreen({super.key});
@@ -156,35 +157,75 @@ class _BriefingScreenState extends State<BriefingScreen> {
   }
 
   Widget _buildBriefingContent(BriefingModel briefing) {
-     return ListView(
+     final allItems = [
+       ...briefing.findingsJson.map((f) => FindingModel.fromJson(f as Map<String, dynamic>)),
+       ...briefing.watcherSummariesJson,
+     ];
+
+     return ListView.builder(
        padding: const EdgeInsets.all(24),
-       children: [
-         Text(DateFormat('EEEE, MMMM d').format(DateTime.parse(briefing.date)), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-         const SizedBox(height: 4),
-         Text('Your agents ran ${briefing.totalChecks} checks overnight', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 15)),
-         const SizedBox(height: 32),
+       itemCount: allItems.length + 4, // Header text, section headers, etc
+       itemBuilder: (context, index) {
+         if (index == 0) {
+           return Column(
+             crossAxisAlignment: CrossAxisAlignment.start,
+             children: [
+               Text(DateFormat('EEEE, MMMM d').format(DateTime.parse(briefing.date)), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+               const SizedBox(height: 4),
+               Text('Your agents ran ${briefing.totalChecks} checks overnight', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 15)),
+               const SizedBox(height: 32),
+             ],
+           );
+         }
          
-         if (briefing.totalFindings > 0) ...[
-            _buildSectionHeader('⚡ Findings', count: briefing.totalFindings),
-            const SizedBox(height: 16),
-            ...briefing.findingsJson.map((f) {
-               final finding = FindingModel.fromJson(f as Map<String, dynamic>);
-               return FindingCard(finding: finding);
-            }),
-            const SizedBox(height: 32),
-         ],
+         final findingsCount = briefing.findingsJson.length;
+         
+         if (index == 1) {
+           return findingsCount > 0 
+             ? Padding(
+                 padding: const EdgeInsets.only(bottom: 16),
+                 child: _buildSectionHeader('⚡ Findings', count: findingsCount),
+               )
+             : const SizedBox.shrink();
+         }
 
-         _buildSectionHeader('📊 No Change'),
-         const SizedBox(height: 16),
-         ...briefing.watcherSummariesJson.map((s) {
-            final summary = s as Map<String, dynamic>;
-            return _buildNoChangeTile(summary);
-         }),
+         if (index < findingsCount + 2) {
+           final fIndex = index - 2;
+           final finding = FindingModel.fromJson(briefing.findingsJson[fIndex] as Map<String, dynamic>);
+           return StaggeredReveal(
+             index: index,
+             child: FindingCard(finding: finding),
+           );
+         }
 
-         const SizedBox(height: 40),
-         _buildCostSummary(briefing),
-         const SizedBox(height: 60),
-       ],
+         if (index == findingsCount + 2) {
+           return Padding(
+             padding: const EdgeInsets.symmetric(vertical: 16),
+             child: _buildSectionHeader('📊 No Change'),
+           );
+         }
+
+         final summaryIndex = index - (findingsCount + 3);
+         if (summaryIndex < briefing.watcherSummariesJson.length) {
+           final summary = briefing.watcherSummariesJson[summaryIndex] as Map<String, dynamic>;
+           return StaggeredReveal(
+             index: index,
+             child: _buildNoChangeTile(summary),
+           );
+         }
+
+         if (index == allItems.length + 3) {
+           return Column(
+             children: [
+               const SizedBox(height: 40),
+               _buildCostSummary(briefing),
+               const SizedBox(height: 60),
+             ],
+           );
+         }
+
+         return const SizedBox.shrink();
+       },
      );
   }
 

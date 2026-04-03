@@ -133,9 +133,15 @@ class _WalletScreenState extends State<WalletScreen> {
           style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
         ),
         const SizedBox(height: 8),
-        Text(
-          '\$${balance.toStringAsFixed(2)}',
-          style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+        TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0, end: balance),
+          duration: const Duration(seconds: 1),
+          builder: (context, value, child) {
+            return Text(
+              '\$${value.toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+            );
+          },
         ),
         const SizedBox(height: 16),
         Row(
@@ -541,13 +547,25 @@ class _WalletScreenState extends State<WalletScreen> {
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => launchUrl(
-                  Uri.parse(
-                    'https://stellar.expert/explorer/testnet/tx/${tx.stellarTxHash}',
-                  ),
-                ),
-                child: const Text('View on Stellar Explorer'),
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.rocket_launch, size: 18),
+                onPressed: () {
+                  final url = 'https://stellar.expert/explorer/testnet/tx/${tx.stellarTxHash}';
+                  launchUrl(Uri.parse(url));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: AppTheme.primary,
+                      content: Row(
+                        children: [
+                          const Icon(Icons.stars, color: Colors.white, size: 16),
+                          const SizedBox(width: 8),
+                          const Text('Opening Stellar Explorer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                label: const Text('View on Stellar Explorer'),
               ),
             ),
             const SizedBox(height: 20),

@@ -12,6 +12,8 @@ import 'package:ghost_app/features/watchers/presentation/widgets/forms/news_watc
 import 'package:ghost_app/features/watchers/presentation/widgets/forms/product_watcher_form.dart';
 import 'package:ghost_app/features/watchers/presentation/widgets/forms/job_watcher_form.dart';
 
+import 'package:ghost_app/core/widgets/success_overlay.dart';
+
 class CreateWatcherScreen extends StatefulWidget {
   const CreateWatcherScreen({super.key});
 
@@ -85,7 +87,8 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
   }
 
   void _launchWatcher() {
-    final userId = (context.read<AuthBloc>().state as dynamic).user.userId;
+    final authState = context.read<AuthBloc>().state;
+    final userId = (authState as dynamic).user.userId;
     
     final finalData = {
       ..._formData,
@@ -105,10 +108,16 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
     return BlocListener<WatchersBloc, WatchersState>(
       listener: (context, state) {
         if (state is WatcherActionSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Watcher launched successfully! 🚀'), backgroundColor: Colors.green),
+          SuccessOverlay.show(
+            context, 
+            message: 'Deployed! 🚀', 
+            subMessage: 'Your ${_selectedType?.toUpperCase()} agent is now hunting.'
           );
-          context.goNamed('watchers');
+          Future.delayed(const Duration(milliseconds: 2000), () {
+            if (context.mounted) {
+              context.goNamed('watchers');
+            }
+          });
         } else if (state is WatchersError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),

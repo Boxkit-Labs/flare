@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ghost_app/core/models/models.dart';
 import 'package:ghost_app/core/theme/app_theme.dart';
+import 'package:ghost_app/core/widgets/status_indicator.dart';
+import 'package:ghost_app/features/watchers/presentation/widgets/animated_budget_bar.dart';
 import 'package:intl/intl.dart';
 
 class WatcherListTile extends StatelessWidget {
@@ -111,9 +113,6 @@ class WatcherListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isActive = watcher.status == 'active';
     final percentUsed = watcher.budgetPercentUsed ?? 0.0;
-    final budgetColor = percentUsed < 0.5 
-        ? Colors.green 
-        : (percentUsed < 0.8 ? Colors.yellow : Colors.red);
 
     return InkWell(
       onTap: () => context.push('/watchers/${watcher.watcherId}'),
@@ -174,13 +173,20 @@ class WatcherListTile extends StatelessWidget {
                         color: _getStatusColor(watcher.status).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text(
-                        watcher.status.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                          color: _getStatusColor(watcher.status),
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          StatusIndicator(status: watcher.status, size: 6),
+                          const SizedBox(width: 6),
+                          Text(
+                            watcher.status.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 8,
+                              fontWeight: FontWeight.bold,
+                              color: _getStatusColor(watcher.status),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -196,14 +202,9 @@ class WatcherListTile extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(2),
-              child: LinearProgressIndicator(
-                value: percentUsed.clamp(0.0, 1.0),
-                backgroundColor: Colors.grey[850],
-                valueColor: AlwaysStoppedAnimation<Color>(budgetColor),
-                minHeight: 3,
-              ),
+            AnimatedBudgetBar(
+              percentUsed: percentUsed,
+              minHeight: 3,
             ),
           ],
         ),

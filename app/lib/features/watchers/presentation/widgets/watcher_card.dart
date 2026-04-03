@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ghost_app/core/models/models.dart';
 import 'package:ghost_app/core/theme/app_theme.dart';
+import 'package:ghost_app/core/widgets/status_indicator.dart';
+import 'package:ghost_app/features/watchers/presentation/widgets/animated_budget_bar.dart';
 import 'package:intl/intl.dart';
 
 class WatcherCard extends StatelessWidget {
@@ -26,18 +28,6 @@ class WatcherCard extends StatelessWidget {
     }
   }
 
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return Colors.green;
-      case 'paused':
-        return Colors.yellow;
-      case 'error':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
 
   String _getLastCheckText(String? lastCheckAt) {
     if (lastCheckAt == null) return 'Never checked';
@@ -80,14 +70,7 @@ class WatcherCard extends StatelessWidget {
                   _getEmoji(watcher.type),
                   style: const TextStyle(fontSize: 24),
                 ),
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(watcher.status),
-                    shape: BoxShape.circle,
-                  ),
-                ),
+                StatusIndicator(status: watcher.status),
               ],
             ),
             const SizedBox(height: 12),
@@ -126,14 +109,8 @@ class WatcherCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 4),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: LinearProgressIndicator(
-                    value: percentUsed.clamp(0.0, 1.0),
-                    backgroundColor: Colors.grey[850],
-                    valueColor: AlwaysStoppedAnimation<Color>(budgetColor),
-                    minHeight: 4,
-                  ),
+                AnimatedBudgetBar(
+                  percentUsed: percentUsed,
                 ),
               ],
             ),

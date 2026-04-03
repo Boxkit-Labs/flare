@@ -56,14 +56,32 @@ class AppRouter {
         GoRoute(
           path: '/watchers/create',
           name: 'createWatcher',
-          builder: (context, state) => const CreateWatcherScreen(),
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const CreateWatcherScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 1),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutQuart)),
+                child: child,
+              );
+            },
+          ),
         ),
         GoRoute(
           path: '/watchers/:id',
           name: 'watcherDetail',
-          builder: (context, state) {
-             final id = state.pathParameters['id']!;
-             return WatcherDetailScreen(watcherId: id);
+          pageBuilder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: WatcherDetailScreen(watcherId: id),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+            );
           },
         ),
         GoRoute(
@@ -77,9 +95,15 @@ class AppRouter {
         GoRoute(
           path: '/findings/:id',
           name: 'findingDetail',
-          builder: (context, state) {
-             final id = state.pathParameters['id']!;
-             return FindingDetailScreen(findingId: id);
+          pageBuilder: (context, state) {
+            final id = state.pathParameters['id']!;
+            return CustomTransitionPage(
+              key: state.pageKey,
+              child: FindingDetailScreen(findingId: id),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+            );
           },
         ),
         ShellRoute(

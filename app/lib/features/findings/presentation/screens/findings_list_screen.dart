@@ -11,6 +11,7 @@ import 'package:ghost_app/features/findings/presentation/bloc/findings_event.dar
 import 'package:ghost_app/features/findings/presentation/bloc/findings_state.dart';
 import 'package:ghost_app/features/findings/presentation/widgets/finding_card.dart';
 import 'package:intl/intl.dart';
+import 'package:ghost_app/core/widgets/staggered_reveal.dart';
 
 class FindingsListScreen extends StatefulWidget {
   const FindingsListScreen({super.key});
@@ -118,18 +119,8 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
                       ...items.asMap().entries.map((entry) {
                         final idx = entry.key;
                         final finding = entry.value;
-                        return TweenAnimationBuilder<double>(
-                          duration: Duration(milliseconds: 400 + (idx * 50)),
-                          tween: Tween(begin: 0.0, end: 1.0),
-                          builder: (context, value, child) {
-                            return Opacity(
-                              opacity: value,
-                              child: Transform.translate(
-                                offset: Offset(0, 20 * (1 - value)),
-                                child: child,
-                              ),
-                            );
-                          },
+                        return StaggeredReveal(
+                          index: idx,
                           child: FindingCard(finding: finding),
                         );
                       }),

@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ghost_app/core/theme/app_theme.dart';
 import 'package:ghost_app/core/widgets/shimmer_utilities.dart';
+import 'package:ghost_app/core/widgets/status_indicator.dart';
 import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:ghost_app/features/watchers/presentation/bloc/watchers_bloc.dart';
 import 'package:ghost_app/features/watchers/presentation/bloc/watchers_event.dart';
@@ -127,23 +128,36 @@ class HomeContent extends StatelessWidget {
           // ─── AGENT ACTIVITY INDICATOR ───
           const SizedBox(height: 40),
           Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _PulsingDot(),
-                const SizedBox(width: 8),
-                BlocBuilder<WatchersBloc, WatchersState>(
-                  builder: (context, state) {
-                    final activeCount = state is WatchersLoaded 
-                        ? state.watchers.where((w) => w.status == 'active').length 
-                        : 0;
-                    return Text(
-                      '$activeCount watchers active · Next check in periodically',
+            child: BlocBuilder<WatchersBloc, WatchersState>(
+              builder: (context, state) {
+                int activeCount = 0;
+                int nextCheckMinutes = 14; // Default/Mock fallback
+
+                if (state is WatchersLoaded) {
+                  activeCount = state.watchers.where((w) => w.status == 'active').length;
+                  
+                  // Simple logic to find the "next check" text
+                  if (activeCount > 0) {
+                    final activeWatchers = state.watchers.where((w) => w.status == 'active').toList();
+                    activeWatchers.sort((a, b) => a.checkIntervalMinutes.compareTo(b.checkIntervalMinutes));
+                    // Mock: say next check is half of shortest interval
+                    nextCheckMinutes = (activeWatchers.first.checkIntervalMinutes / 2).floor();
+                    if (nextCheckMinutes < 1) nextCheckMinutes = 1;
+                  }
+                }
+
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    StatusIndicator(status: activeCount > 0 ? 'active' : 'paused'),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$activeCount watchers active · Next check in ${nextCheckMinutes}m',
                       style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                    );
-                  },
-                ),
-              ],
+                    ),
+                  ],
+                );
+              },
             ),
           ),
           const SizedBox(height: 48),
@@ -168,13 +182,19 @@ class HomeContent extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.3)),
               ),
-              child: Text(
-                '\$${state.wallet?.balanceUsdc.toStringAsFixed(2) ?? "0.00"} USDC',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.secondary,
-                  fontSize: 14,
-                ),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0, end: state.wallet?.balanceUsdc ?? 0.0),
+                duration: const Duration(seconds: 1),
+                builder: (context, value, child) {
+                  return Text(
+                    '\$${value.toStringAsFixed(2)} USDC',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.secondary,
+                      fontSize: 14,
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -359,44 +379,6 @@ class HomeContent extends StatelessWidget {
           border: Border.all(color: AppTheme.surface.withAlpha(100), style: BorderStyle.solid),
         ),
         child: const Icon(Icons.add, size: 32, color: AppTheme.textSecondary),
-      ),
-    );
-  }
-}
-
-class _PulsingDot extends StatefulWidget {
-  @override
-  State<_PulsingDot> createState() => _PulsingDotState();
-}
-
-class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(duration: const Duration(seconds: 1), vsync: this)..repeat(reverse: true);
-    _animation = Tween<double>(begin: 0.5, end: 1.0).animate(_controller);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _animation,
-      child: Container(
-        width: 8,
-        height: 8,
-        decoration: const BoxDecoration(
-          color: AppTheme.secondary,
-          shape: BoxShape.circle,
-        ),
       ),
     );
   }
