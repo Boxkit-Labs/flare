@@ -11,9 +11,19 @@ class PlaceholderScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text(title)),
       body: Center(
-        child: Text(
-          title,
-          style: Theme.of(context).textTheme.headlineMedium,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              title,
+              style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'This is the $title screen.',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
         ),
       ),
     );

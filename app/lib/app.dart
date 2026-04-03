@@ -8,7 +8,7 @@ class GhostApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Ghost',
+      title: 'Flare',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       routerConfig: AppRouter.router,
