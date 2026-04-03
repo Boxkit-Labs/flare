@@ -41,7 +41,7 @@ async function getTransactionStatus(rpcUrl: string, hash: string): Promise<any> 
 /**
  * Direct Stellar Payment client extracted from working test-x402.ts.
  */
-export async function payForService(params: PayParams): Promise<{ data: any, txHash: string }> {
+export async function payForService(params: PayParams): Promise<{ data: any, txHash: string, costPaid: number }> {
     const { serviceUrl, method, body, payerSecretKey, rpcUrl } = params;
     
     // 1. Initial request to get challenge
@@ -56,7 +56,7 @@ export async function payForService(params: PayParams): Promise<{ data: any, txH
     const initialRes = await fetch(serviceUrl, fetchOptions);
     if (initialRes.status !== 402) {
         if (initialRes.ok) {
-            return { data: await initialRes.json(), txHash: '' };
+            return { data: await initialRes.json(), txHash: '', costPaid: 0 };
         }
         throw new Error(`Expected 402, got ${initialRes.status}: ${await initialRes.text()}`);
     }
@@ -166,5 +166,5 @@ export async function payForService(params: PayParams): Promise<{ data: any, txH
         throw new Error(`Paid request failed (${paidRes.status}): ${errBody}`);
     }
 
-    return { data: await paidRes.json(), txHash };
+    return { data: await paidRes.json(), txHash, costPaid: amountStroops };
 }

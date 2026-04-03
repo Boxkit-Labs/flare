@@ -10,6 +10,7 @@ export interface WatcherRow {
   spent_this_week_usdc: number;
   priority: 'low' | 'medium' | 'high';
   status: 'active' | 'paused_budget' | 'paused_manual' | 'paused_wallet' | 'error';
+  error_message?: string;
   last_check_at?: string;
   next_check_at?: string;
 }

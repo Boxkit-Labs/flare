@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
-import * as queries from '../db/queries';
-import { encrypt, decrypt } from '../utils/crypto';
-import { stellarService } from '../services/stellar';
+import * as queries from '../db/queries.js';
+import { encrypt, decrypt } from '../utils/crypto.js';
+import { stellarService } from '../services/stellar.js';
 
 const router = Router();
 

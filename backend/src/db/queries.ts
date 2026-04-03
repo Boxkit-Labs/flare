@@ -1,4 +1,4 @@
-import db from './database';
+import db from './database.js';
 
 /**
  * Data Access Layer for Flare Backend.

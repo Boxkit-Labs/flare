@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
-import * as queries from '../db/queries';
+import * as queries from '../db/queries.js';
 
 const router = Router();
 

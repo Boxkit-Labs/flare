@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { Horizon } from '@stellar/stellar-sdk';
-import * as queries from '../db/queries';
+import * as queries from '../db/queries.js';
 
 const router = Router();
 const server = new Horizon.Server('https://horizon-testnet.stellar.org');
