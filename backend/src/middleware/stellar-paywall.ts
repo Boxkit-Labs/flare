@@ -30,11 +30,11 @@ async function getTransactionStatus(rpcUrl: string, txHash: string): Promise<any
 export function stellarPaywall(options: PaywallOptions) {
   const usedTxHashes = new Set<string>();
 
-  return async (req: any, res: Response, next: NextFunction) => {
+  return async (req: any, res: any, next: NextFunction) => {
     const txHash = req.headers['x-stellar-tx'] as string;
     
     if (!txHash) {
-      return res.status(402).json({
+      res.status(402).json({
         x402Version: 2,
         error: 'payment_required',
         network: 'stellar:testnet',
@@ -43,11 +43,13 @@ export function stellarPaywall(options: PaywallOptions) {
         amount: options.priceStroops,
         amountUsdc: (options.priceStroops / 10000000).toFixed(7)
       });
+      return;
     }
 
     // Prevent replay
     if (usedTxHashes.has(txHash)) {
-      return res.status(402).json({ error: 'tx_already_used' });
+      res.status(402).json({ error: 'tx_already_used' });
+      return;
     }
 
     try {
@@ -55,7 +57,8 @@ export function stellarPaywall(options: PaywallOptions) {
       const result = await getTransactionStatus(options.rpcUrl, txHash);
       
       if (result.status !== 'SUCCESS') {
-        return res.status(402).json({ error: 'tx_not_successful', status: result.status });
+        res.status(402).json({ error: 'tx_not_successful', status: result.status });
+        return;
       }
 
       // Payment verified - mark as used and proceed
@@ -63,7 +66,8 @@ export function stellarPaywall(options: PaywallOptions) {
       req.stellarTxHash = txHash;
       next();
     } catch (err: any) {
-      return res.status(402).json({ error: 'tx_verification_failed', message: err.message });
+      res.status(402).json({ error: 'tx_verification_failed', message: err.message });
+      return;
     }
   };
 }

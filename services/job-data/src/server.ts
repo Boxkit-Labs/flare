@@ -2,12 +2,12 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { stellarPaywall } from '../../../backend/src/middleware/stellar-paywall.js';
-import { getProductData } from './mock-data.js';
+import { searchJobs } from './mock-data.js';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3004;
+const PORT = process.env.PORT || 3005;
 
 app.use(cors());
 app.use(express.json());
@@ -18,37 +18,37 @@ const USDC_CONTRACT = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA'
 const SOROBAN_RPC_URL = 'https://soroban-testnet.stellar.org';
 
 /**
- * POST /api/products
- * Protected by 0.006 USDC (60,000 stroops)
+ * POST /api/jobs
+ * Protected by 0.007 USDC (70,000 stroops)
  */
-app.post('/api/products', stellarPaywall({
-  priceStroops: 60000,
+app.post('/api/jobs', stellarPaywall({
+  priceStroops: 70000,
   recipientAddress: RECIPIENT_ADDRESS,
   usdcContractId: USDC_CONTRACT,
   rpcUrl: SOROBAN_RPC_URL
 }), (req: Request, res: Response) => {
-  const { product_name } = req.body;
-  if (!product_name) {
-    res.status(400).json({ error: "Missing product_name" });
+  const { keywords, location, remote_ok, salary_min } = req.body;
+  
+  if (!keywords || !Array.isArray(keywords)) {
+    res.status(400).json({ error: "Missing or invalid keywords array" });
     return;
   }
 
-  const result = getProductData(product_name);
-  if (!result) {
-    res.status(404).json({ error: "Product not found" });
-    return;
-  }
-  res.json(result);
+  const result = searchJobs(keywords, location, remote_ok, salary_min);
+  res.json({
+      ...result,
+      query_params: { keywords, location, remote_ok, salary_min }
+  });
 });
 
 /**
  * GET /health
  */
 app.get('/health', (req: Request, res: Response) => {
-  res.json({ service: "product-data", status: "ok" });
+  res.json({ service: "job-data", status: "ok" });
 });
 
 app.listen(PORT, () => {
-  console.log(`Product Data Service listening on port ${PORT}`);
+  console.log(`Job Data Service listening on port ${PORT}`);
   console.log(`Direct Stellar Verification Enabled - Recipient: ${RECIPIENT_ADDRESS}`);
 });
