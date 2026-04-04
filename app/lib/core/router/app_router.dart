@@ -32,6 +32,11 @@ class AppRouter {
         final authState = authBloc.state;
         final goingToOnboarding = state.matchedLocation == '/onboarding';
 
+        // Still loading or not yet determined — send to onboarding
+        if (authState is AuthInitial || authState is AuthLoading) {
+          return goingToOnboarding ? null : '/onboarding';
+        }
+
         if (authState is AuthUnauthenticated) {
           return goingToOnboarding ? null : '/onboarding';
         }

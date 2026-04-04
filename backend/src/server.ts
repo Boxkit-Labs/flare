@@ -10,14 +10,16 @@ import transactionsRouter from './routes/transactions.js';
 
 import { CheckExecutor } from './services/check-executor.js';
 import { SchedulerService } from './services/scheduler.js';
+import { briefingGenerator } from './services/briefing-generator.js';
 
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
 // Initialize Background Job Services
 const executor = new CheckExecutor();
+briefingGenerator.setCheckExecutor(executor);
 export const scheduler = new SchedulerService(executor);
 
 app.use(cors());
@@ -37,8 +39,8 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(`Server is running on 0.0.0.0:${port}`);
   // Start the background scheduler once the server is listening
   scheduler.start().catch(e => console.error("Scheduler failed to start:", e));
 });

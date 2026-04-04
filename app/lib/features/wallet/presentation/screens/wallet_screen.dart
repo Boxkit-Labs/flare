@@ -6,6 +6,7 @@ import 'package:flare_app/core/models/models.dart';
 import 'package:flare_app/core/widgets/error_state.dart';
 import 'package:flare_app/core/widgets/shimmer_utilities.dart';
 import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_event.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_state.dart';
@@ -30,10 +31,13 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   void _refresh() {
-    final userId = (context.read<AuthBloc>().state as dynamic).user.userId;
-    context.read<WalletBloc>().add(LoadWallet(userId));
-    context.read<WalletBloc>().add(LoadWalletStats(userId));
-    context.read<WalletBloc>().add(LoadTransactions(userId));
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      final userId = authState.user.userId;
+      context.read<WalletBloc>().add(LoadWallet(userId));
+      context.read<WalletBloc>().add(LoadWalletStats(userId));
+      context.read<WalletBloc>().add(LoadTransactions(userId));
+    }
   }
 
   @override
@@ -149,13 +153,12 @@ class _WalletScreenState extends State<WalletScreen> {
           children: [
             OutlinedButton.icon(
               onPressed: () {
-                final userId =
-                    (context.read<AuthBloc>().state as dynamic).user.userId;
-                // Assuming fundWallet exists in ApiService and connected to an event
-                // For now, we manually refresh
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Requesting Testnet funds...')),
-                );
+                final authState = context.read<AuthBloc>().state;
+                if (authState is AuthAuthenticated) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Requesting Testnet funds...')),
+                  );
+                }
               },
               icon: const Icon(Icons.add),
               label: const Text('Add Funds'),

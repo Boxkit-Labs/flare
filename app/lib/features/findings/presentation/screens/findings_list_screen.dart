@@ -6,6 +6,7 @@ import 'package:flare_app/core/models/models.dart';
 import 'package:flare_app/core/widgets/error_state.dart';
 import 'package:flare_app/core/widgets/shimmer_utilities.dart';
 import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flare_app/features/findings/presentation/bloc/findings_bloc.dart';
 import 'package:flare_app/features/findings/presentation/bloc/findings_event.dart';
 import 'package:flare_app/features/findings/presentation/bloc/findings_state.dart';
@@ -42,10 +43,9 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
 
   void _refresh() {
     final authState = context.read<AuthBloc>().state;
-    try {
-      final userId = (authState as dynamic).user.userId;
-      context.read<FindingsBloc>().add(LoadFindings(userId));
-    } catch (_) {}
+    if (authState is AuthAuthenticated) {
+      context.read<FindingsBloc>().add(LoadFindings(authState.user.userId));
+    }
   }
 
   @override

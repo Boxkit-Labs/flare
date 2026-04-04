@@ -19,25 +19,25 @@ Future<void> main() async {
   // Initialize Firebase
   await Firebase.initializeApp();
 
-  // Initialize Dependency Injection
-  await di.init();
-
   // Initialize Hive
   await Hive.initFlutter();
+
+  // Initialize Dependency Injection
+  await di.init();
 
   // Initialize Push Notifications
   final notificationService = di.sl<NotificationService>();
   await notificationService.init();
 
-  // Initialize Router
-  final authBloc = di.sl<AuthBloc>();
+  // Initialize Router with the shared AuthBloc singleton
+  final authBloc = di.sl<AuthBloc>()..add(AppStarted());
   AppRouter.init(authBloc);
 
   runApp(
     MultiBlocProvider(
       providers: [
-        BlocProvider<AuthBloc>(
-          create: (context) => di.sl<AuthBloc>()..add(AppStarted()),
+        BlocProvider<AuthBloc>.value(
+          value: authBloc,
         ),
         BlocProvider<WatchersBloc>(
           create: (context) => di.sl<WatchersBloc>(),

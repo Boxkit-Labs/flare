@@ -1,18 +1,27 @@
 import { v4 as uuidv4 } from 'uuid';
 import { getUserById, getChecksSince, getWatchersByUserId, createBriefing } from '../db/queries.js';
 import { notificationService, NotificationService } from './notification.js';
+import { CheckExecutor } from './check-executor.js';
 
 export class BriefingGenerator {
   private notificationSvc: NotificationService;
+  private checkExecutor: CheckExecutor | null = null;
 
   constructor() {
     this.notificationSvc = notificationService;
+  }
+
+  setCheckExecutor(executor: CheckExecutor) {
+    this.checkExecutor = executor;
   }
 
   /**
    * Generates a morning briefing for the overnight period and returns the Briefing Row
    */
   async generateBriefing(userId: string): Promise<any> {
+    // 0. Trigger initial checks for new watchers (if any)
+    await this.triggerInitialChecks(userId);
+
     // 1. Load user settings
     const user = getUserById(userId) as any;
     if (!user) throw new Error(`User ${userId} not found`);
@@ -178,6 +187,32 @@ export class BriefingGenerator {
      } catch (e) {
          return "Summary parsing failed.";
      }
+  }
+
+  private async triggerInitialChecks(userId: string): Promise<void> {
+    if (!this.checkExecutor) return;
+
+    try {
+      const watchers = getWatchersByUserId(userId) as any[];
+      // Find active watchers with 0 checks
+      const newWatchers = watchers.filter(w => w.status === 'active' && (w.total_checks || 0) === 0);
+      
+      if (newWatchers.length === 0) return;
+
+      console.log(`[BRIEFING] Triggering initial checks for ${newWatchers.length} new watchers...`);
+      
+      // Run checks in sequence (don't parallelize too many)
+      // Limit to top 3 to avoid extreme latency
+      for (const watcher of newWatchers.slice(0, 3)) {
+        try {
+          await this.checkExecutor.runCheck(watcher.watcher_id);
+        } catch (err) {
+          console.error(`[BRIEFING] Initial check failed for watcher ${watcher.watcher_id}`, err);
+        }
+      }
+    } catch (e) {
+      console.error(`[BRIEFING] Failed to trigger initial checks for user ${userId}`, e);
+    }
   }
 }
 

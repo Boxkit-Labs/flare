@@ -48,7 +48,10 @@ class ApiService {
 
   /// Fund the user's Stellar wallet via the Operator account.
   Future<Map<String, dynamic>> fundWallet(String userId) async {
-    final response = await _dio.post('/api/users/$userId/fund');
+    final response = await _dio.post(
+      '/api/users/$userId/fund',
+      options: Options(receiveTimeout: const Duration(seconds: 60)),
+    );
     return Map<String, dynamic>.from(response.data);
   }
 

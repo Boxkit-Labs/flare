@@ -145,14 +145,17 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
 
   Widget _buildDynamicForm() {
     switch (_watcher!.type.toLowerCase()) {
+      case 'flight':
       case 'flights':
         return FlightWatcherForm(onChanged: _handleDataChange, initialData: _watcher!.parameters);
       case 'crypto':
         return CryptoWatcherForm(onChanged: _handleDataChange, initialData: _watcher!.parameters);
       case 'news':
         return NewsWatcherForm(onChanged: _handleDataChange, initialData: _watcher!.parameters);
+      case 'product':
       case 'products':
         return ProductWatcherForm(onChanged: _handleDataChange, initialData: _watcher!.parameters);
+      case 'job':
       case 'jobs':
         return JobWatcherForm(onChanged: _handleDataChange, initialData: _watcher!.parameters);
       default:
@@ -181,7 +184,7 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Weekly Budget Cap', style: TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
-            Text('\$${_formData['weekly_budget_usdc'].toStringAsFixed(2)} USDC', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary)),
+            Text('\$${(_formData['weekly_budget_usdc'] ?? 0.0).toStringAsFixed(2)} USDC', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary)),
           ],
         ),
         Slider(

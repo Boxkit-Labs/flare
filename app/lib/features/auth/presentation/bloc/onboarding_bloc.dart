@@ -11,6 +11,20 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
       emit(OnboardingGeneratingWallet());
       try {
         final user = await apiService.register(event.deviceId);
+
+        // SMART RESUMPTION: Check if user already has funds/key
+        if (user.stellarPublicKey.isNotEmpty) {
+          try {
+            final wallet = await apiService.getWallet(user.userId);
+            if (wallet.balanceUsdc > 0) {
+              emit(OnboardingWalletFunded(user.userId, wallet.balanceUsdc));
+              return;
+            }
+          } catch (e) {
+            // If wallet fetch fails (e.g. account not created yet), just proceed normally
+          }
+        }
+
         emit(OnboardingWalletCreated(user));
       } catch (e) {
         emit(OnboardingFailure(e.toString()));
@@ -22,7 +36,7 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
       try {
         await apiService.fundWallet(event.userId);
         final wallet = await apiService.getWallet(event.userId);
-        emit(OnboardingWalletFunded(wallet.balanceUsdc));
+        emit(OnboardingWalletFunded(event.userId, wallet.balanceUsdc));
       } catch (e) {
         emit(OnboardingFailure(e.toString()));
       }

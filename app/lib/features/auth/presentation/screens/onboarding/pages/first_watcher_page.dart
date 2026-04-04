@@ -30,10 +30,21 @@ class _FirstWatcherPageState extends State<FirstWatcherPage> {
   void _createWatcher() {
     if (_selectedType == null) return;
     
-    // For now, let's just send the data
+    final state = context.read<OnboardingBloc>().state;
+    String? userId;
+    if (state is OnboardingWalletFunded) userId = state.userId;
+    if (userId == null) return;
+
+    // Map UI labels to backend-expected singular types
+    String backendType = _selectedType!.toLowerCase();
+    if (backendType == 'flights') backendType = 'flight';
+    if (backendType == 'products') backendType = 'product';
+    if (backendType == 'jobs') backendType = 'job';
+
     context.read<OnboardingBloc>().add(CreateInitialWatcher({
+      'user_id': userId,
       'name': 'Initial ${_selectedType!.toUpperCase()} Watcher',
-      'type': _selectedType!.toLowerCase(),
+      'type': backendType,
       'parameters': _parameters,
       'alert_conditions': _getAlertConditions(),
       'check_interval_minutes': 60,

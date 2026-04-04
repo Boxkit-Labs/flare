@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flare_app/features/watchers/presentation/bloc/watchers_bloc.dart';
 import 'package:flare_app/features/watchers/presentation/bloc/watchers_event.dart';
 import 'package:flare_app/features/watchers/presentation/bloc/watchers_state.dart';
@@ -33,7 +34,7 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
 
   final List<Map<String, dynamic>> _types = [
     {
-      'id': 'flights',
+      'id': 'flight',
       'name': 'Flights',
       'emoji': '✈️',
       'desc': 'Track flight prices',
@@ -57,7 +58,7 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
       'rec_interval': 720, // 12h
     },
     {
-      'id': 'products',
+      'id': 'product',
       'name': 'Products',
       'emoji': '🛍️',
       'desc': 'Track product prices',
@@ -65,7 +66,7 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
       'rec_interval': 720, // 12h
     },
     {
-      'id': 'jobs',
+      'id': 'job',
       'name': 'Jobs',
       'emoji': '💼',
       'desc': 'Find new opportunities',
@@ -88,7 +89,8 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
 
   void _launchWatcher() {
     final authState = context.read<AuthBloc>().state;
-    final userId = (authState as dynamic).user.userId;
+    if (authState is! AuthAuthenticated) return;
+    final userId = authState.user.userId;
     
     final finalData = {
       ..._formData,
@@ -279,15 +281,15 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
 
   Widget _buildConfiguration() {
     switch (_selectedType) {
-      case 'flights':
+      case 'flight':
         return FlightWatcherForm(onChanged: _onFormChanged);
       case 'crypto':
         return CryptoWatcherForm(onChanged: _onFormChanged);
       case 'news':
         return NewsWatcherForm(onChanged: _onFormChanged);
-      case 'products':
+      case 'product':
         return ProductWatcherForm(onChanged: _onFormChanged);
-      case 'jobs':
+      case 'job':
         return JobWatcherForm(onChanged: _onFormChanged);
       default:
         return const Center(child: Text('Select a type first'));
@@ -352,11 +354,11 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
 
   Widget _buildFrequencyDropdown() {
     final Map<String, List<Map<String, dynamic>>> intervals = {
-      'flights': [{'l': '6 hours (rec.)', 'v': 360}, {'l': '1 hour', 'v': 60}, {'l': '12 hours', 'v': 720}, {'l': 'Daily', 'v': 1440}],
+      'flight': [{'l': '6 hours (rec.)', 'v': 360}, {'l': '1 hour', 'v': 60}, {'l': '12 hours', 'v': 720}, {'l': 'Daily', 'v': 1440}],
       'crypto': [{'l': '1 hour (rec.)', 'v': 60}, {'l': '15 min', 'v': 15}, {'l': '6 hours', 'v': 360}, {'l': 'Daily', 'v': 1440}],
       'news': [{'l': '12 hours (rec.)', 'v': 720}, {'l': '6 hours', 'v': 360}, {'l': 'Daily', 'v': 1440}],
-      'products': [{'l': '12 hours (rec.)', 'v': 720}, {'l': '6 hours', 'v': 360}, {'l': 'Daily', 'v': 1440}],
-      'jobs': [{'l': 'Daily (rec.)', 'v': 1440}, {'l': '12 hours', 'v': 720}],
+      'product': [{'l': '12 hours (rec.)', 'v': 720}, {'l': '6 hours', 'v': 360}, {'l': 'Daily', 'v': 1440}],
+      'job': [{'l': 'Daily (rec.)', 'v': 1440}, {'l': '12 hours', 'v': 720}],
     };
 
     final options = intervals[_selectedType] ?? intervals['news']!;

@@ -26,6 +26,13 @@ class UserModel {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    double? parseDouble(dynamic value) {
+      if (value == null) return null;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value);
+      return null;
+    }
+
     return UserModel(
       userId: json['user_id'] ?? '',
       deviceId: json['device_id'] ?? '',
@@ -35,7 +42,7 @@ class UserModel {
       timezone: json['timezone'] ?? 'UTC',
       dndStart: json['dnd_start'] ?? '23:00',
       dndEnd: json['dnd_end'] ?? '07:00',
-      globalDailyCap: (json['global_daily_cap'] as num?)?.toDouble(),
+      globalDailyCap: parseDouble(json['global_daily_cap']),
       createdAt: json['created_at'] ?? '',
     );
   }
@@ -108,6 +115,13 @@ class WatcherModel {
   });
 
   factory WatcherModel.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic value, double defaultValue) {
+      if (value == null) return defaultValue;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? defaultValue;
+      return defaultValue;
+    }
+
     return WatcherModel(
       watcherId: json['watcher_id'] ?? '',
       userId: json['user_id'] ?? '',
@@ -120,9 +134,8 @@ class WatcherModel {
           ? Map<String, dynamic>.from(json['alert_conditions'])
           : {},
       checkIntervalMinutes: json['check_interval_minutes'] ?? 60,
-      weeklyBudgetUsdc: (json['weekly_budget_usdc'] as num?)?.toDouble() ?? 0,
-      spentThisWeekUsdc:
-          (json['spent_this_week_usdc'] as num?)?.toDouble() ?? 0,
+      weeklyBudgetUsdc: parseDouble(json['weekly_budget_usdc'], 0),
+      spentThisWeekUsdc: parseDouble(json['spent_this_week_usdc'], 0),
       weekStart: json['week_start'],
       priority: json['priority'] ?? 'medium',
       status: json['status'] ?? 'active',
@@ -131,11 +144,10 @@ class WatcherModel {
       nextCheckAt: json['next_check_at'],
       totalChecks: json['total_checks'] ?? 0,
       totalFindings: json['total_findings'] ?? 0,
-      totalSpentUsdc: (json['total_spent_usdc'] as num?)?.toDouble() ?? 0,
+      totalSpentUsdc: parseDouble(json['total_spent_usdc'], 0),
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
-      budgetPercentUsed:
-          (json['budget_percent_used'] as num?)?.toDouble(),
+      budgetPercentUsed: parseDouble(json['budget_percent_used'], 0),
       recentChecks: json['recent_checks'] != null
           ? (json['recent_checks'] as List)
               .map((c) => CheckModel.fromJson(c))
@@ -180,6 +192,13 @@ class CheckModel {
   });
 
   factory CheckModel.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic value, double defaultValue) {
+      if (value == null) return defaultValue;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? defaultValue;
+      return defaultValue;
+    }
+
     return CheckModel(
       checkId: json['check_id'] ?? '',
       watcherId: json['watcher_id'] ?? '',
@@ -191,9 +210,10 @@ class CheckModel {
       responseData: json['response_data'] is Map
           ? Map<String, dynamic>.from(json['response_data'])
           : null,
-      costUsdc: (json['cost_usdc'] as num?)?.toDouble() ?? 0,
+      costUsdc: parseDouble(json['cost_usdc'], 0),
       stellarTxHash: json['stellar_tx_hash'],
-      findingDetected: json['finding_detected'] == 1 || json['finding_detected'] == true,
+      findingDetected:
+          json['finding_detected'] == 1 || json['finding_detected'] == true,
       findingId: json['finding_id'],
       agentReasoning: json['agent_reasoning'],
       checkedAt: json['checked_at'] ?? '',
@@ -239,6 +259,13 @@ class FindingModel {
   });
 
   factory FindingModel.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic value, double defaultValue) {
+      if (value == null) return defaultValue;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? defaultValue;
+      return defaultValue;
+    }
+
     return FindingModel(
       findingId: json['finding_id'] ?? '',
       watcherId: json['watcher_id'] ?? '',
@@ -249,13 +276,52 @@ class FindingModel {
       detail: json['detail'],
       data: json['data'] is Map ? Map<String, dynamic>.from(json['data']) : null,
       actionUrl: json['action_url'],
-      costUsdc: (json['cost_usdc'] as num?)?.toDouble() ?? 0,
+      costUsdc: parseDouble(json['cost_usdc'], 0),
       stellarTxHash: json['stellar_tx_hash'],
       isRead: json['read'] == 1 || json['read'] == true,
       isNotified: json['notified'] == 1 || json['notified'] == true,
       foundAt: json['found_at'] ?? '',
       watcherName: json['watcher_name'],
       watcherType: json['watcher_type'],
+    );
+  }
+}
+
+class WatcherSummary {
+  final String watcherId;
+  final String watcherName;
+  final int checksRun;
+  final int findingsCount;
+  final double spent;
+  final String latestDataSummary;
+  final String type;
+
+  const WatcherSummary({
+    required this.watcherId,
+    required this.watcherName,
+    required this.checksRun,
+    required this.findingsCount,
+    required this.spent,
+    required this.latestDataSummary,
+    required this.type,
+  });
+
+  factory WatcherSummary.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic value, double defaultValue) {
+      if (value == null) return defaultValue;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? defaultValue;
+      return defaultValue;
+    }
+
+    return WatcherSummary(
+      watcherId: json['watcher_id'] ?? json['watcherId'] ?? '',
+      watcherName: json['watcher_name'] ?? json['watcherName'] ?? '',
+      checksRun: json['checks_run'] ?? json['checksRun'] ?? 0,
+      findingsCount: json['findings_count'] ?? json['findingsCount'] ?? 0,
+      spent: parseDouble(json['spent'], 0),
+      latestDataSummary: json['latest_data_summary'] ?? json['latestDataSummary'] ?? '',
+      type: json['type'] ?? '',
     );
   }
 }
@@ -270,7 +336,7 @@ class BriefingModel {
   final int totalFindings;
   final double totalCostUsdc;
   final List<dynamic> findingsJson;
-  final List<dynamic> watcherSummariesJson;
+  final List<WatcherSummary> watcherSummaries;
   final String? generatedSummary;
   final bool isRead;
   final String generatedAt;
@@ -285,13 +351,20 @@ class BriefingModel {
     this.totalFindings = 0,
     this.totalCostUsdc = 0,
     this.findingsJson = const [],
-    this.watcherSummariesJson = const [],
+    this.watcherSummaries = const [],
     this.generatedSummary,
     this.isRead = false,
     required this.generatedAt,
   });
 
   factory BriefingModel.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic value, double defaultValue) {
+      if (value == null) return defaultValue;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? defaultValue;
+      return defaultValue;
+    }
+
     return BriefingModel(
       briefingId: json['briefing_id'] ?? json['briefingId'] ?? '',
       userId: json['user_id'] ?? json['userId'] ?? '',
@@ -300,13 +373,12 @@ class BriefingModel {
       periodEnd: json['period_end'] ?? json['periodEnd'] ?? '',
       totalChecks: json['total_checks'] ?? json['totalChecks'] ?? 0,
       totalFindings: json['total_findings'] ?? json['totalFindings'] ?? 0,
-      totalCostUsdc:
-          (json['total_cost_usdc'] ?? json['totalCostUsdc'] as num?)
-                  ?.toDouble() ??
-              0,
+      totalCostUsdc: parseDouble(json['total_cost_usdc'] ?? json['totalCostUsdc'], 0),
       findingsJson: json['findings_json'] ?? json['findingsJson'] ?? [],
-      watcherSummariesJson:
-          json['watcher_summaries_json'] ?? json['watcherSummariesJson'] ?? [],
+      watcherSummaries: ( (json['watcher_summaries_json'] as List?) ?? (json['watcherSummariesJson'] as List?) )
+              ?.map((e) => WatcherSummary.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          <WatcherSummary>[],
       generatedSummary: json['generated_summary'] ?? json['generatedSummary'],
       isRead: json['read'] == 1 || json['read'] == true,
       generatedAt: json['generated_at'] ?? json['generatedAt'] ?? '',
@@ -318,18 +390,31 @@ class WalletModel {
   final String publicKey;
   final double balanceUsdc;
   final double balanceXlm;
+  final double spentToday;
+  final double spentThisWeek;
 
   const WalletModel({
     required this.publicKey,
     required this.balanceUsdc,
     required this.balanceXlm,
+    this.spentToday = 0,
+    this.spentThisWeek = 0,
   });
 
   factory WalletModel.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic value, double defaultValue) {
+      if (value == null) return defaultValue;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? defaultValue;
+      return defaultValue;
+    }
+
     return WalletModel(
       publicKey: json['public_key'] ?? '',
-      balanceUsdc: (json['balance_usdc'] as num?)?.toDouble() ?? 0,
-      balanceXlm: (json['balance_xlm'] as num?)?.toDouble() ?? 0,
+      balanceUsdc: parseDouble(json['balance_usdc'], 0),
+      balanceXlm: parseDouble(json['balance_xlm'], 0),
+      spentToday: parseDouble(json['spent_today'], 0),
+      spentThisWeek: parseDouble(json['spent_this_week'], 0),
     );
   }
 }
@@ -360,12 +445,19 @@ class TransactionModel {
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
+    double parseDouble(dynamic value, double defaultValue) {
+      if (value == null) return defaultValue;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? defaultValue;
+      return defaultValue;
+    }
+
     return TransactionModel(
       txId: json['tx_id'] ?? '',
       userId: json['user_id'] ?? '',
       watcherId: json['watcher_id'] ?? '',
       checkId: json['check_id'],
-      amountUsdc: (json['amount_usdc'] as num?)?.toDouble() ?? 0,
+      amountUsdc: parseDouble(json['amount_usdc'], 0),
       serviceName: json['service_name'] ?? '',
       stellarTxHash: json['stellar_tx_hash'] ?? '',
       timestamp: json['timestamp'] ?? '',
@@ -386,6 +478,8 @@ class SpendingStatsModel {
   final int? totalFindingsToday;
   final int? totalFindingsAllTime;
   final double? totalSpentAllTime;
+  final double? averageCostPerFinding;
+  final Map<String, dynamic>? subscriptionComparison;
 
   const SpendingStatsModel({
     this.totalSpent,
@@ -397,19 +491,32 @@ class SpendingStatsModel {
     this.totalFindingsToday,
     this.totalFindingsAllTime,
     this.totalSpentAllTime,
+    this.averageCostPerFinding,
+    this.subscriptionComparison,
   });
 
   factory SpendingStatsModel.fromJson(Map<String, dynamic> json) {
+    double? parseDouble(dynamic value) {
+      if (value == null) return null;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value);
+      return null;
+    }
+
     return SpendingStatsModel(
-      totalSpent: (json['total_spent'] as num?)?.toDouble(),
-      spentToday: (json['spent_today'] as num?)?.toDouble(),
-      spentThisWeek: (json['spent_this_week'] as num?)?.toDouble(),
+      totalSpent: parseDouble(json['total_spent']),
+      spentToday: parseDouble(json['spent_today']),
+      spentThisWeek: parseDouble(json['spent_this_week']),
       dailySpending: json['daily_spending'],
       perWatcherSpending: json['per_watcher_spending'],
       totalChecksToday: json['total_checks_today'],
       totalFindingsToday: json['total_findings_today'],
       totalFindingsAllTime: json['total_findings_all_time'],
-      totalSpentAllTime: (json['total_spent_all_time'] as num?)?.toDouble(),
+      totalSpentAllTime: parseDouble(json['total_spent_all_time']),
+      averageCostPerFinding: parseDouble(json['average_cost_per_finding']),
+      subscriptionComparison: json['subscription_comparison'] is Map 
+          ? Map<String, dynamic>.from(json['subscription_comparison']) 
+          : null,
     );
   }
 }

@@ -34,6 +34,14 @@ export const updateUserFcmToken = (userId: string, token: string) => {
   return db.prepare('UPDATE users SET fcm_token = ? WHERE user_id = ?').run(token, userId);
 };
 
+export const updateUser = (id: string, fields: any) => {
+  const keys = Object.keys(fields);
+  const assignments = keys.map(key => `${key} = ?`).join(', ');
+  const values = keys.map(key => fields[key]);
+  const stmt = db.prepare(`UPDATE users SET ${assignments} WHERE user_id = ?`);
+  return stmt.run(...values, id);
+};
+
 // --- WATCHER QUERIES ---
 
 export const createWatcher = (watcher: any) => {

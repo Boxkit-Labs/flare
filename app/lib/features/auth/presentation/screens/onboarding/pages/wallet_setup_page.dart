@@ -77,8 +77,11 @@ class _WalletSetupPageState extends State<WalletSetupPage> {
                 const SizedBox(height: 40),
                 Card(
                   child: ListTile(
-                    title: const Text('Public Key', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                    subtitle: Text(publicKey ?? 'GXXXXXXXXXXXXXXXXXXXXXXXXX', overflow: TextOverflow.ellipsis),
+                    title: const Text('Public Key',
+                        style: TextStyle(
+                            fontSize: 12, color: AppTheme.textSecondary)),
+                    subtitle: Text(publicKey ?? 'GXXXXXXXXXXXXXXXXXXXXXXXXX',
+                        overflow: TextOverflow.ellipsis),
                     trailing: IconButton(
                       icon: const Icon(Icons.copy, size: 18),
                       onPressed: () {
@@ -92,9 +95,10 @@ class _WalletSetupPageState extends State<WalletSetupPage> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  '10.00 USDC ready to go',
+                  '${(state is OnboardingWalletFunded ? state.balance : 10.0).toStringAsFixed(2)} USDC ready to go',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         color: AppTheme.secondary,
+                        fontWeight: FontWeight.bold,
                       ),
                 ),
               ],

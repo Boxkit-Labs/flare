@@ -85,19 +85,42 @@ router.post('/:id/fund', async (req: Request, res: Response) => {
         const publicKey = user.stellar_public_key;
         const encryptionKey = process.env.ENCRYPTION_KEY!;
         const decryptedSecret = decrypt(user.stellar_secret_key_encrypted, encryptionKey);
+
+        // Fetch current balances to see what's already done
+        console.log(`[FUND] Checking current balances for ${publicKey}...`);
+        const currentBalances = await stellarService.getBalances(publicKey);
+        const hasXlm = parseFloat(currentBalances.xlm) > 0;
+        const hasUsdc = parseFloat(currentBalances.usdc) > 0;
+
         // 1. Friendbot Funding (XLM)
-        await stellarService.fundWithFriendbot(publicKey);
+        if (!hasXlm) {
+            console.log(`[FUND] Step 1: Calling friendbot for ${publicKey}...`);
+            await stellarService.fundWithFriendbot(publicKey);
+            console.log('[FUND] Step 1: Success');
+        } else {
+            console.log('[FUND] Step 1: Already has XLM, skipping.');
+        }
 
         // 2. Add USDC Trustline
+        console.log('[FUND] Step 2: Ensuring USDC trustline exists...');
         await stellarService.addUsdcTrustline(decryptedSecret);
+        console.log('[FUND] Step 2: Success');
 
         // 3. Transfer 10 USDC from Operator
-        if (process.env.OPERATOR_SECRET) {
+        if (!hasUsdc && process.env.OPERATOR_SECRET) {
+            console.log('[FUND] Step 3: Sending 10.0 USDC...');
             await stellarService.fundNewUserWithUsdc(publicKey, '10.0');
+            console.log('[FUND] Step 3: Success');
+        } else if (hasUsdc) {
+            console.log('[FUND] Step 3: Already has USDC, skipping transfer.');
+        } else {
+            console.warn('[FUND] Step 3: Skipped (OPERATOR_SECRET missing)');
         }
 
         // Fetch final balances
+        console.log('[FUND] Fetching final balances...');
         const balances = await stellarService.getBalances(publicKey);
+        console.log(`[FUND] Done. Balances: XLM=${balances.xlm}, USDC=${balances.usdc}`);
 
         res.json({
             funded: true,
@@ -105,8 +128,12 @@ router.post('/:id/fund', async (req: Request, res: Response) => {
             usdc_balance: balances.usdc
         });
     } catch (error: any) {
-        console.error('Funding error:', error);
-        res.status(500).json({ error: error.message });
+        console.error('[FUND] Error during funding process:', error);
+        res.status(500).json({ 
+            error: error.message,
+            step_failed: error.message.includes('friendbot') ? 1 : 
+                        error.message.includes('trustline') ? 2 : 3
+        });
     }
 });
 
@@ -151,7 +178,7 @@ router.post('/:id/fcm-token', (req: Request, res: Response) => {
 router.put('/:id/settings', (req: Request, res: Response) => {
     try {
         const userId = req.params.id as string;
-        queries.updateWatcher(userId, req.body); // Reusing logic for dynamic field update
+        queries.updateUser(userId, req.body); 
         const updated = queries.getUserById(userId) as User | undefined;
         if (!updated) return res.status(404).json({ error: 'User not found' });
         const { stellar_secret_key_encrypted, ...profile } = updated;

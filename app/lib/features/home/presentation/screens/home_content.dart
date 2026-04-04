@@ -5,6 +5,7 @@ import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:flare_app/core/widgets/shimmer_utilities.dart';
 import 'package:flare_app/core/widgets/status_indicator.dart';
 import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flare_app/features/watchers/presentation/bloc/watchers_bloc.dart';
 import 'package:flare_app/features/watchers/presentation/bloc/watchers_event.dart';
 import 'package:flare_app/features/watchers/presentation/bloc/watchers_state.dart';
@@ -32,14 +33,13 @@ class HomeContent extends StatelessWidget {
 
   void _onRetry(BuildContext context) {
     final authState = context.read<AuthBloc>().state;
-    try {
-      final userId = (authState as dynamic).user.userId;
-      // Triggers for any screen refresh
+    if (authState is AuthAuthenticated) {
+      final userId = authState.user.userId;
       context.read<WalletBloc>().add(LoadWallet(userId));
       context.read<WatchersBloc>().add(LoadWatchers(userId));
       context.read<FindingsBloc>().add(LoadFindings(userId));
       context.read<BriefingBloc>().add(LoadTodayBriefing(userId));
-    } catch (_) {}
+    }
   }
 
   @override
@@ -169,7 +169,7 @@ class HomeContent extends StatelessWidget {
   Widget _buildWalletCapsule(BuildContext context, WalletState state) {
     if (state is WalletLoaded) {
       return Column(
-        key: const ValueKey('wallet_loaded'),
+        key: ValueKey('wallet_loaded_${state.wallet?.balanceUsdc ?? 0.0}'),
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           InkWell(
@@ -277,7 +277,7 @@ class HomeContent extends StatelessWidget {
     if (state is WatchersLoaded) {
       final watchers = state.watchers;
       return SizedBox(
-        key: const ValueKey('watchers_loaded'),
+        key: ValueKey('watchers_loaded_${watchers.length}'),
         height: 180,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
@@ -312,9 +312,9 @@ class HomeContent extends StatelessWidget {
     if (state is FindingsLoaded) {
       final findings = state.findings;
       if (findings.isEmpty) {
-        return const Padding(
-          key: ValueKey('findings_empty'),
-          padding: EdgeInsets.all(24),
+        return Padding(
+          key: const ValueKey('findings_empty'),
+          padding: const EdgeInsets.all(24),
           child: Center(
             child: Text(
               'No findings yet. Your agents are checking... 👻',

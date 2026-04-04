@@ -23,11 +23,12 @@ class OnboardingWalletCreated extends OnboardingState {
 class OnboardingFundingWallet extends OnboardingState {}
 
 class OnboardingWalletFunded extends OnboardingState {
+  final String userId;
   final double balance;
-  const OnboardingWalletFunded(this.balance);
+  const OnboardingWalletFunded(this.userId, this.balance);
 
   @override
-  List<Object?> get props => [balance];
+  List<Object?> get props => [userId, balance];
 }
 
 class OnboardingCreatingWatcher extends OnboardingState {}

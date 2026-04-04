@@ -5,6 +5,7 @@ import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:flare_app/core/widgets/error_state.dart';
 import 'package:flare_app/core/widgets/shimmer_utilities.dart';
 import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flare_app/features/watchers/presentation/bloc/watchers_bloc.dart';
 import 'package:flare_app/features/watchers/presentation/bloc/watchers_event.dart';
 import 'package:flare_app/features/watchers/presentation/bloc/watchers_state.dart';
@@ -30,8 +31,10 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
   }
 
   void _refresh() {
-    final userId = (context.read<AuthBloc>().state as dynamic).user.userId;
-    context.read<WatchersBloc>().add(LoadWatchers(userId));
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      context.read<WatchersBloc>().add(LoadWatchers(authState.user.userId));
+    }
   }
 
   @override

@@ -5,6 +5,7 @@ import 'package:flare_app/core/models/models.dart';
 import 'package:flare_app/core/widgets/error_state.dart';
 import 'package:flare_app/core/widgets/shimmer_utilities.dart';
 import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flare_app/features/briefing/presentation/bloc/briefing_bloc.dart';
 import 'package:flare_app/features/briefing/presentation/bloc/briefing_event.dart';
 import 'package:flare_app/features/briefing/presentation/bloc/briefing_state.dart';
@@ -31,11 +32,11 @@ class _BriefingScreenState extends State<BriefingScreen> {
 
   void _refresh() {
     final authState = context.read<AuthBloc>().state;
-    try {
-      final userId = (authState as dynamic).user.userId;
+    if (authState is AuthAuthenticated) {
+      final userId = authState.user.userId;
       context.read<BriefingBloc>().add(LoadTodayBriefing(userId));
       context.read<BriefingBloc>().add(LoadBriefingHistory(userId, limit: 7));
-    } catch (_) {}
+    }
   }
 
   void _changeDate(int days) {
@@ -90,7 +91,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
 
       if (briefing != null) {
         return RefreshIndicator(
-          key: const ValueKey('loaded'),
+          key: ValueKey('briefing_${briefing.briefingId}'),
           onRefresh: () async {
             _refresh();
             await Future.delayed(const Duration(milliseconds: 800));
@@ -145,8 +146,10 @@ class _BriefingScreenState extends State<BriefingScreen> {
              const SizedBox(height: 32),
              ElevatedButton(
                onPressed: () {
-                 final userId = (context.read<AuthBloc>().state as dynamic).user.userId;
-                 context.read<BriefingBloc>().add(GenerateManualBriefing(userId));
+                 final authState = context.read<AuthBloc>().state;
+                 if (authState is AuthAuthenticated) {
+                   context.read<BriefingBloc>().add(GenerateManualBriefing(authState.user.userId));
+                 }
                },
                child: const Text('Generate Now'),
              ),
@@ -159,7 +162,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
   Widget _buildBriefingContent(BriefingModel briefing) {
      final allItems = [
        ...briefing.findingsJson.map((f) => FindingModel.fromJson(f as Map<String, dynamic>)),
-       ...briefing.watcherSummariesJson,
+       ...briefing.watcherSummaries,
      ];
 
      return ListView.builder(
@@ -206,8 +209,8 @@ class _BriefingScreenState extends State<BriefingScreen> {
          }
 
          final summaryIndex = index - (findingsCount + 3);
-         if (summaryIndex < briefing.watcherSummariesJson.length) {
-           final summary = briefing.watcherSummariesJson[summaryIndex] as Map<String, dynamic>;
+         if (summaryIndex < briefing.watcherSummaries.length) {
+           final summary = briefing.watcherSummaries[summaryIndex];
            return StaggeredReveal(
              index: index,
              child: _buildNoChangeTile(summary),
@@ -245,11 +248,10 @@ class _BriefingScreenState extends State<BriefingScreen> {
      );
   }
 
-  Widget _buildNoChangeTile(Map<String, dynamic> summary) {
-     final type = summary['type'] ?? 'info';
-     final emoji = _getEmoji(type);
-     final name = summary['name'] ?? 'Watcher';
-     final latestData = summary['latest_status'] ?? 'Checked. No alert.';
+  Widget _buildNoChangeTile(WatcherSummary summary) {
+     final emoji = _getEmoji(summary.type);
+     final name = summary.watcherName;
+     final latestData = summary.latestDataSummary.isNotEmpty ? summary.latestDataSummary : 'Checked. No alert.';
 
      return Card(
        elevation: 0,
@@ -263,7 +265,9 @@ class _BriefingScreenState extends State<BriefingScreen> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'Agent ran checks at ${DateFormat('HH:mm').format(DateTime.now())}. All parameters within threshold. Flare efficiency confirmed. 👻',
+                summary.latestDataSummary.isNotEmpty 
+                   ? summary.latestDataSummary 
+                   : 'Your agent is active and scheduled for its next check. All parameters within threshold. 👻',
                 style: const TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
               ),
             ),
@@ -332,10 +336,13 @@ class _BriefingScreenState extends State<BriefingScreen> {
 
   String _getEmoji(String type) {
     switch (type.toLowerCase()) {
+      case 'flight':
       case 'flights': return '✈️';
       case 'crypto': return '💰';
       case 'news': return '📰';
+      case 'product':
       case 'products': return '🛍️';
+      case 'job':
       case 'jobs': return '💼';
       default: return '✨';
     }
