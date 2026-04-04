@@ -7,6 +7,8 @@ import findingsRouter from './routes/findings.js';
 import briefingsRouter from './routes/briefings.js';
 import walletRouter from './routes/wallet.js';
 import transactionsRouter from './routes/transactions.js';
+import servicesRouter from './routes/services.js';
+
 
 import { CheckExecutor } from './services/check-executor.js';
 import { SchedulerService } from './services/scheduler.js';
@@ -30,6 +32,8 @@ app.use('/api/findings', findingsRouter);
 app.use('/api/briefings', briefingsRouter);
 app.use('/api/wallet', walletRouter);
 app.use('/api/transactions', transactionsRouter);
+app.use('/services', servicesRouter);
+
 
 app.get('/health', (req: Request, res: Response) => {
   res.json({

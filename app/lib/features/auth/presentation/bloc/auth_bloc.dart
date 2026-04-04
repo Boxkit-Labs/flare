@@ -14,7 +14,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.localDataSource,
   }) : super(AuthInitial()) {
     on<AppStarted>((event, emit) async {
-      emit(const AuthLoading(message: 'Connecting to Flare...'));
+      emit(const AuthLoading(message: 'Waking up Flare server... (Takes ~40s on first launch)'));
       
       // 1. Wake up the backend (handling cold starts)
       final stopwatch = Stopwatch()..start();
@@ -23,11 +23,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       if (!isHealthy) {
         debugPrint('AuthBloc: Backend not responding after retries.');
-      } else if (stopwatch.elapsed.inSeconds > 3) {
-        // If it took a while, we already showed 'Connecting...'
-        emit(const AuthLoading(message: 'Waking up server (Cold Start)...'));
-        await Future.delayed(const Duration(milliseconds: 500));
+      } else if (stopwatch.elapsed.inSeconds > 5) {
+        emit(const AuthLoading(message: 'Flare has awakened! Finalizing setup...'));
+        await Future.delayed(const Duration(milliseconds: 1000));
       }
+
 
       emit(const AuthLoading(message: 'Checking session...'));
       try {

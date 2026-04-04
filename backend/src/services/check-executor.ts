@@ -57,28 +57,31 @@ export class CheckExecutor {
       }
       const payerSecretKey = decrypt(user.stellar_secret_key_encrypted, ENCRYPTION_KEY);
 
-      // Extract service URL
+      // Local service resolution
+      const port = process.env.PORT || '3000';
+      const baseUrl = `http://localhost:${port}/services`;
+      
       let serviceUrl = '';
       let method: 'GET' | 'POST' = 'POST';
       let body: any = watcher.parameters;
 
       switch (watcher.type.toLowerCase()) {
         case 'flight':
-          serviceUrl = process.env.FLIGHT_SERVICE_URL || 'http://localhost:3001/api/flights';
+          serviceUrl = `${baseUrl}/flight/api/flights`;
           break;
         case 'crypto':
-          serviceUrl = process.env.CRYPTO_SERVICE_URL || 'http://localhost:3001/crypto/api/crypto';
+          serviceUrl = `${baseUrl}/crypto/api/crypto`;
           method = 'GET';
           break;
         case 'news':
-          serviceUrl = process.env.NEWS_SERVICE_URL || 'http://localhost:3001/news/api/news';
+          serviceUrl = `${baseUrl}/news/api/news`;
           method = 'GET';
           break;
         case 'product':
-          serviceUrl = process.env.PRODUCT_SERVICE_URL || 'http://localhost:3001/product/api/products';
+          serviceUrl = `${baseUrl}/product/api/products`;
           break;
         case 'job':
-          serviceUrl = process.env.JOB_SERVICE_URL || 'http://localhost:3001/job/api/jobs';
+          serviceUrl = `${baseUrl}/job/api/jobs`;
           break;
         default:
           throw new Error(`Unknown watcher type: ${watcher.type}`);
@@ -154,10 +157,7 @@ export class CheckExecutor {
 
       // 11. Run Finding Detector
       const finding = await detector.detectFinding(watcher, responseData, previousCheckData, costUsdc, txHash);
-      if (finding) {
-          finding.check_id = checkId;
-      }
-
+      
       // 12. Determine Logging & Check Record State
       let findingDetected = false;
       let findingId = null;
@@ -165,6 +165,7 @@ export class CheckExecutor {
 
       if (finding) {
           // 13. If Finding Detected
+          finding.check_id = checkId;
           createFinding(finding);
           findingDetected = true;
           findingId = finding.finding_id;
@@ -193,8 +194,8 @@ export class CheckExecutor {
       });
 
       // 15. Update Watcher Details
-      const newTotalChecks = (watcher as any).total_checks ? (watcher as any).total_checks + 1 : 1;
-      const newTotalFindings = findingDetected ? ((watcher as any).total_findings ? (watcher as any).total_findings + 1 : 1) : ((watcher as any).total_findings || 0);
+      const newTotalChecks = ((watcher as any).total_checks || 0) + 1;
+      const newTotalFindings = findingDetected ? (((watcher as any).total_findings || 0) + 1) : ((watcher as any).total_findings || 0);
       const newSpentThisWeek = (watcher.spent_this_week_usdc || 0) + costUsdc;
       const newTotalSpent = ((watcher as any).total_spent_usdc || 0) + costUsdc;
       const nowStr = new Date().toISOString();
@@ -215,9 +216,9 @@ export class CheckExecutor {
       };
 
       if (watcher.check_interval_minutes) {
-         const nextDate = new Date();
-         nextDate.setMinutes(nextDate.getMinutes() + watcher.check_interval_minutes);
-         updates.next_check_at = nextDate.toISOString();
+          const nextDate = new Date();
+          nextDate.setMinutes(nextDate.getMinutes() + watcher.check_interval_minutes);
+          updates.next_check_at = nextDate.toISOString();
       }
 
       updateWatcher(watcherId, updates);
@@ -228,5 +229,6 @@ export class CheckExecutor {
       console.error(`CheckExecutor Critical Error (Watcher ${watcherId}):`, errorMsg);
       updateWatcher(watcherId, { status: 'error', error_message: errorMsg });
     }
+
   }
 }

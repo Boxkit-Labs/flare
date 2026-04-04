@@ -158,7 +158,7 @@ export async function payForService(params: PayParams): Promise<{ data: any, txH
             'Content-Type': 'application/json',
             'x-stellar-tx': txHash
         },
-        body: body ? JSON.stringify(body) : undefined
+        body: (body && method === 'POST') ? JSON.stringify(body) : undefined
     });
 
     if (!paidRes.ok) {
