@@ -1,4 +1,3 @@
-import { SorobanRpc } from '@stellar/stellar-sdk';
 import { Request, Response, NextFunction } from 'express';
 
 export interface PaywallOptions {
@@ -12,19 +11,23 @@ export interface PaywallOptions {
  * Helper to fetch transaction status directly from JSON-RPC to avoid SDK deserialization bugs.
  */
 async function getTransactionStatus(rpcUrl: string, txHash: string): Promise<any> {
-    const response = await fetch(rpcUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'getTransaction',
-            params: { hash: txHash }
-        })
-    });
-    const json = await response.json() as any;
-    if (json.error) throw new Error(json.error.message);
-    return json.result;
+    try {
+        const response = await fetch(rpcUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'getTransaction',
+                params: { hash: txHash }
+            })
+        });
+        const json = await response.json() as any;
+        if (json.error) throw new Error(json.error.message);
+        return json.result;
+    } catch (err: any) {
+        throw new Error(`RPC Connection Error: ${err.message}`);
+    }
 }
 
 export function stellarPaywall(options: PaywallOptions) {
@@ -56,8 +59,8 @@ export function stellarPaywall(options: PaywallOptions) {
       // Verify status directly from Soroban RPC
       const result = await getTransactionStatus(options.rpcUrl, txHash);
       
-      if (result.status !== 'SUCCESS') {
-        res.status(402).json({ error: 'tx_not_successful', status: result.status });
+      if (!result || result.status !== 'SUCCESS') {
+        res.status(402).json({ error: 'tx_not_successful', status: result?.status || 'NOT_FOUND' });
         return;
       }
 

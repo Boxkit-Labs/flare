@@ -15,9 +15,10 @@ class ApiService {
     _dio = Dio(
       BaseOptions(
         baseUrl: AppConstants.apiBaseUrl,
-        connectTimeout: const Duration(seconds: 30), // Increased for cold start
-        receiveTimeout: const Duration(seconds: 30),
+        connectTimeout: const Duration(seconds: 60), // Increased for Render cold starts
+        receiveTimeout: const Duration(seconds: 60),
         headers: {'Content-Type': 'application/json'},
+
       ),
     );
 
@@ -43,15 +44,17 @@ class ApiService {
       try {
         attempts++;
         final response = await _dio.get('/health', options: Options(
-          sendTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 10),
+          sendTimeout: const Duration(seconds: 60),
+          receiveTimeout: const Duration(seconds: 60),
         ));
         return response.statusCode == 200;
       } catch (e) {
+        debugPrint('ApiService: Health check attempt $attempts failed: $e');
         if (attempts >= 3) break;
-        await Future.delayed(const Duration(seconds: 2)); // Wait before retry
+        await Future.delayed(const Duration(seconds: 5)); // Wait longer between retries
       }
     }
+
     return false;
   }
 

@@ -62,8 +62,8 @@ router.post('/', async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Invalid type' });
         }
 
-        if (check_interval_minutes < 15) {
-            return res.status(400).json({ error: 'check_interval_minutes must be at least 15' });
+        if (check_interval_minutes < 1) {
+            return res.status(400).json({ error: 'check_interval_minutes must be at least 1' });
         }
 
         if (weekly_budget_usdc <= 0) {
