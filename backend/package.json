@@ -7,7 +7,10 @@
   "scripts": {
     "dev": "npx tsx --watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.ts"
+    "start": "node dist/server.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "*",

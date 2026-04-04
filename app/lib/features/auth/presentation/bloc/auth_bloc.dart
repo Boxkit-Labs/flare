@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flare_app/services/api_service.dart';
 import 'package:flare_app/features/auth/data/datasources/auth_local_data_source.dart';
@@ -13,6 +14,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.localDataSource,
   }) : super(AuthInitial()) {
     on<AppStarted>((event, emit) async {
+      emit(const AuthLoading(message: 'Connecting to Flare...'));
+      
+      // 1. Wake up the backend (handling cold starts)
+      final stopwatch = Stopwatch()..start();
+      final isHealthy = await apiService.checkHealth();
+      stopwatch.stop();
+
+      if (!isHealthy) {
+        debugPrint('AuthBloc: Backend not responding after retries.');
+      } else if (stopwatch.elapsed.inSeconds > 3) {
+        // If it took a while, we already showed 'Connecting...'
+        emit(const AuthLoading(message: 'Waking up server (Cold Start)...'));
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+
       emit(const AuthLoading(message: 'Checking session...'));
       try {
         final userId = await localDataSource.getUserId();

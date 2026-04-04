@@ -15,7 +15,7 @@ class ApiService {
     _dio = Dio(
       BaseOptions(
         baseUrl: AppConstants.apiBaseUrl,
-        connectTimeout: const Duration(seconds: 10),
+        connectTimeout: const Duration(seconds: 30), // Increased for cold start
         receiveTimeout: const Duration(seconds: 30),
         headers: {'Content-Type': 'application/json'},
       ),
@@ -31,6 +31,28 @@ class ApiService {
         ),
       );
     }
+  }
+  
+  // ─── HEALTH METHODS ────────────────────────────────────────
+
+  /// Ping the backend to wake it up (Render cold start support).
+  /// Retries up to 3 times if it fails initially.
+  Future<bool> checkHealth() async {
+    int attempts = 0;
+    while (attempts < 3) {
+      try {
+        attempts++;
+        final response = await _dio.get('/health', options: Options(
+          sendTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+        ));
+        return response.statusCode == 200;
+      } catch (e) {
+        if (attempts >= 3) break;
+        await Future.delayed(const Duration(seconds: 2)); // Wait before retry
+      }
+    }
+    return false;
   }
 
   // ─── USER METHODS ──────────────────────────────────────────

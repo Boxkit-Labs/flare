@@ -64,19 +64,21 @@ export class CheckExecutor {
 
       switch (watcher.type.toLowerCase()) {
         case 'flight':
-          serviceUrl = 'http://localhost:3001/api/flights';
+          serviceUrl = process.env.FLIGHT_SERVICE_URL || 'http://localhost:3001/api/flights';
           break;
         case 'crypto':
-          serviceUrl = 'http://localhost:3002/api/crypto';
+          serviceUrl = process.env.CRYPTO_SERVICE_URL || 'http://localhost:3001/crypto/api/crypto';
+          method = 'GET';
           break;
         case 'news':
-          serviceUrl = 'http://localhost:3003/api/news';
+          serviceUrl = process.env.NEWS_SERVICE_URL || 'http://localhost:3001/news/api/news';
+          method = 'GET';
           break;
         case 'product':
-          serviceUrl = 'http://localhost:3004/api/products';
+          serviceUrl = process.env.PRODUCT_SERVICE_URL || 'http://localhost:3001/product/api/products';
           break;
         case 'job':
-          serviceUrl = 'http://localhost:3005/api/jobs';
+          serviceUrl = process.env.JOB_SERVICE_URL || 'http://localhost:3001/job/api/jobs';
           break;
         default:
           throw new Error(`Unknown watcher type: ${watcher.type}`);
