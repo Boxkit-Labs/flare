@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: flare-backend
+    env: node
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm start
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_VERSION
+        value: 18
+      - key: STELLAR_NETWORK
+        value: testnet
+      - key: FLIGHT_SERVICE_URL
+        value: https://flare-services.onrender.com/flight/api/flights
+      - key: CRYPTO_SERVICE_URL
+        value: https://flare-services.onrender.com/crypto/api/crypto
+      - key: NEWS_SERVICE_URL
+        value: https://flare-services.onrender.com/news/api/news
+      - key: PRODUCT_SERVICE_URL
+        value: https://flare-services.onrender.com/product/api/products
+      - key: JOB_SERVICE_URL
+        value: https://flare-services.onrender.com/job/api/jobs
+      
+  - type: web
+    name: flare-services
+    env: node
+    buildCommand: cd services/combined && npm install && npm run build
+    startCommand: cd services/combined && npm start
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: NODE_VERSION
+        value: 18
+      - key: RECEIVING_ADDRESS
+        value: GDKU2DY4TTRRSQ6BBFYTDV2GEWREHCIDUM5FFXLIF66PDOO3HYJ2YZIF

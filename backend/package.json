@@ -1,13 +1,16 @@
 {
-  "name": "ghost-backend",
+  "name": "flare-backend",
   "version": "1.0.0",
   "type": "module",
   "description": "",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "nodemon --exec ts-node src/server.ts",
+    "dev": "npx tsx --watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.ts"
+    "start": "node dist/server.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "*",

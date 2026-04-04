@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "607620095162",
+    "project_id": "flare-4b9c6",
+    "storage_bucket": "flare-4b9c6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:607620095162:android:3e0b2e75d882d08d6df683",
+        "android_client_info": {
+          "package_name": "com.flare.flare_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCIMAgs47X1-LRyNEktr5e8n2ePKZBm53o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

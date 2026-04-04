@@ -1,26 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
-import * as queries from '../db/queries';
+import * as queries from '../db/queries.js';
+import { scheduler } from '../server.js';
 
 const router = Router();
 
-interface Watcher {
-    watcher_id: string;
-    user_id: string;
-    name: string;
-    type: string;
-    parameters: any;
-    alert_conditions: any;
-    check_interval_minutes: number;
-    weekly_budget_usdc: number;
-    spent_this_week_usdc: number;
-    week_start: string;
-    priority: string;
-    status: string;
-    next_check_at: string;
-    created_at: string;
-    updated_at: string;
-}
+import { WatcherRow } from '../types.js';
 
 interface Check {
     check_id: string;
@@ -114,7 +99,9 @@ router.post('/', async (req: Request, res: Response) => {
             next_check_at: nextCheck.toISOString()
         });
 
-        res.status(201).json(queries.getWatcherById(watcherId));
+        const insertedWatcher = queries.getWatcherById(watcherId) as WatcherRow;
+        scheduler.addWatcher(insertedWatcher);
+        res.status(201).json(insertedWatcher);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
@@ -129,7 +116,7 @@ router.get('/', (req: Request, res: Response) => {
         const userId = req.query.user_id as string;
         if (!userId) return res.status(400).json({ error: 'user_id query param is required' });
 
-        const watchers = queries.getWatchersByUserId(userId) as Watcher[];
+        const watchers = queries.getWatchersByUserId(userId) as WatcherRow[];
         
         const enhancedWatchers = watchers.map(w => {
             const budgetPercentUsed = w.weekly_budget_usdc > 0 
@@ -151,7 +138,7 @@ router.get('/', (req: Request, res: Response) => {
 router.get('/:id', (req: Request, res: Response) => {
     try {
         const watcherId = req.params.id as string;
-        const watcher = queries.getWatcherById(watcherId) as Watcher | undefined;
+        const watcher = queries.getWatcherById(watcherId) as WatcherRow | undefined;
         if (!watcher) return res.status(404).json({ error: 'Watcher not found' });
 
         const checks = queries.getChecksByWatcherId(watcherId, 10) as Check[];
@@ -174,7 +161,7 @@ router.get('/:id', (req: Request, res: Response) => {
 router.put('/:id', (req: Request, res: Response) => {
     try {
         const watcherId = req.params.id as string;
-        const existing = queries.getWatcherById(watcherId) as Watcher | undefined;
+        const existing = queries.getWatcherById(watcherId) as WatcherRow | undefined;
         if (!existing) return res.status(404).json({ error: 'Watcher not found' });
 
         const allowedUpdates = ['name', 'parameters', 'alert_conditions', 'check_interval_minutes', 'weekly_budget_usdc', 'priority'];
@@ -193,7 +180,11 @@ router.put('/:id', (req: Request, res: Response) => {
         }
 
         queries.updateWatcher(watcherId, updates);
-        res.json(queries.getWatcherById(watcherId));
+        const updatedWatcher = queries.getWatcherById(watcherId) as WatcherRow;
+        if (updates.check_interval_minutes && updates.check_interval_minutes !== existing.check_interval_minutes) {
+             scheduler.rescheduleWatcher(updatedWatcher);
+        }
+        res.json(updatedWatcher);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
@@ -206,7 +197,7 @@ router.put('/:id', (req: Request, res: Response) => {
 router.post('/:id/toggle', (req: Request, res: Response) => {
     try {
         const watcherId = req.params.id as string;
-        const watcher = queries.getWatcherById(watcherId) as Watcher | undefined;
+        const watcher = queries.getWatcherById(watcherId) as WatcherRow | undefined;
         if (!watcher) return res.status(404).json({ error: 'Watcher not found' });
 
         let newStatus = '';
@@ -225,8 +216,15 @@ router.post('/:id/toggle', (req: Request, res: Response) => {
 
         updates.status = newStatus;
         queries.updateWatcher(watcherId, updates);
+        const updatedWatcher = queries.getWatcherById(watcherId) as WatcherRow;
         
-        res.json(queries.getWatcherById(watcherId));
+        if (newStatus === 'active') {
+            scheduler.addWatcher(updatedWatcher);
+        } else {
+            scheduler.removeWatcher(watcherId);
+        }
+
+        res.json(updatedWatcher);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }
@@ -243,7 +241,33 @@ router.delete('/:id', (req: Request, res: Response) => {
         if (result.changes === 0) return res.status(404).json({ error: 'Watcher not found' });
         
         res.json({ success: true });
+        scheduler.removeWatcher(watcherId);
     } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * POST /api/watchers/:id/check
+ * Manually triggers a check for a watcher.
+ */
+router.post('/:id/check', async (req: Request, res: Response) => {
+    try {
+        const watcherId = req.params.id as string;
+        const watcher = queries.getWatcherById(watcherId) as WatcherRow | undefined;
+        if (!watcher) return res.status(404).json({ error: 'Watcher not found' });
+
+        console.log(`Manual check triggered for watcher: ${watcher.name} (${watcherId})`);
+        
+        // Execute the check immediately through the scheduler/executor
+        // We use a small interval here just as a placeholder, the execution isn't rescheduled by this call
+        // although executeScheduledCheck DOES reschedule if status is active.
+        await scheduler.executeScheduledCheck(watcherId, watcher.check_interval_minutes * 60 * 1000);
+        
+        const updatedWatcher = queries.getWatcherById(watcherId);
+        res.json({ message: 'Check executed', watcher: updatedWatcher });
+    } catch (error: any) {
+        console.error('Manual check failed:', error);
         res.status(500).json({ error: error.message });
     }
 });

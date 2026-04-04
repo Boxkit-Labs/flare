@@ -1,4 +1,4 @@
-import db from './database';
+import db from './database.js';
 
 /**
  * Data Access Layer for Flare Backend.
@@ -22,12 +22,24 @@ export const getUserById = (id: string) => {
   return db.prepare('SELECT * FROM users WHERE user_id = ?').get(id);
 };
 
+export const getAllUsers = () => {
+  return db.prepare('SELECT * FROM users').all();
+};
+
 export const getUserByDeviceId = (deviceId: string) => {
   return db.prepare('SELECT * FROM users WHERE device_id = ?').get(deviceId);
 };
 
 export const updateUserFcmToken = (userId: string, token: string) => {
   return db.prepare('UPDATE users SET fcm_token = ? WHERE user_id = ?').run(token, userId);
+};
+
+export const updateUser = (id: string, fields: any) => {
+  const keys = Object.keys(fields);
+  const assignments = keys.map(key => `${key} = ?`).join(', ');
+  const values = keys.map(key => fields[key]);
+  const stmt = db.prepare(`UPDATE users SET ${assignments} WHERE user_id = ?`);
+  return stmt.run(...values, id);
 };
 
 // --- WATCHER QUERIES ---
@@ -171,6 +183,10 @@ export const getFindingsByWatcherId = (watcherId: string) => {
 
 export const markFindingRead = (id: string) => {
   return db.prepare('UPDATE findings SET read = 1 WHERE finding_id = ?').run(id);
+};
+
+export const markFindingNotified = (id: string) => {
+  return db.prepare('UPDATE findings SET notified = 1 WHERE finding_id = ?').run(id);
 };
 
 // --- BRIEFING QUERIES ---

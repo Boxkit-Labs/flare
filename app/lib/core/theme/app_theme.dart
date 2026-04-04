@@ -6,6 +6,7 @@ class AppTheme {
 
   static const Color background = Color(0xFF0A0E1A);
   static const Color surface = Color(0xFF141926);
+  static const Color surfaceLight = Color(0xFF1C2233);
   static const Color primary = Color(0xFF6C63FF);
   static const Color secondary = Color(0xFF00D9A6);
   static const Color error = Color(0xFFFF4757);

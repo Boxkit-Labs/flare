@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flare_app/core/models/models.dart';
 
 abstract class AuthEvent extends Equatable {
   const AuthEvent();
@@ -8,5 +9,21 @@ abstract class AuthEvent extends Equatable {
 }
 
 class AppStarted extends AuthEvent {}
-class AuthLoaded extends AuthEvent {}
+
+class UserRegistered extends AuthEvent {
+  final UserModel user;
+  const UserRegistered(this.user);
+
+  @override
+  List<Object?> get props => [user];
+}
+
+class UpdateUserSettings extends AuthEvent {
+  final Map<String, dynamic> settings;
+  const UpdateUserSettings(this.settings);
+
+  @override
+  List<Object?> get props => [settings];
+}
+
 class LoggedOut extends AuthEvent {}

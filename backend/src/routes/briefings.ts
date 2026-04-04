@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
-import * as queries from '../db/queries';
+import * as queries from '../db/queries.js';
+import { briefingGenerator } from '../services/briefing-generator.js';
 
 const router = Router();
 
@@ -46,32 +47,9 @@ router.post('/generate', async (req: Request, res: Response) => {
         const { user_id } = req.body;
         if (!user_id) return res.status(400).json({ error: 'user_id is required' });
 
-        // Placeholder data logic
-        const recentFindings = queries.getFindingsByUserId(user_id, 3);
-        const stats = queries.getSpendingStats(user_id);
-
-        const briefingId = randomUUID();
-        const now = new Date();
-        const dateStr = now.toISOString().split('T')[0];
-
-        const newBriefing = {
-            briefingId,
-            userId: user_id,
-            date: dateStr,
-            periodStart: new Date(now.getTime() - 24 * 60 * 60000).toISOString(),
-            periodEnd: now.toISOString(),
-            totalChecks: (stats as any).total_checks_today || 12, // Placeholder fallback
-            totalFindings: recentFindings.length,
-            totalCostUsdc: (stats as any).spent_today || 0.15,
-            findingsJson: recentFindings,
-            watcherSummariesJson: [{ watcher_id: 'all', summary: 'Everything looks normal.' }],
-            generatedSummary: recentFindings.length > 0 
-                ? `You have ${recentFindings.length} new findings to review from your watchers.`
-                : "No significant findings today. Your watchers are monitoring your interests quietly."
-        };
-
-        queries.createBriefing(newBriefing);
-        res.status(201).json(queries.getTodayBriefing(user_id));
+        const newBriefing = await briefingGenerator.generateBriefing(user_id);
+        
+        res.status(201).json(newBriefing);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }

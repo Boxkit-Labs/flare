@@ -60,6 +60,16 @@ export class StellarService {
         const sourcePublicKey = sourceKeypair.publicKey();
 
         const account = await this.server.loadAccount(sourcePublicKey);
+        
+        // Check if trustline already exists
+        const hasTrustline = account.balances.some(b => 
+            'asset_code' in b && b.asset_code === this.usdcAsset.code && b.asset_issuer === this.usdcAsset.issuer
+        );
+        if (hasTrustline) {
+            console.log(`[STELLAR] Trustline already exists for ${sourcePublicKey}, skipping.`);
+            return 'EXISTS';
+        }
+
         const fee = await this.server.fetchBaseFee();
 
         const transaction = new TransactionBuilder(account, {
@@ -73,8 +83,18 @@ export class StellarService {
         .build();
 
         transaction.sign(sourceKeypair);
-        const response = await this.server.submitTransaction(transaction);
-        return response.hash;
+        try {
+            const response = await this.server.submitTransaction(transaction);
+            return response.hash;
+        } catch (error: any) {
+            // Check for op_already_exists error in Horizon response
+            const resultCodes = error?.response?.data?.extras?.result_codes;
+            if (resultCodes?.operations?.includes('op_already_exists') || resultCodes?.transaction === 'tx_bad_seq') {
+                 console.log(`[STELLAR] Redundant trustline or sequence error (likely already exists), skipping.`);
+                 return 'EXISTS';
+            }
+            throw error;
+        }
     }
 
     /**

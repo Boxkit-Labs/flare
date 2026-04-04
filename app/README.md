@@ -1,4 +1,4 @@
-# ghost_app
+# flare_app
 
 A new Flutter project.
 

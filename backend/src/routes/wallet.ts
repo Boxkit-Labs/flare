@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { Horizon } from '@stellar/stellar-sdk';
-import * as queries from '../db/queries';
+import * as queries from '../db/queries.js';
 
 const router = Router();
 const server = new Horizon.Server('https://horizon-testnet.stellar.org');
@@ -55,8 +55,8 @@ router.get('/:user_id/stats', (req: Request, res: Response) => {
         
         // Subscription Savings Comparison
         const traditionalEstimate = 58.00; // Hardcoded per requirements
-        const ghostMonthlyEstimate = (user.global_daily_cap || 1.0) * 30;
-        const savings = traditionalEstimate - ghostMonthlyEstimate;
+        const flareMonthlyEstimate = (user.global_daily_cap || 1.0) * 30;
+        const savings = traditionalEstimate - flareMonthlyEstimate;
 
         const averageCostPerFinding = analytics.total_findings_all_time > 0 
             ? analytics.total_spent_all_time / analytics.total_findings_all_time
@@ -69,7 +69,7 @@ router.get('/:user_id/stats', (req: Request, res: Response) => {
             total_findings_today: analytics.total_findings_today,
             average_cost_per_finding: averageCostPerFinding,
             subscription_comparison: {
-                ghost_monthly_estimate: ghostMonthlyEstimate,
+                flare_monthly_estimate: flareMonthlyEstimate,
                 traditional_estimate: traditionalEstimate,
                 savings: savings > 0 ? savings : 0
             }
