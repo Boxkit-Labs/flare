@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/auth_state.dart';
-import 'package:ghost_app/features/auth/presentation/screens/onboarding/onboarding_screen.dart';
-import 'package:ghost_app/features/home/presentation/screens/home_screen.dart';
-import 'package:ghost_app/features/watchers/presentation/screens/watchers_list_screen.dart';
-import 'package:ghost_app/features/watchers/presentation/screens/create_watcher_screen.dart';
-import 'package:ghost_app/features/watchers/presentation/screens/watcher_detail_screen.dart';
-import 'package:ghost_app/features/watchers/presentation/screens/edit_watcher_screen.dart';
-import 'package:ghost_app/features/findings/presentation/screens/findings_list_screen.dart';
-import 'package:ghost_app/features/findings/presentation/screens/finding_detail_screen.dart';
-import 'package:ghost_app/features/briefing/presentation/screens/briefing_screen.dart';
-import 'package:ghost_app/features/wallet/presentation/screens/wallet_screen.dart';
-import 'package:ghost_app/features/settings/presentation/screens/settings_screen.dart';
-import 'package:ghost_app/features/home/presentation/screens/shell_screen.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_state.dart';
+import 'package:flare_app/features/auth/presentation/screens/onboarding/onboarding_screen.dart';
+import 'package:flare_app/features/home/presentation/screens/home_screen.dart';
+import 'package:flare_app/features/watchers/presentation/screens/watchers_list_screen.dart';
+import 'package:flare_app/features/watchers/presentation/screens/create_watcher_screen.dart';
+import 'package:flare_app/features/watchers/presentation/screens/watcher_detail_screen.dart';
+import 'package:flare_app/features/watchers/presentation/screens/edit_watcher_screen.dart';
+import 'package:flare_app/features/findings/presentation/screens/findings_list_screen.dart';
+import 'package:flare_app/features/findings/presentation/screens/finding_detail_screen.dart';
+import 'package:flare_app/features/briefing/presentation/screens/briefing_screen.dart';
+import 'package:flare_app/features/wallet/presentation/screens/wallet_screen.dart';
+import 'package:flare_app/features/settings/presentation/screens/settings_screen.dart';
+import 'package:flare_app/features/home/presentation/screens/shell_screen.dart';
 
 class AppRouter {
   AppRouter._();

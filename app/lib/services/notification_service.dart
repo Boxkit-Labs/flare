@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:ghost_app/core/router/app_router.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/services/api_service.dart';
+import 'package:flare_app/core/router/app_router.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/services/api_service.dart';
 
 /// Top-level handler for background messages (must be a top-level function).
 @pragma('vm:entry-point')

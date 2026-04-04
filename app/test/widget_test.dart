@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import 'package:ghost_app/app.dart';
-import 'package:ghost_app/injection_container.dart' as di;
-import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/app.dart';
+import 'package:flare_app/injection_container.dart' as di;
+import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
 
 void main() {
   setUp(() async {
@@ -16,7 +16,7 @@ void main() {
     await tester.pumpWidget(
       BlocProvider<AuthBloc>(
         create: (context) => di.sl<AuthBloc>(),
-        child: const GhostApp(),
+        child: const FlareApp(),
       ),
     );
 

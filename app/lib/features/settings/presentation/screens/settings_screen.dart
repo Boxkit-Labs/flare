@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/core/models/models.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/auth_state.dart';
-import 'package:ghost_app/services/api_service.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/models/models.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_state.dart';
+import 'package:flare_app/services/api_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -272,7 +272,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildAboutSection() {
     return Column(
       children: [
-        const ListTile(title: Text('App version'), trailing: Text('Ghost v1.0.0')),
+        const ListTile(title: Text('App version'), trailing: Text('Flare v1.0.0')),
         const ListTile(title: Text('Built for'), subtitle: Text('Stellar Hacks: Agents hackathon')),
         ListTile(
           title: const Text('GitHub Repository'),

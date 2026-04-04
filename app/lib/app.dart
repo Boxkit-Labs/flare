@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/core/router/app_router.dart';
-import 'package:ghost_app/core/widgets/notification_banner.dart';
-import 'package:ghost_app/features/findings/presentation/bloc/findings_bloc.dart';
-import 'package:ghost_app/features/findings/presentation/bloc/findings_state.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/router/app_router.dart';
+import 'package:flare_app/core/widgets/notification_banner.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_bloc.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_state.dart';
 
-class GhostApp extends StatefulWidget {
-  const GhostApp({super.key});
+class FlareApp extends StatefulWidget {
+  const FlareApp({super.key});
 
   @override
-  State<GhostApp> createState() => _GhostAppState();
+  State<FlareApp> createState() => _FlareAppState();
 }
 
-class _GhostAppState extends State<GhostApp> {
+class _FlareAppState extends State<FlareApp> {
   int _lastKnownUnreadCount = 0;
   OverlayEntry? _currentBanner;
 

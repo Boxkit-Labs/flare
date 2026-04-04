@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/core/widgets/error_state.dart';
-import 'package:ghost_app/core/widgets/shimmer_utilities.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:ghost_app/features/watchers/presentation/bloc/watchers_bloc.dart';
-import 'package:ghost_app/features/watchers/presentation/bloc/watchers_event.dart';
-import 'package:ghost_app/features/watchers/presentation/bloc/watchers_state.dart';
-import 'package:ghost_app/features/watchers/presentation/widgets/watcher_list_tile.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/widgets/error_state.dart';
+import 'package:flare_app/core/widgets/shimmer_utilities.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/watchers/presentation/bloc/watchers_bloc.dart';
+import 'package:flare_app/features/watchers/presentation/bloc/watchers_event.dart';
+import 'package:flare_app/features/watchers/presentation/bloc/watchers_state.dart';
+import 'package:flare_app/features/watchers/presentation/widgets/watcher_list_tile.dart';
 
 class WatchersListScreen extends StatefulWidget {
   const WatchersListScreen({super.key});

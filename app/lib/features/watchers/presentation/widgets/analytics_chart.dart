@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/core/models/models.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/models/models.dart';
 import 'package:intl/intl.dart';
 
 class AnalyticsChart extends StatelessWidget {

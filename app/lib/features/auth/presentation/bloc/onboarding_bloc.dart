@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ghost_app/services/api_service.dart';
+import 'package:flare_app/services/api_service.dart';
 import 'onboarding_event.dart';
 import 'onboarding_state.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:ghost_app/core/models/models.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/models/models.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 

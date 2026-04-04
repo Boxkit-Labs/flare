@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
 
 class ShimmerPlaceholder extends StatelessWidget {
   final double width;

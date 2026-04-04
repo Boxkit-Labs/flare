@@ -3,7 +3,7 @@ import { randomUUID, randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 import { readFileSync, existsSync } from 'node:fs';
 
-const DB_PATH = join(process.cwd(), 'backend', 'ghost.sqlite');
+const DB_PATH = join(process.cwd(), 'backend', 'flare.sqlite');
 const SCHEMA_PATH = join(process.cwd(), 'backend', 'src', 'db', 'schema.sql');
 
 const db = new Database(DB_PATH);
@@ -29,7 +29,7 @@ const DEMO_USER_ID = 'demo-user-1';
 const DEMO_DEVICE_ID = 'demo-device-1';
 
 async function seed() {
-    console.log('--- Ghost Demo Seeding ---');
+    console.log('--- Flare Demo Seeding ---');
     initializeDatabase();
     
     // 0. Clean old demo data
@@ -261,7 +261,7 @@ async function seed() {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(
                 randomUUID(), watcher4Id, checkId, DEMO_USER_ID, 'job',
-                '2 Remote Flutter Jobs Found', 'New openings at Boxkit and Ghost-Tech.',
+                '2 Remote Flutter Jobs Found', 'New openings at Boxkit and Flare-Tech.',
                 JSON.stringify({ count: 2 }), 0.0, txHash, checkTime.toISOString()
             );
         }

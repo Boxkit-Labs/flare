@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/core/models/models.dart';
-import 'package:ghost_app/features/findings/presentation/bloc/findings_bloc.dart';
-import 'package:ghost_app/features/findings/presentation/bloc/findings_event.dart';
-import 'package:ghost_app/features/findings/presentation/bloc/findings_state.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/models/models.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_bloc.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_event.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_state.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -345,7 +345,7 @@ class _FindingDetailScreenState extends State<FindingDetailScreen> {
   }
 
   void _shareFinding(FindingModel finding) {
-    final text = '👻 Ghost Finding: ${finding.headline}\n\n${finding.detail ?? ''}\n\n${finding.actionUrl ?? ''}';
+    final text = '👻 Flare Finding: ${finding.headline}\n\n${finding.detail ?? ''}\n\n${finding.actionUrl ?? ''}';
     Share.share(text);
   }
 }

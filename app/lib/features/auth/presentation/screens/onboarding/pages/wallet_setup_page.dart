@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/onboarding_bloc.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/onboarding_event.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/onboarding_state.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/features/auth/presentation/bloc/onboarding_bloc.dart';
+import 'package:flare_app/features/auth/presentation/bloc/onboarding_event.dart';
+import 'package:flare_app/features/auth/presentation/bloc/onboarding_state.dart';
 
 class WalletSetupPage extends StatefulWidget {
   final VoidCallback onNext;

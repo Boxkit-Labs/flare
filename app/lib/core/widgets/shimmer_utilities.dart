@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 export 'shimmer_placeholder.dart';
-import 'package:ghost_app/core/widgets/shimmer_placeholder.dart';
+import 'package:flare_app/core/widgets/shimmer_placeholder.dart';
 
 class ShimmerList extends StatelessWidget {
   final int itemCount;

@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:ghost_app/app.dart';
-import 'package:ghost_app/core/router/app_router.dart';
-import 'package:ghost_app/injection_container.dart' as di;
-import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/auth_event.dart';
-import 'package:ghost_app/services/notification_service.dart';
-import 'package:ghost_app/features/watchers/presentation/bloc/watchers_bloc.dart';
-import 'package:ghost_app/features/findings/presentation/bloc/findings_bloc.dart';
-import 'package:ghost_app/features/briefing/presentation/bloc/briefing_bloc.dart';
-import 'package:ghost_app/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:flare_app/app.dart';
+import 'package:flare_app/core/router/app_router.dart';
+import 'package:flare_app/injection_container.dart' as di;
+import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_event.dart';
+import 'package:flare_app/services/notification_service.dart';
+import 'package:flare_app/features/watchers/presentation/bloc/watchers_bloc.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_bloc.dart';
+import 'package:flare_app/features/briefing/presentation/bloc/briefing_bloc.dart';
+import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,7 +52,7 @@ Future<void> main() async {
           create: (context) => di.sl<WalletBloc>(),
         ),
       ],
-      child: const GhostApp(),
+      child: const FlareApp(),
     ),
   );
 }

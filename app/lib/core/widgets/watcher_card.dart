@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/core/widgets/budget_bar.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/widgets/budget_bar.dart';
 
 class WatcherCard extends StatelessWidget {
   final String type;

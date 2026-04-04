@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:ghost_app/core/config/app_constants.dart';
-import 'package:ghost_app/core/models/models.dart';
+import 'package:flare_app/core/config/app_constants.dart';
+import 'package:flare_app/core/models/models.dart';
 
 /// Central API service for communicating with the Flare backend.
 /// Uses Dio with interceptors for logging and error handling.

@@ -1,15 +1,15 @@
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/onboarding_bloc.dart';
-import 'package:ghost_app/features/auth/data/datasources/auth_local_data_source.dart';
-import 'package:ghost_app/features/findings/presentation/bloc/findings_bloc.dart';
-import 'package:ghost_app/features/watchers/presentation/bloc/watchers_bloc.dart';
-import 'package:ghost_app/features/briefing/presentation/bloc/briefing_bloc.dart';
-import 'package:ghost_app/features/wallet/presentation/bloc/wallet_bloc.dart';
-import 'package:ghost_app/services/api_service.dart';
-import 'package:ghost_app/services/notification_service.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/auth/presentation/bloc/onboarding_bloc.dart';
+import 'package:flare_app/features/auth/data/datasources/auth_local_data_source.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_bloc.dart';
+import 'package:flare_app/features/watchers/presentation/bloc/watchers_bloc.dart';
+import 'package:flare_app/features/briefing/presentation/bloc/briefing_bloc.dart';
+import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:flare_app/services/api_service.dart';
+import 'package:flare_app/services/notification_service.dart';
 
 final sl = GetIt.instance;
 

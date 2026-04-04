@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/core/models/models.dart';
-import 'package:ghost_app/core/widgets/error_state.dart';
-import 'package:ghost_app/core/widgets/shimmer_utilities.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:ghost_app/features/findings/presentation/bloc/findings_bloc.dart';
-import 'package:ghost_app/features/findings/presentation/bloc/findings_event.dart';
-import 'package:ghost_app/features/findings/presentation/bloc/findings_state.dart';
-import 'package:ghost_app/features/findings/presentation/widgets/finding_card.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/models/models.dart';
+import 'package:flare_app/core/widgets/error_state.dart';
+import 'package:flare_app/core/widgets/shimmer_utilities.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_bloc.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_event.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_state.dart';
+import 'package:flare_app/features/findings/presentation/widgets/finding_card.dart';
 import 'package:intl/intl.dart';
-import 'package:ghost_app/core/widgets/staggered_reveal.dart';
+import 'package:flare_app/core/widgets/staggered_reveal.dart';
 
 class FindingsListScreen extends StatefulWidget {
   const FindingsListScreen({super.key});

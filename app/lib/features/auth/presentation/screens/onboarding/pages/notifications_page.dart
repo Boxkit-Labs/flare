@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/onboarding_bloc.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/onboarding_event.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/onboarding_state.dart';
-import 'package:ghost_app/injection_container.dart';
-import 'package:ghost_app/services/notification_service.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/features/auth/presentation/bloc/onboarding_bloc.dart';
+import 'package:flare_app/features/auth/presentation/bloc/onboarding_event.dart';
+import 'package:flare_app/features/auth/presentation/bloc/onboarding_state.dart';
+import 'package:flare_app/injection_container.dart';
+import 'package:flare_app/services/notification_service.dart';
 
 class NotificationsPage extends StatefulWidget {
   final VoidCallback onBack;
@@ -63,7 +63,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
               ),
               const SizedBox(height: 10),
               Text(
-                'One more thing — Ghost needs to wake you up',
+                'One more thing — Flare needs to wake you up',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: AppTheme.textSecondary),
@@ -121,7 +121,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     onPressed: isLoading ? null : _finish,
                     child: isLoading 
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Start Ghost'),
+                      : const Text('Start Flare'),
                   ),
                 ],
               ),

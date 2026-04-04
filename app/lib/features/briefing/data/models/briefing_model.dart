@@ -1,4 +1,4 @@
-import 'package:ghost_app/features/findings/data/models/finding_model.dart';
+import 'package:flare_app/features/findings/data/models/finding_model.dart';
 
 class WatcherSummary {
   final String watcherId;

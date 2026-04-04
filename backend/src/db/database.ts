@@ -7,9 +7,9 @@ dotenv.config();
 
 /**
  * Singleton database instance initialization.
- * Configures the database path from .env (DB_PATH) or defaults to 'ghost.sqlite'.
+ * Configures the database path from .env (DB_PATH) or defaults to 'flare.sqlite'.
  */
-const dbPath = process.env.DB_PATH || 'ghost.sqlite';
+const dbPath = process.env.DB_PATH || 'flare.sqlite';
 const db = new Database(dbPath, { verbose: console.log });
 
 // Enable foreign key constraints

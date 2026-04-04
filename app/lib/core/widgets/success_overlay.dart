@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
 
 class SuccessOverlay extends StatefulWidget {
   final String message;
@@ -12,7 +12,7 @@ class SuccessOverlay extends StatefulWidget {
     this.subMessage = 'Agent has been deployed.',
   });
 
-  static void show(BuildContext context, {String message = 'Launched!', String subMessage = 'Your Ghost agent is now hunting.'}) {
+  static void show(BuildContext context, {String message = 'Launched!', String subMessage = 'Your Flare agent is now hunting.'}) {
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
     

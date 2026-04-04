@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ghost_app/core/mixins/auto_refresh_mixin.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:ghost_app/features/home/presentation/screens/home_content.dart';
-import 'package:ghost_app/features/watchers/presentation/bloc/watchers_bloc.dart';
-import 'package:ghost_app/features/watchers/presentation/bloc/watchers_event.dart';
-import 'package:ghost_app/features/findings/presentation/bloc/findings_bloc.dart';
-import 'package:ghost_app/features/findings/presentation/bloc/findings_event.dart';
-import 'package:ghost_app/features/briefing/presentation/bloc/briefing_bloc.dart';
-import 'package:ghost_app/features/briefing/presentation/bloc/briefing_event.dart';
-import 'package:ghost_app/features/wallet/presentation/bloc/wallet_bloc.dart';
-import 'package:ghost_app/features/wallet/presentation/bloc/wallet_event.dart';
+import 'package:flare_app/core/mixins/auto_refresh_mixin.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/home/presentation/screens/home_content.dart';
+import 'package:flare_app/features/watchers/presentation/bloc/watchers_bloc.dart';
+import 'package:flare_app/features/watchers/presentation/bloc/watchers_event.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_bloc.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_event.dart';
+import 'package:flare_app/features/briefing/presentation/bloc/briefing_bloc.dart';
+import 'package:flare_app/features/briefing/presentation/bloc/briefing_event.dart';
+import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:flare_app/features/wallet/presentation/bloc/wallet_event.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

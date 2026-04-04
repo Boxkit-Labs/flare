@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
 
 class HowItWorksPage extends StatelessWidget {
   final VoidCallback onNext;
@@ -21,7 +21,7 @@ class HowItWorksPage extends StatelessWidget {
           _buildCard(
             context,
             '📋 Set Watchers',
-            'Tell Ghost what to monitor: flights, prices, news, jobs, crypto',
+            'Tell Flare what to monitor: flights, prices, news, jobs, crypto',
           ),
           const SizedBox(height: 16),
           _buildCard(

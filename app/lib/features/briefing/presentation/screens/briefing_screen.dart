@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/core/models/models.dart';
-import 'package:ghost_app/core/widgets/error_state.dart';
-import 'package:ghost_app/core/widgets/shimmer_utilities.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:ghost_app/features/briefing/presentation/bloc/briefing_bloc.dart';
-import 'package:ghost_app/features/briefing/presentation/bloc/briefing_event.dart';
-import 'package:ghost_app/features/briefing/presentation/bloc/briefing_state.dart';
-import 'package:ghost_app/features/findings/presentation/widgets/finding_card.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/models/models.dart';
+import 'package:flare_app/core/widgets/error_state.dart';
+import 'package:flare_app/core/widgets/shimmer_utilities.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/briefing/presentation/bloc/briefing_bloc.dart';
+import 'package:flare_app/features/briefing/presentation/bloc/briefing_event.dart';
+import 'package:flare_app/features/briefing/presentation/bloc/briefing_state.dart';
+import 'package:flare_app/features/findings/presentation/widgets/finding_card.dart';
 import 'package:intl/intl.dart';
-import 'package:ghost_app/core/widgets/staggered_reveal.dart';
+import 'package:flare_app/core/widgets/staggered_reveal.dart';
 
 class BriefingScreen extends StatefulWidget {
   const BriefingScreen({super.key});
@@ -263,7 +263,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'Agent ran checks at ${DateFormat('HH:mm').format(DateTime.now())}. All parameters within threshold. Ghost efficiency confirmed. 👻',
+                'Agent ran checks at ${DateFormat('HH:mm').format(DateTime.now())}. All parameters within threshold. Flare efficiency confirmed. 👻',
                 style: const TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
               ),
             ),

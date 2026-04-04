@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/core/models/models.dart';
-import 'package:ghost_app/core/widgets/error_state.dart';
-import 'package:ghost_app/core/widgets/shimmer_utilities.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:ghost_app/features/wallet/presentation/bloc/wallet_bloc.dart';
-import 'package:ghost_app/features/wallet/presentation/bloc/wallet_event.dart';
-import 'package:ghost_app/features/wallet/presentation/bloc/wallet_state.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/models/models.dart';
+import 'package:flare_app/core/widgets/error_state.dart';
+import 'package:flare_app/core/widgets/shimmer_utilities.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:flare_app/features/wallet/presentation/bloc/wallet_event.dart';
+import 'package:flare_app/features/wallet/presentation/bloc/wallet_state.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -382,7 +382,7 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Widget _buildSavingsBanner(SpendingStatsModel? stats) {
-    final ghostMonthly = 0.85; // Mock
+    final flareMonthly = 0.85; // Mock
     final totalSavings = 57.15;
 
     return Container(
@@ -422,7 +422,7 @@ class _WalletScreenState extends State<WalletScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Ghost this month: \$$ghostMonthly',
+            'Flare this month: \$$flareMonthly',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 18,

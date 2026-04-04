@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
 
 class EmptyState extends StatelessWidget {
   final String emoji;

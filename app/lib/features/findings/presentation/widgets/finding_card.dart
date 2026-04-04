@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ghost_app/core/models/models.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/features/findings/presentation/bloc/findings_bloc.dart';
-import 'package:ghost_app/features/findings/presentation/bloc/findings_event.dart';
+import 'package:flare_app/core/models/models.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_bloc.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_event.dart';
 import 'package:intl/intl.dart';
 
 class FindingCard extends StatefulWidget {

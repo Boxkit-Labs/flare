@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/auth_event.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/onboarding_bloc.dart';
-import 'package:ghost_app/features/auth/presentation/bloc/onboarding_state.dart';
-import 'package:ghost_app/injection_container.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:flare_app/features/auth/presentation/bloc/auth_event.dart';
+import 'package:flare_app/features/auth/presentation/bloc/onboarding_bloc.dart';
+import 'package:flare_app/features/auth/presentation/bloc/onboarding_state.dart';
+import 'package:flare_app/injection_container.dart';
 import 'pages/welcome_page.dart';
 import 'pages/how_it_works_page.dart';
 import 'pages/wallet_setup_page.dart';

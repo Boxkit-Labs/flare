@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
 
 class WelcomePage extends StatelessWidget {
   final VoidCallback onNext;
@@ -28,7 +28,7 @@ class WelcomePage extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Ghost',
+            'Flare',
             style: Theme.of(context).textTheme.displayLarge?.copyWith(
                   letterSpacing: -1,
                 ),

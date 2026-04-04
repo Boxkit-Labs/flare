@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ghost_app/services/api_service.dart';
-import 'package:ghost_app/features/auth/data/datasources/auth_local_data_source.dart';
+import 'package:flare_app/services/api_service.dart';
+import 'package:flare_app/features/auth/data/datasources/auth_local_data_source.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 

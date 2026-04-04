@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/core/models/models.dart';
-import 'package:ghost_app/features/watchers/presentation/bloc/watchers_bloc.dart';
-import 'package:ghost_app/features/watchers/presentation/bloc/watchers_event.dart';
-import 'package:ghost_app/features/watchers/presentation/bloc/watchers_state.dart';
-import 'package:ghost_app/features/watchers/presentation/widgets/forms/flight_watcher_form.dart';
-import 'package:ghost_app/features/watchers/presentation/widgets/forms/crypto_watcher_form.dart';
-import 'package:ghost_app/features/watchers/presentation/widgets/forms/news_watcher_form.dart';
-import 'package:ghost_app/features/watchers/presentation/widgets/forms/product_watcher_form.dart';
-import 'package:ghost_app/features/watchers/presentation/widgets/forms/job_watcher_form.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/models/models.dart';
+import 'package:flare_app/features/watchers/presentation/bloc/watchers_bloc.dart';
+import 'package:flare_app/features/watchers/presentation/bloc/watchers_event.dart';
+import 'package:flare_app/features/watchers/presentation/bloc/watchers_state.dart';
+import 'package:flare_app/features/watchers/presentation/widgets/forms/flight_watcher_form.dart';
+import 'package:flare_app/features/watchers/presentation/widgets/forms/crypto_watcher_form.dart';
+import 'package:flare_app/features/watchers/presentation/widgets/forms/news_watcher_form.dart';
+import 'package:flare_app/features/watchers/presentation/widgets/forms/product_watcher_form.dart';
+import 'package:flare_app/features/watchers/presentation/widgets/forms/job_watcher_form.dart';
 
 class EditWatcherScreen extends StatefulWidget {
   final String watcherId;

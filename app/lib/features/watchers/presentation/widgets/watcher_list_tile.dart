@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ghost_app/core/models/models.dart';
-import 'package:ghost_app/core/theme/app_theme.dart';
-import 'package:ghost_app/core/widgets/status_indicator.dart';
-import 'package:ghost_app/features/watchers/presentation/widgets/animated_budget_bar.dart';
+import 'package:flare_app/core/models/models.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/widgets/status_indicator.dart';
+import 'package:flare_app/features/watchers/presentation/widgets/animated_budget_bar.dart';
 import 'package:intl/intl.dart';
 
 class WatcherListTile extends StatelessWidget {
