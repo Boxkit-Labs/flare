@@ -23,22 +23,23 @@ class _FlightWatcherFormState extends State<FlightWatcherForm> {
   @override
   void initState() {
     super.initState();
-    _originController.addListener(_updateData);
-    _destinationController.addListener(_updateData);
-    _priceController.addListener(_updateData);
-    _nameController.addListener(_updateNameManually);
 
     if (widget.initialData != null) {
       _originController.text = widget.initialData!['origin'] ?? '';
       _destinationController.text = widget.initialData!['destination'] ?? '';
       if (widget.initialData!['departure_date'] != null) {
-        _departureDate = DateTime.parse(widget.initialData!['departure_date']);
+        _departureDate = DateTime.tryParse(widget.initialData!['departure_date']);
       }
       if (widget.initialData!['return_date'] != null) {
-        _returnDate = DateTime.parse(widget.initialData!['return_date']);
+        _returnDate = DateTime.tryParse(widget.initialData!['return_date']);
       }
       _priceController.text = widget.initialData!['price_below']?.toString() ?? '';
     }
+
+    _originController.addListener(_updateData);
+    _destinationController.addListener(_updateData);
+    _priceController.addListener(_updateData);
+    _nameController.addListener(_updateNameManually);
   }
 
   bool _isManualName = false;

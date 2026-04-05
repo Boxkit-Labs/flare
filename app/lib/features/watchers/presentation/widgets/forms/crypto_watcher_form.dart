@@ -24,12 +24,6 @@ class _CryptoWatcherFormState extends State<CryptoWatcherForm> {
   void initState() {
     super.initState();
     _nameController.text = 'Crypto Watch';
-    _changeController.addListener(_updateData);
-    _nameController.addListener(_updateData);
-    for (var coin in _coins) {
-      _aboveControllers[coin] = TextEditingController()..addListener(_updateData);
-      _belowControllers[coin] = TextEditingController()..addListener(_updateData);
-    }
 
     if (widget.initialData != null) {
       if (widget.initialData!['coins'] != null) {
@@ -41,6 +35,15 @@ class _CryptoWatcherFormState extends State<CryptoWatcherForm> {
          _aboveControllers[coin]?.text = widget.initialData!['${coin.toLowerCase()}_above']?.toString() ?? '';
          _belowControllers[coin]?.text = widget.initialData!['${coin.toLowerCase()}_below']?.toString() ?? '';
       }
+    }
+
+    _changeController.addListener(_updateData);
+    _nameController.addListener(_updateData);
+    for (var coin in _coins) {
+      if (!_aboveControllers.containsKey(coin)) _aboveControllers[coin] = TextEditingController();
+      if (!_belowControllers.containsKey(coin)) _belowControllers[coin] = TextEditingController();
+      _aboveControllers[coin]!.addListener(_updateData);
+      _belowControllers[coin]!.addListener(_updateData);
     }
   }
 

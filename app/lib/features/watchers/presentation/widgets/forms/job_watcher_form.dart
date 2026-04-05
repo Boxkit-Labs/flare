@@ -22,9 +22,6 @@ class _JobWatcherFormState extends State<JobWatcherForm> {
   @override
   void initState() {
     super.initState();
-    _nameController.addListener(_updateData);
-    _locationController.addListener(_updateData);
-    _salaryController.addListener(_updateData);
     _nameController.text = 'Job Watch';
 
     if (widget.initialData != null) {
@@ -35,6 +32,10 @@ class _JobWatcherFormState extends State<JobWatcherForm> {
       _isRemote = widget.initialData!['is_remote'] ?? false;
       _salaryController.text = widget.initialData!['min_salary']?.toString() ?? '';
     }
+
+    _nameController.addListener(_updateData);
+    _locationController.addListener(_updateData);
+    _salaryController.addListener(_updateData);
   }
 
   void _updateData() {

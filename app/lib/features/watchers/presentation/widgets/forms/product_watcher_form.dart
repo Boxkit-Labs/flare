@@ -20,16 +20,17 @@ class _ProductWatcherFormState extends State<ProductWatcherForm> {
   @override
   void initState() {
     super.initState();
-    _productController.addListener(_updateData);
-    _currentPriceController.addListener(_updateData);
-    _alertPriceController.addListener(_updateData);
-    _nameController.addListener(_updateNameManually);
 
     if (widget.initialData != null) {
       _productController.text = widget.initialData!['product_name'] ?? '';
       _currentPriceController.text = widget.initialData!['current_price']?.toString() ?? '';
       _alertPriceController.text = widget.initialData!['price_below']?.toString() ?? '';
     }
+
+    _productController.addListener(_updateData);
+    _currentPriceController.addListener(_updateData);
+    _alertPriceController.addListener(_updateData);
+    _nameController.addListener(_updateNameManually);
   }
 
   bool _isManualName = false;

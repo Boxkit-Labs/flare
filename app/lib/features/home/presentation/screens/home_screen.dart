@@ -28,13 +28,13 @@ class _HomeScreenState extends State<HomeScreen> with AutoRefreshMixin {
     startAutoRefresh(const Duration(seconds: 30), _refreshData);
   }
 
-  void _refreshData() {
+  void _refreshData({bool force = false}) {
     if (!mounted) return;
     
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       final userId = authState.user.userId;
-      context.read<WalletBloc>().add(LoadAllWalletData(userId));
+      context.read<WalletBloc>().add(LoadAllWalletData(userId, isRefresh: !force));
       context.read<WatchersBloc>().add(LoadWatchers(userId));
       context.read<FindingsBloc>().add(LoadFindings(userId));
       context.read<BriefingBloc>().add(LoadTodayBriefing(userId));
@@ -47,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> with AutoRefreshMixin {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
-            _refreshData();
+            _refreshData(force: true);
             // Wait for at least one bloc to finish or a small delay
             await Future.delayed(const Duration(milliseconds: 800));
           },

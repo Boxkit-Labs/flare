@@ -20,7 +20,6 @@ class _NewsWatcherFormState extends State<NewsWatcherForm> {
   @override
   void initState() {
     super.initState();
-    _nameController.addListener(_updateData);
     _nameController.text = 'News Watch';
 
     if (widget.initialData != null) {
@@ -29,6 +28,8 @@ class _NewsWatcherFormState extends State<NewsWatcherForm> {
       }
       _minArticles = widget.initialData!['min_articles'] ?? 1;
     }
+
+    _nameController.addListener(_updateData);
   }
 
   void _updateData() {

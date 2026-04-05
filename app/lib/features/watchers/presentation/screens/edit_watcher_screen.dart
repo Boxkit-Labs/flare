@@ -39,7 +39,9 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
   }
 
   void _handleDataChange(Map<String, dynamic> data) {
-    setState(() => _formData = data);
+    setState(() {
+      _formData.addAll(data);
+    });
   }
 
   Map<String, dynamic> _getDiff() {
@@ -74,8 +76,8 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
               'check_interval_minutes': state.watcher.checkIntervalMinutes,
               'weekly_budget_usdc': state.watcher.weeklyBudgetUsdc,
               'priority': state.watcher.priority,
-              ...state.watcher.parameters,
-              ...state.watcher.alertConditions,
+              'parameters': state.watcher.parameters,
+              'alert_conditions': state.watcher.alertConditions,
             };
             _formData = Map.from(_initialData);
             _isLoading = false;
@@ -145,20 +147,25 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
   }
 
   Widget _buildDynamicForm() {
+    final combinedInitialData = {
+      ..._watcher!.parameters,
+      ..._watcher!.alertConditions,
+    };
+
     switch (_watcher!.type.toLowerCase()) {
       case 'flight':
       case 'flights':
-        return FlightWatcherForm(onChanged: _handleDataChange, initialData: _watcher!.parameters);
+        return FlightWatcherForm(onChanged: _handleDataChange, initialData: combinedInitialData);
       case 'crypto':
-        return CryptoWatcherForm(onChanged: _handleDataChange, initialData: _watcher!.parameters);
+        return CryptoWatcherForm(onChanged: _handleDataChange, initialData: combinedInitialData);
       case 'news':
-        return NewsWatcherForm(onChanged: _handleDataChange, initialData: _watcher!.parameters);
+        return NewsWatcherForm(onChanged: _handleDataChange, initialData: combinedInitialData);
       case 'product':
       case 'products':
-        return ProductWatcherForm(onChanged: _handleDataChange, initialData: _watcher!.parameters);
+        return ProductWatcherForm(onChanged: _handleDataChange, initialData: combinedInitialData);
       case 'job':
       case 'jobs':
-        return JobWatcherForm(onChanged: _handleDataChange, initialData: _watcher!.parameters);
+        return JobWatcherForm(onChanged: _handleDataChange, initialData: combinedInitialData);
       default:
         return const Center(child: Text('Form type not supported for editing yet.'));
     }
@@ -176,7 +183,14 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
         const SizedBox(height: 12),
         _buildDropdown(
           'check_interval_minutes',
-          {15: 'Every 15 minutes', 60: 'Every hour', 360: 'Every 6 hours', 1440: 'Once a day'},
+          {
+            2: 'Every 2 minutes',
+            5: 'Every 5 minutes',
+            15: 'Every 15 minutes', 
+            60: 'Every hour', 
+            360: 'Every 6 hours', 
+            1440: 'Once a day'
+          },
         ),
         const SizedBox(height: 24),
 
