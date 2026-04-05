@@ -16,10 +16,16 @@ class WalletLoaded extends WalletState {
   final WalletModel? wallet;
   final SpendingStatsModel? stats;
   final List<TransactionModel> transactions;
-  const WalletLoaded({this.wallet, this.stats, this.transactions = const []});
+  final bool isFunding;
+  const WalletLoaded({
+    this.wallet,
+    this.stats,
+    this.transactions = const [],
+    this.isFunding = false,
+  });
 
   @override
-  List<Object?> get props => [wallet, stats, transactions];
+  List<Object?> get props => [wallet, stats, transactions, isFunding];
 }
 
 class WalletError extends WalletState {

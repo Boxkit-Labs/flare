@@ -252,7 +252,7 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
           ),
           const SizedBox(height: 32),
           ElevatedButton(
-            onPressed: () => context.goNamed('createWatcher'),
+            onPressed: () => context.pushNamed('createWatcher'),
             child: const Text('Deploy an Agent'),
           ),
         ],

@@ -14,6 +14,7 @@ import 'package:flare_app/features/watchers/presentation/widgets/forms/product_w
 import 'package:flare_app/features/watchers/presentation/widgets/forms/job_watcher_form.dart';
 
 import 'package:flare_app/core/widgets/success_overlay.dart';
+import 'package:flare_app/core/widgets/top_snackbar.dart';
 
 class CreateWatcherScreen extends StatefulWidget {
   const CreateWatcherScreen({super.key});
@@ -117,13 +118,11 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
           );
           Future.delayed(const Duration(milliseconds: 2000), () {
             if (context.mounted) {
-              context.goNamed('watchers');
+              context.pop();
             }
           });
         } else if (state is WatchersError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-          );
+          TopSnackbar.showError(context, state.message);
         }
       },
       child: Scaffold(

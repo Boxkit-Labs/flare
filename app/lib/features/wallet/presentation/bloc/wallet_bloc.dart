@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flare_app/services/api_service.dart';
+import 'package:flare_app/core/models/models.dart';
 import 'wallet_event.dart';
 import 'wallet_state.dart';
 
@@ -7,62 +8,41 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
   final ApiService apiService;
 
   WalletBloc(this.apiService) : super(WalletInitial()) {
-    on<LoadWallet>((event, emit) async {
-      emit(WalletLoading());
+    on<LoadAllWalletData>((event, emit) async {
+      if (!event.isRefresh) emit(WalletLoading());
       try {
-        final wallet = await apiService.getWallet(event.userId);
-        if (state is WalletLoaded) {
-          emit(WalletLoaded(
-            wallet: wallet,
-            stats: (state as WalletLoaded).stats,
-            transactions: (state as WalletLoaded).transactions,
-          ));
-        } else {
-          emit(WalletLoaded(wallet: wallet));
-        }
+        final responses = await Future.wait([
+          apiService.getWallet(event.userId),
+          apiService.getWalletStats(event.userId),
+          apiService.getTransactions(event.userId, limit: 20, offset: 0),
+        ]);
+        emit(WalletLoaded(
+          wallet: responses[0] as WalletModel,
+          stats: responses[1] as SpendingStatsModel,
+          transactions: responses[2] as List<TransactionModel>,
+        ));
       } catch (e) {
         emit(WalletError(e.toString()));
       }
     });
 
-    on<LoadWalletStats>((event, emit) async {
-      emit(WalletLoading());
-      try {
-        final stats = await apiService.getWalletStats(event.userId);
-        if (state is WalletLoaded) {
-          emit(WalletLoaded(
-            wallet: (state as WalletLoaded).wallet,
-            stats: stats,
-            transactions: (state as WalletLoaded).transactions,
-          ));
-        } else {
-          emit(WalletLoaded(stats: stats));
-        }
-      } catch (e) {
-        emit(WalletError(e.toString()));
-      }
-    });
-
-    on<LoadTransactions>((event, emit) async {
-      emit(WalletLoading());
-      try {
-        final transactions = await apiService.getTransactions(
-          event.userId,
-          limit: event.limit,
-          offset: event.offset,
-        );
-        if (state is WalletLoaded) {
-          emit(WalletLoaded(
+    on<FundWalletUser>((event, emit) async {
+       if (state is WalletLoaded) {
+         emit(WalletLoaded(
             wallet: (state as WalletLoaded).wallet,
             stats: (state as WalletLoaded).stats,
-            transactions: transactions,
-          ));
-        } else {
-          emit(WalletLoaded(transactions: transactions));
-        }
-      } catch (e) {
-        emit(WalletError(e.toString()));
-      }
+            transactions: (state as WalletLoaded).transactions,
+            isFunding: true,
+         ));
+       } else {
+         emit(WalletLoading());
+       }
+       try {
+         await apiService.fundWallet(event.userId);
+         add(LoadAllWalletData(event.userId, isRefresh: true));
+       } catch (e) {
+         emit(WalletError(e.toString()));
+       }
     });
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -35,7 +36,7 @@ class HomeContent extends StatelessWidget {
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       final userId = authState.user.userId;
-      context.read<WalletBloc>().add(LoadWallet(userId));
+      context.read<WalletBloc>().add(LoadAllWalletData(userId));
       context.read<WatchersBloc>().add(LoadWatchers(userId));
       context.read<FindingsBloc>().add(LoadFindings(userId));
       context.read<BriefingBloc>().add(LoadTodayBriefing(userId));
@@ -127,39 +128,7 @@ class HomeContent extends StatelessWidget {
 
           // ─── AGENT ACTIVITY INDICATOR ───
           const SizedBox(height: 40),
-          Center(
-            child: BlocBuilder<WatchersBloc, WatchersState>(
-              builder: (context, state) {
-                int activeCount = 0;
-                int nextCheckMinutes = 14; // Default/Mock fallback
-
-                if (state is WatchersLoaded) {
-                  activeCount = state.watchers.where((w) => w.status == 'active').length;
-                  
-                  // Simple logic to find the "next check" text
-                  if (activeCount > 0) {
-                    final activeWatchers = state.watchers.where((w) => w.status == 'active').toList();
-                    activeWatchers.sort((a, b) => a.checkIntervalMinutes.compareTo(b.checkIntervalMinutes));
-                    // Mock: say next check is half of shortest interval
-                    nextCheckMinutes = (activeWatchers.first.checkIntervalMinutes / 2).floor();
-                    if (nextCheckMinutes < 1) nextCheckMinutes = 1;
-                  }
-                }
-
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    StatusIndicator(status: activeCount > 0 ? 'active' : 'paused'),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$activeCount watchers active · Next check in ${nextCheckMinutes}m',
-                      style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
+          const Center(child: AgentActivityIndicator()),
           const SizedBox(height: 48),
         ],
       ),
@@ -380,6 +349,79 @@ class HomeContent extends StatelessWidget {
         ),
         child: const Icon(Icons.add, size: 32, color: AppTheme.textSecondary),
       ),
+    );
+  }
+}
+
+class AgentActivityIndicator extends StatefulWidget {
+  const AgentActivityIndicator({super.key});
+
+  @override
+  State<AgentActivityIndicator> createState() => _AgentActivityIndicatorState();
+}
+
+class _AgentActivityIndicatorState extends State<AgentActivityIndicator> {
+  Timer? _timer;
+  int _nextCheckMinutes = 14;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          if (_nextCheckMinutes > 1) {
+            _nextCheckMinutes--;
+          } else {
+            _nextCheckMinutes = 60; // Simple loop until re-synced by bloc
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<WatchersBloc, WatchersState>(
+      listener: (context, state) {
+        // Sync actual next check minutes from network data
+        if (state is WatchersLoaded) {
+           final activeWatchers = state.watchers.where((w) => w.status == 'active').toList();
+           if (activeWatchers.isNotEmpty) {
+             // In a real app we'd parse `nextCheckAt` from UTC string
+             // But for now, we just sync to the shortest interval
+             activeWatchers.sort((a, b) => a.checkIntervalMinutes.compareTo(b.checkIntervalMinutes));
+             setState(() {
+               _nextCheckMinutes = (activeWatchers.first.checkIntervalMinutes / 2).floor();
+               if (_nextCheckMinutes < 1) _nextCheckMinutes = 1;
+             });
+           }
+        }
+      },
+      builder: (context, state) {
+        int activeCount = 0;
+        if (state is WatchersLoaded) {
+          activeCount = state.watchers.where((w) => w.status == 'active').length;
+        }
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            StatusIndicator(status: activeCount > 0 ? 'active' : 'paused'),
+            const SizedBox(width: 8),
+            Text(
+              '$activeCount watchers active · Next check in ${_nextCheckMinutes}m',
+              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+            ),
+          ],
+        );
+      },
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:flare_app/features/auth/presentation/bloc/onboarding_bloc.dart';
 import 'package:flare_app/features/auth/presentation/bloc/onboarding_event.dart';
 import 'package:flare_app/features/auth/presentation/bloc/onboarding_state.dart';
+import 'package:flare_app/core/widgets/top_snackbar.dart';
 
 class WalletSetupPage extends StatefulWidget {
   final VoidCallback onNext;
@@ -86,9 +87,7 @@ class _WalletSetupPageState extends State<WalletSetupPage> {
                       icon: const Icon(Icons.copy, size: 18),
                       onPressed: () {
                         Clipboard.setData(ClipboardData(text: publicKey ?? ''));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Address copied')),
-                        );
+                        TopSnackbar.showSuccess(context, 'Address copied');
                       },
                     ),
                   ),

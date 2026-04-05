@@ -11,6 +11,7 @@ import 'package:flare_app/features/watchers/presentation/widgets/forms/crypto_wa
 import 'package:flare_app/features/watchers/presentation/widgets/forms/news_watcher_form.dart';
 import 'package:flare_app/features/watchers/presentation/widgets/forms/product_watcher_form.dart';
 import 'package:flare_app/features/watchers/presentation/widgets/forms/job_watcher_form.dart';
+import 'package:flare_app/core/widgets/top_snackbar.dart';
 
 class EditWatcherScreen extends StatefulWidget {
   final String watcherId;
@@ -81,11 +82,11 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
           });
         }
         if (state is WatcherActionSuccess) {
-           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Watcher updated')));
+           TopSnackbar.showSuccess(context, 'Watcher updated');
            context.pop();
         }
         if (state is WatchersError) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message)));
+          TopSnackbar.showError(context, state.message);
         }
       },
       child: Scaffold(
@@ -289,7 +290,7 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
             onPressed: () {
                context.read<WatchersBloc>().add(DeleteWatcher(widget.watcherId));
                Navigator.pop(context);
-               context.go('/watchers');
+               context.pop();
             }, 
             child: const Text('Delete', style: TextStyle(color: Colors.redAccent))
           ),

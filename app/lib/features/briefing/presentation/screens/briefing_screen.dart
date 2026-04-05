@@ -12,6 +12,7 @@ import 'package:flare_app/features/briefing/presentation/bloc/briefing_state.dar
 import 'package:flare_app/features/findings/presentation/widgets/finding_card.dart';
 import 'package:intl/intl.dart';
 import 'package:flare_app/core/widgets/staggered_reveal.dart';
+import 'package:flare_app/core/widgets/top_snackbar.dart';
 
 class BriefingScreen extends StatefulWidget {
   const BriefingScreen({super.key});
@@ -51,9 +52,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
     return BlocListener<BriefingBloc, BriefingState>(
       listener: (context, state) {
         if (state is BriefingGenerated) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('⚡ New briefing generated!')),
-          );
+          TopSnackbar.showSuccess(context, '⚡ New briefing generated!');
           _refresh();
         }
       },

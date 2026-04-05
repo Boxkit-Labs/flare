@@ -9,6 +9,7 @@ import 'package:flare_app/services/api_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flare_app/core/widgets/top_snackbar.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -54,15 +55,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final userId = (context.read<AuthBloc>().state as AuthAuthenticated).user.userId;
       await context.read<ApiService>().updateSettings(userId, _localSettings);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Settings saved'), duration: Duration(seconds: 1)),
-        );
+        TopSnackbar.showSuccess(context, 'Settings saved');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving settings: $e')),
-        );
+        TopSnackbar.showError(context, e);
       }
     }
   }
@@ -197,7 +194,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: const Icon(Icons.copy, size: 20),
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: address));
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Address copied')));
+                    TopSnackbar.showSuccess(context, 'Address copied');
                   },
                 ),
               ],
@@ -356,7 +353,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('History cleared')));
+              TopSnackbar.showSuccess(context, 'History cleared');
             }, 
             child: const Text('Clear', style: TextStyle(color: Colors.redAccent))
           ),
@@ -368,9 +365,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _launchUrl(Uri url) async {
     if (!await canLaunchUrl(url)) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not launch $url')),
-        );
+        TopSnackbar.showError(context, 'Could not launch $url');
       }
       return;
     }

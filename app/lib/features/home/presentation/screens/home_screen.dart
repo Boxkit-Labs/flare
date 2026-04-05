@@ -34,9 +34,9 @@ class _HomeScreenState extends State<HomeScreen> with AutoRefreshMixin {
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       final userId = authState.user.userId;
+      context.read<WalletBloc>().add(LoadAllWalletData(userId));
       context.read<WatchersBloc>().add(LoadWatchers(userId));
       context.read<FindingsBloc>().add(LoadFindings(userId));
-      context.read<WalletBloc>().add(LoadWallet(userId));
       context.read<BriefingBloc>().add(LoadTodayBriefing(userId));
     }
   }
