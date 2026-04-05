@@ -5,6 +5,7 @@ import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:flare_app/core/models/models.dart';
 import 'package:flare_app/core/widgets/error_state.dart';
 import 'package:flare_app/core/widgets/shimmer_utilities.dart';
+import 'package:flare_app/core/widgets/top_snackbar.dart';
 import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:flare_app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
@@ -30,13 +31,14 @@ class _WalletScreenState extends State<WalletScreen> {
     _refresh();
   }
 
-  void _refresh() {
+  void _refresh({bool force = false}) {
+    final walletState = context.read<WalletBloc>().state;
+    if (!force && walletState is WalletLoaded && walletState.wallet != null) return;
+    
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       final userId = authState.user.userId;
-      context.read<WalletBloc>().add(LoadWallet(userId));
-      context.read<WalletBloc>().add(LoadWalletStats(userId));
-      context.read<WalletBloc>().add(LoadTransactions(userId));
+      context.read<WalletBloc>().add(LoadAllWalletData(userId, isRefresh: true));
     }
   }
 
@@ -65,7 +67,7 @@ class _WalletScreenState extends State<WalletScreen> {
       return RefreshIndicator(
         key: const ValueKey('loaded'),
         onRefresh: () async {
-          _refresh();
+          _refresh(force: true);
           await Future.delayed(const Duration(milliseconds: 800));
         },
         child: ListView(
@@ -155,9 +157,8 @@ class _WalletScreenState extends State<WalletScreen> {
               onPressed: () {
                 final authState = context.read<AuthBloc>().state;
                 if (authState is AuthAuthenticated) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Requesting Testnet funds...')),
-                  );
+                  context.read<WalletBloc>().add(FundWalletUser(authState.user.userId));
+                  TopSnackbar.showSuccess(context, 'Requesting Testnet funds...');
                 }
               },
               icon: const Icon(Icons.add),
@@ -169,9 +170,7 @@ class _WalletScreenState extends State<WalletScreen> {
         InkWell(
           onTap: () {
             Clipboard.setData(ClipboardData(text: address));
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('Address copied!')));
+            TopSnackbar.showSuccess(context, 'Address copied!');
           },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -555,18 +554,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 onPressed: () {
                   final url = 'https://stellar.expert/explorer/testnet/tx/${tx.stellarTxHash}';
                   launchUrl(Uri.parse(url));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: AppTheme.primary,
-                      content: Row(
-                        children: [
-                          const Icon(Icons.stars, color: Colors.white, size: 16),
-                          const SizedBox(width: 8),
-                          const Text('Opening Stellar Explorer', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  );
+                  TopSnackbar.showSuccess(context, 'Opening Stellar Explorer');
                 },
                 label: const Text('View on Stellar Explorer'),
               ),
@@ -595,9 +583,7 @@ class _WalletScreenState extends State<WalletScreen> {
               onTap: isCopyable
                   ? () {
                       Clipboard.setData(ClipboardData(text: value));
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(const SnackBar(content: Text('Copied!')));
+                      TopSnackbar.showSuccess(context, 'Copied!');
                     }
                   : null,
               child: Text(

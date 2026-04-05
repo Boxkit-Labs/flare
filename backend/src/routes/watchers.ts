@@ -205,7 +205,7 @@ router.post('/:id/toggle', (req: Request, res: Response) => {
 
         if (watcher.status === 'active') {
             newStatus = 'paused_manual';
-        } else if (watcher.status === 'paused_manual') {
+        } else if (watcher.status === 'paused_manual' || watcher.status === 'error') {
             newStatus = 'active';
             // Reset next check to now + interval when unpausing
             const now = new Date();

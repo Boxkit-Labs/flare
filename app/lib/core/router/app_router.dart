@@ -111,33 +111,53 @@ class AppRouter {
             );
           },
         ),
-        ShellRoute(
-          builder: (context, state, child) => ShellScreen(child: child),
-          routes: [
-            GoRoute(
-              path: '/',
-              name: 'home',
-              builder: (context, state) => const HomeScreen(),
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) => ShellScreen(navigationShell: navigationShell),
+          branches: [
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/',
+                  name: 'home',
+                  builder: (context, state) => const HomeScreen(),
+                ),
+              ],
             ),
-            GoRoute(
-              path: '/watchers',
-              name: 'watchers',
-              builder: (context, state) => const WatchersListScreen(),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/watchers',
+                  name: 'watchers',
+                  builder: (context, state) => const WatchersListScreen(),
+                ),
+              ],
             ),
-            GoRoute(
-              path: '/findings',
-              name: 'findings',
-              builder: (context, state) => const FindingsListScreen(),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/findings',
+                  name: 'findings',
+                  builder: (context, state) => const FindingsListScreen(),
+                ),
+              ],
             ),
-            GoRoute(
-              path: '/briefing',
-              name: 'briefing',
-              builder: (context, state) => const BriefingScreen(),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/briefing',
+                  name: 'briefing',
+                  builder: (context, state) => const BriefingScreen(),
+                ),
+              ],
             ),
-            GoRoute(
-              path: '/wallet',
-              name: 'wallet',
-              builder: (context, state) => const WalletScreen(),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: '/wallet',
+                  name: 'wallet',
+                  builder: (context, state) => const WalletScreen(),
+                ),
+              ],
             ),
           ],
         ),

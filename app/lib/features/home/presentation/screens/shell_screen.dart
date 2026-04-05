@@ -4,14 +4,14 @@ import 'package:flare_app/core/theme/app_theme.dart';
 
 /// Navigation shell wrapping the main 5 tabs.
 class ShellScreen extends StatelessWidget {
-  final Widget child;
+  final StatefulNavigationShell navigationShell;
 
-  const ShellScreen({super.key, required this.child});
+  const ShellScreen({super.key, required this.navigationShell});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: child,
+      body: navigationShell,
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           border: Border(
@@ -22,7 +22,7 @@ class ShellScreen extends StatelessWidget {
           ),
         ),
         child: BottomNavigationBar(
-          currentIndex: _calculateSelectedIndex(context),
+          currentIndex: navigationShell.currentIndex,
           onTap: (index) => _onTap(context, index),
           backgroundColor: AppTheme.background,
           selectedItemColor: AppTheme.primary,
@@ -62,33 +62,10 @@ class ShellScreen extends StatelessWidget {
     );
   }
 
-  int _calculateSelectedIndex(BuildContext context) {
-    final String location = GoRouterState.of(context).uri.path;
-    if (location == '/') return 0;
-    if (location.startsWith('/watchers')) return 1;
-    if (location.startsWith('/findings')) return 2;
-    if (location.startsWith('/briefing')) return 3;
-    if (location.startsWith('/wallet')) return 4;
-    return 0;
-  }
-
   void _onTap(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        context.goNamed('home');
-        break;
-      case 1:
-        context.goNamed('watchers');
-        break;
-      case 2:
-        context.goNamed('findings');
-        break;
-      case 3:
-        context.goNamed('briefing');
-        break;
-      case 4:
-        context.goNamed('wallet');
-        break;
-    }
+    navigationShell.goBranch(
+      index,
+      initialLocation: index == navigationShell.currentIndex,
+    );
   }
 }

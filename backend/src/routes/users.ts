@@ -107,12 +107,10 @@ router.post('/:id/fund', async (req: Request, res: Response) => {
         console.log('[FUND] Step 2: Success');
 
         // 3. Transfer 10 USDC from Operator
-        if (!hasUsdc && process.env.OPERATOR_SECRET) {
+        if (process.env.OPERATOR_SECRET) {
             console.log('[FUND] Step 3: Sending 10.0 USDC...');
             await stellarService.fundNewUserWithUsdc(publicKey, '10.0');
             console.log('[FUND] Step 3: Success');
-        } else if (hasUsdc) {
-            console.log('[FUND] Step 3: Already has USDC, skipping transfer.');
         } else {
             console.warn('[FUND] Step 3: Skipped (OPERATOR_SECRET missing)');
         }
