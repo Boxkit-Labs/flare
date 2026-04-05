@@ -65,7 +65,7 @@ router.post('/product/api/products', stellarPaywall({
     usdcContractId: USDC_CONTRACT,
     rpcUrl: SOROBAN_RPC_URL
 }), (req: Request, res: Response) => {
-    const { name } = req.body;
+    const name = req.body.product_name || req.body.name;
     if (!name) {
         res.status(400).json({ error: "Missing product name" });
         return;
@@ -82,11 +82,7 @@ router.post('/job/api/jobs', stellarPaywall({
     usdcContractId: USDC_CONTRACT,
     rpcUrl: SOROBAN_RPC_URL
 }), (req: Request, res: Response) => {
-    const { role } = req.body;
-    if (!role) {
-        res.status(400).json({ error: "Missing role" });
-        return;
-    }
+    const role = req.body.role || (req.body.keywords && req.body.keywords[0]) || 'Developer';
     res.json(getJobPostings(role));
 });
 
