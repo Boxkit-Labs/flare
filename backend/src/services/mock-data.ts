@@ -85,12 +85,13 @@ const NEWS_TOPICS = ["Stellar Protocol 21", "Soroban Adoption", "USDC Yields", "
 
 export function getNewsAlerts() {
     return {
-        alerts: NEWS_TOPICS.map(topic => ({
-            title: `${topic} Update`,
-            impact: Math.random() > 0.5 ? "high" : "medium",
+        articles: NEWS_TOPICS.map(topic => ({
+            title: `Breaking: ${topic} Update`,
+            source: "Stellar News Network",
+            relevance_score: 0.75 + Math.random() * 0.25, // always 0.75–1.0
             summary: `Significant developments in ${topic} reported today.`,
             timestamp: new Date().toISOString()
-        })).slice(0, 3)
+        }))
     };
 }
 
@@ -101,10 +102,10 @@ const JOB_TITLES = ["Smart Contract Engineer", "Rust Developer", "Stellar Archit
 export function getJobPostings(role: string) {
     return {
         role,
-        postings: JOB_TITLES.map(title => ({
+        listings: JOB_TITLES.map(title => ({
             title: `${title} - ${role}`,
             company: "Stellar Ecosystem Org",
-            salary: `$${Math.floor(120 + Math.random() * 80)}k`,
+            salary: Math.floor(120000 + Math.random() * 80000), // numeric for detector
             location: "Remote",
             posted_at: "Today"
         }))
