@@ -9,7 +9,6 @@ import 'package:flare_app/injection_container.dart';
 import 'pages/welcome_page.dart';
 import 'pages/how_it_works_page.dart';
 import 'pages/wallet_setup_page.dart';
-import 'pages/first_watcher_page.dart';
 import 'pages/notifications_page.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -58,7 +57,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                    WelcomePage(onNext: _nextPage),
                    HowItWorksPage(onNext: _nextPage, onBack: _previousPage),
                    WalletSetupPage(onNext: _nextPage, onBack: _previousPage),
-                   FirstWatcherPage(onNext: _nextPage, onBack: _previousPage),
                    NotificationsPage(onBack: _previousPage),
                 ],
               ),
@@ -67,7 +65,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 left: 20,
                 right: 20,
                 child: LinearProgressIndicator(
-                  value: (_currentPage + 1) / 5,
+                  value: (_currentPage + 1) / 4,
                   backgroundColor: AppTheme.surface,
                   valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
                   borderRadius: BorderRadius.circular(10),
@@ -81,7 +79,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
-                    5,
+                    4,
                     (index) => Container(
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       width: 8,
