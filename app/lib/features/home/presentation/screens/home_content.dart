@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -56,25 +57,32 @@ class HomeContent extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _getGreeting(),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.textSecondary,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _getGreeting().toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: AppTheme.textSecondary,
+                          letterSpacing: 1.2,
+                        ),
                       ),
-                    ),
-                    const Text(
-                      'Ready to hunt',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24,
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Ready to hunt',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 28,
+                          letterSpacing: -1.0,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 BlocBuilder<WalletBloc, WalletState>(
                   builder: (context, state) {
@@ -88,7 +96,7 @@ class HomeContent extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
           // ─── MORNING BRIEFING BANNER ───
           BlocBuilder<BriefingBloc, BriefingState>(
@@ -101,9 +109,9 @@ class HomeContent extends StatelessWidget {
           ),
 
           // ─── ACTIVE WATCHERS ───
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           _buildSectionHeader(context, 'Your Watchers', '/watchers'),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           BlocBuilder<WatchersBloc, WatchersState>(
             builder: (context, state) {
               return AnimatedSwitcher(
@@ -114,9 +122,9 @@ class HomeContent extends StatelessWidget {
           ),
 
           // ─── RECENT FINDINGS ───
-          const SizedBox(height: 32),
+          const SizedBox(height: 48),
           _buildSectionHeader(context, 'Recent Findings', '/findings'),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           BlocBuilder<FindingsBloc, FindingsState>(
             builder: (context, state) {
               return AnimatedSwitcher(
@@ -127,9 +135,9 @@ class HomeContent extends StatelessWidget {
           ),
 
           // ─── AGENT ACTIVITY INDICATOR ───
-          const SizedBox(height: 40),
+          const SizedBox(height: 60),
           const Center(child: AgentActivityIndicator()),
-          const SizedBox(height: 48),
+          const SizedBox(height: 100), // Extra space for the floating-effect navbar
         ],
       ),
     );
@@ -137,116 +145,129 @@ class HomeContent extends StatelessWidget {
 
   Widget _buildWalletCapsule(BuildContext context, WalletState state) {
     if (state is WalletLoaded) {
-      return Column(
-        key: ValueKey('wallet_loaded_${state.wallet?.balanceUsdc ?? 0.0}'),
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          InkWell(
-            onTap: () => context.push('/wallet'),
+      final balance = state.wallet?.balanceUsdc ?? 0.0;
+      return InkWell(
+        onTap: () => context.push('/wallet'),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
             borderRadius: BorderRadius.circular(20),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppTheme.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.secondary.withValues(alpha: 0.3)),
-              ),
-              child: TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0, end: state.wallet?.balanceUsdc ?? 0.0),
-                duration: const Duration(seconds: 1),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+            boxShadow: [
+               BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.account_balance_wallet_rounded, size: 14, color: AppTheme.primary),
+              const SizedBox(width: 8),
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0, end: balance),
+                duration: const Duration(milliseconds: 1500),
+                curve: Curves.easeOutQuart,
                 builder: (context, value, child) {
                   return Text(
-                    '\$${value.toStringAsFixed(2)} USDC',
+                    '\$${value.toStringAsFixed(2)}',
                     style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.secondary,
+                      fontWeight: FontWeight.w900,
+                      color: AppTheme.textPrimary,
                       fontSize: 14,
                     ),
                   );
                 },
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Spent \$${state.stats?.spentToday?.toStringAsFixed(2) ?? "0.00"} today',
-            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-          ),
-        ],
+        ),
       );
     }
     if (state is WalletError) {
       return IconButton(
-        key: const ValueKey('wallet_error'),
-        icon: const Icon(Icons.refresh, color: AppTheme.error),
+        icon: const Icon(Icons.refresh_rounded, color: AppTheme.error),
         onPressed: () => _onRetry(context),
       );
     }
     return const ShimmerPlaceholder(
-      key: ValueKey('wallet_loading'),
-      width: 100,
-      height: 40,
-      borderRadius: 20,
+      width: 80,
+      height: 36,
+      borderRadius: 18,
     );
   }
 
   Widget _buildBriefingBanner(BuildContext context, BriefingState state) {
     if (state is BriefingLoaded && state.todayBriefing != null && !state.todayBriefing!.isRead) {
+      final briefing = state.todayBriefing!;
       return Padding(
-        key: ValueKey('briefing_${state.todayBriefing!.briefingId}'),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        child: Dismissible(
-          key: Key(state.todayBriefing!.briefingId),
-          onDismissed: (_) {
-             context.read<BriefingBloc>().add(MarkBriefingRead(state.todayBriefing!.briefingId));
-          },
-          child: InkWell(
-            onTap: () => context.push('/briefing'),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Colors.purple, Colors.teal],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  const Text('☀️', style: TextStyle(fontSize: 32)),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Morning Briefing',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                        ),
-                        Text(
-                          '${state.todayBriefing!.totalFindings} findings, \$${state.todayBriefing!.totalCostUsdc.toStringAsFixed(2)} overnight',
-                          style: const TextStyle(fontSize: 14, color: Colors.white70),
-                        ),
-                      ],
-                    ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: Dismissible(
+            key: Key(briefing.briefingId),
+            direction: DismissDirection.endToStart,
+            onDismissed: (_) {
+               context.read<BriefingBloc>().add(MarkBriefingRead(briefing.briefingId));
+            },
+            child: InkWell(
+              onTap: () => context.push('/briefing'),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
-                ],
+                  boxShadow: [
+                    BoxShadow(color: const Color(0xFF6366F1).withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10)),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: const Center(child: Text('☀️', style: TextStyle(fontSize: 28))),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Morning Briefing',
+                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: -0.5),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${briefing.totalFindings} findings · \$${briefing.totalCostUsdc.toStringAsFixed(2)} overnight',
+                            style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.arrow_forward_ios_rounded, color: Colors.white.withValues(alpha: 0.5), size: 16),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       );
     }
-    return const SizedBox.shrink(key: ValueKey('briefing_none'));
+    return const SizedBox.shrink();
   }
 
   Widget _buildWatchersSection(BuildContext context, WatchersState state) {
     if (state is WatchersLoaded) {
       final watchers = state.watchers;
       return SizedBox(
-        key: ValueKey('watchers_loaded_${watchers.length}'),
         height: 180,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
@@ -266,15 +287,14 @@ class HomeContent extends StatelessWidget {
     }
     if (state is WatchersError) {
       return Center(
-        key: const ValueKey('watchers_error'),
         child: TextButton.icon(
           onPressed: () => _onRetry(context),
-          icon: const Icon(Icons.refresh),
-          label: const Text('Reload Watchers'),
+          icon: const Icon(Icons.refresh_rounded),
+          label: const Text('Try Again', style: TextStyle(fontWeight: FontWeight.w900)),
         ),
       );
     }
-    return const ShimmerGrid(key: ValueKey('watchers_loading'), itemCount: 3);
+    return const ShimmerGrid(itemCount: 3);
   }
 
   Widget _buildFindingsSection(BuildContext context, FindingsState state) {
@@ -282,38 +302,43 @@ class HomeContent extends StatelessWidget {
       final findings = state.findings;
       if (findings.isEmpty) {
         return Padding(
-          key: const ValueKey('findings_empty'),
-          padding: const EdgeInsets.all(24),
-          child: Center(
-            child: Text(
-              'No findings yet. Your agents are checking... 👻',
-              style: TextStyle(color: AppTheme.textSecondary),
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: Column(
+            children: [
+              Text('👻', style: const TextStyle(fontSize: 48)),
+              const SizedBox(height: 16),
+              const Text(
+                'No findings yet. Your agents are hunting...',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+              ),
+            ],
           ),
         );
       }
       return Padding(
-        key: const ValueKey('findings_loaded'),
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: ListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: findings.length.clamp(0, 5),
-          itemBuilder: (context, index) => FindingCard(finding: findings[index]),
+          itemBuilder: (context, index) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: FindingCard(finding: findings[index]),
+          ),
         ),
       );
     }
     if (state is FindingsError) {
       return Center(
-        key: const ValueKey('findings_error'),
         child: TextButton.icon(
           onPressed: () => _onRetry(context),
-          icon: const Icon(Icons.refresh),
-          label: const Text('Reload Findings'),
+          icon: const Icon(Icons.refresh_rounded),
+          label: const Text('Try Again', style: TextStyle(fontWeight: FontWeight.w900)),
         ),
       );
     }
-    return const ShimmerList(key: ValueKey('findings_loading'), itemCount: 3);
+    return const ShimmerList(itemCount: 3);
   }
 
   Widget _buildSectionHeader(BuildContext context, String title, String route) {
@@ -324,11 +349,21 @@ class HomeContent extends StatelessWidget {
         children: [
           Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5),
           ),
-          TextButton(
-            onPressed: () => context.go(route),
-            child: const Text('See All', style: TextStyle(color: AppTheme.primary)),
+          InkWell(
+            onTap: () => context.go(route),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: const Row(
+                children: [
+                  Text('See All', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w900, fontSize: 13)),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_forward_rounded, color: AppTheme.primary, size: 14),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -338,16 +373,37 @@ class HomeContent extends StatelessWidget {
   Widget _buildAddButton(BuildContext context) {
     return InkWell(
       onTap: () => context.push('/watchers/create'),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(28),
       child: Container(
-        width: 100,
+        width: 140,
         margin: const EdgeInsets.only(right: 16),
         decoration: BoxDecoration(
           color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.surface.withAlpha(100), style: BorderStyle.solid),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+          boxShadow: [
+             BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
         ),
-        child: const Icon(Icons.add, size: 32, color: AppTheme.textSecondary),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.add_rounded, size: 28, color: AppTheme.primary),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Add Watcher',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.textSecondary),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -394,8 +450,6 @@ class _AgentActivityIndicatorState extends State<AgentActivityIndicator> {
         if (state is WatchersLoaded) {
            final activeWatchers = state.watchers.where((w) => w.status == 'active').toList();
            if (activeWatchers.isNotEmpty) {
-             // In a real app we'd parse `nextCheckAt` from UTC string
-             // But for now, we just sync to the shortest interval
              activeWatchers.sort((a, b) => a.checkIntervalMinutes.compareTo(b.checkIntervalMinutes));
              setState(() {
                _nextCheckMinutes = (activeWatchers.first.checkIntervalMinutes / 2).floor();
@@ -410,18 +464,34 @@ class _AgentActivityIndicatorState extends State<AgentActivityIndicator> {
           activeCount = state.watchers.where((w) => w.status == 'active').length;
         }
 
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            StatusIndicator(status: activeCount > 0 ? 'active' : 'paused'),
-            const SizedBox(width: 8),
-            Text(
-              '$activeCount watchers active · Next check in ${_nextCheckMinutes}m',
-              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-            ),
-          ],
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              StatusIndicator(status: activeCount > 0 ? 'active' : 'paused'),
+              const SizedBox(width: 12),
+              Text(
+                '$activeCount Agents Active',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppTheme.textPrimary),
+              ),
+              const SizedBox(width: 8),
+              const Text('·', style: TextStyle(color: AppTheme.textSecondary)),
+              const SizedBox(width: 8),
+              Text(
+                'Next check in ${_nextCheckMinutes}m',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppTheme.textSecondary),
+              ),
+            ],
+          ),
         );
       },
     );
   }
 }
+

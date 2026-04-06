@@ -74,11 +74,7 @@ class _NewsWatcherFormState extends State<NewsWatcherForm> {
         const SizedBox(height: 8),
         TextField(
           controller: _nameController,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AppTheme.surface,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
+          decoration: const InputDecoration(),
         ),
         const SizedBox(height: 20),
         const Text('Keywords', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -88,9 +84,6 @@ class _NewsWatcherFormState extends State<NewsWatcherForm> {
           onSubmitted: _addKeyword,
           decoration: InputDecoration(
             hintText: 'Type keyword and press Enter',
-            filled: true,
-            fillColor: AppTheme.surface,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             suffixIcon: IconButton(
               icon: const Icon(Icons.add),
               onPressed: () => _addKeyword(_keywordController.text),

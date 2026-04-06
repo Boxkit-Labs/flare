@@ -67,7 +67,7 @@ class _FlareAppState extends State<FlareApp> {
       child: MaterialApp.router(
         title: 'Flare',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme,
+        theme: AppTheme.lightTheme,
         routerConfig: AppRouter.router,
         scaffoldMessengerKey: AppRouter.scaffoldMessengerKey,
       ),

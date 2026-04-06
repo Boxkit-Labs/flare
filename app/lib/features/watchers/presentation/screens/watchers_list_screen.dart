@@ -40,16 +40,21 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Watchers', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Your Watchers', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.8)),
         automaticallyImplyLeading: false,
+        centerTitle: false,
+        backgroundColor: AppTheme.background,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.sort),
+            icon: const Icon(Icons.sort_rounded),
             onPressed: () {
               // TODO: Implement sorting dialog
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(
@@ -57,6 +62,7 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
           _buildFilterChips(),
           Expanded(
             child: RefreshIndicator(
+              color: AppTheme.primary,
               onRefresh: () async {
                 _refresh();
                 await Future.delayed(const Duration(milliseconds: 800));
@@ -64,7 +70,7 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
               child: BlocBuilder<WatchersBloc, WatchersState>(
                 builder: (context, state) {
                   return AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 500),
+                    duration: const Duration(milliseconds: 300),
                     child: _buildWatcherListContent(context, state),
                   );
                 },
@@ -73,10 +79,32 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: _buildFab(),
+    );
+  }
+
+  Widget _buildFab() {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+        gradient: AppTheme.primaryGradient,
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primary.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: FloatingActionButton.extended(
         onPressed: () => context.push('/watchers/create'),
-        backgroundColor: AppTheme.primary,
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        focusElevation: 0,
+        hoverElevation: 0,
+        highlightElevation: 0,
+        label: const Text('New Watcher', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
       ),
     );
   }
@@ -89,11 +117,11 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
         return _buildEmptyState();
       }
 
-      return ListView.separated(
+      return ListView.builder(
         key: const ValueKey('loaded'),
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.only(top: 8, bottom: 100),
+        physics: const BouncingScrollPhysics(),
         itemCount: filteredWatchers.length,
-        separatorBuilder: (context, index) => const Divider(height: 1, color: Colors.grey),
         itemBuilder: (context, index) {
            final watcher = filteredWatchers[index];
            return WatcherListTile(
@@ -104,6 +132,7 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
              onDelete: () {
                context.read<WatchersBloc>().add(DeleteWatcher(watcher.watcherId));
              },
+             onEdit: () => context.push('/watchers/${watcher.watcherId}/edit'),
            );
         },
       );
@@ -120,36 +149,49 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
     return ShimmerList(
       key: const ValueKey('loading'),
       itemCount: 6,
-      itemHeight: 100,
-      padding: const EdgeInsets.all(16),
+      itemHeight: 120,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
     );
   }
 
   Widget _buildFilterChips() {
-    return SizedBox(
-      height: 60,
+    return Container(
+      height: 52,
+      margin: const EdgeInsets.only(bottom: 8),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: _filters.length,
         itemBuilder: (context, index) {
           final filter = _filters[index];
           final isSelected = _selectedFilter == filter;
           return Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: 10),
             child: ChoiceChip(
               label: Text(filter),
               selected: isSelected,
               onSelected: (selected) {
                 if (selected) setState(() => _selectedFilter = filter);
               },
-              selectedColor: AppTheme.primary.withValues(alpha: 0.2),
+              backgroundColor: AppTheme.surface,
+              selectedColor: AppTheme.primary,
               labelStyle: TextStyle(
-                color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? Colors.white : AppTheme.textSecondary,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                fontSize: 13,
               ),
               showCheckmark: false,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              elevation: 0,
+              pressElevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(
+                  color: isSelected ? AppTheme.primary : Colors.black.withValues(alpha: 0.05),
+                  width: 1,
+                ),
+              ),
             ),
           );
         },
@@ -158,28 +200,44 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
   }
 
   Widget _buildEmptyState() {
-     return Center(
+     return SingleChildScrollView(
        key: const ValueKey('empty'),
-       child: Column(
-         mainAxisAlignment: MainAxisAlignment.center,
-         children: [
-           const Text('👻', style: TextStyle(fontSize: 64)),
-           const SizedBox(height: 16),
-           const Text(
-             'No watchers found',
-             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-           ),
-           const SizedBox(height: 8),
-           const Text(
-             'Create your first agent to start hunting',
-             style: TextStyle(color: AppTheme.textSecondary),
-           ),
-           const SizedBox(height: 24),
-           ElevatedButton(
-             onPressed: () => context.push('/watchers/create'),
-             child: const Text('Create Watcher'),
-           ),
-         ],
+       physics: const AlwaysScrollableScrollPhysics(),
+       child: Container(
+         height: MediaQuery.of(context).size.height * 0.6,
+         alignment: Alignment.center,
+         child: Column(
+           mainAxisAlignment: MainAxisAlignment.center,
+           children: [
+             Container(
+               padding: const EdgeInsets.all(32),
+               decoration: BoxDecoration(
+                 color: AppTheme.surface,
+                 shape: BoxShape.circle,
+                 boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 20),
+                 ],
+               ),
+               child: const Text('🔭', style: TextStyle(fontSize: 48)),
+             ),
+             const SizedBox(height: 24),
+             const Text(
+               'No active watchers',
+               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+             ),
+             const SizedBox(height: 12),
+             const Padding(
+               padding: EdgeInsets.symmetric(horizontal: 48),
+               child: Text(
+                 'Deploy an agent to monitor prices, news, or jobs for you.',
+                 textAlign: TextAlign.center,
+                 style: TextStyle(color: AppTheme.textSecondary, height: 1.4),
+               ),
+             ),
+             const SizedBox(height: 32),
+             _buildFab(), // Reusing the FAB style for alignment
+           ],
+         ),
        ),
      );
   }
@@ -188,6 +246,17 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
     if (_selectedFilter == 'All') return watchers;
     if (_selectedFilter == 'Active') return watchers.where((w) => w.status == 'active').toList();
     if (_selectedFilter == 'Paused') return watchers.where((w) => w.status == 'paused').toList();
-    return watchers.where((w) => w.type.toLowerCase() == _selectedFilter.toLowerCase()).toList();
+    
+    final typeMap = {
+      'Flights': 'flight',
+      'Crypto': 'crypto',
+      'News': 'news',
+      'Products': 'product',
+      'Jobs': 'job',
+    };
+    
+    final targetType = typeMap[_selectedFilter] ?? _selectedFilter.toLowerCase();
+    return watchers.where((w) => w.type.toLowerCase() == targetType).toList();
   }
 }
+

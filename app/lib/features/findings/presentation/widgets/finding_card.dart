@@ -35,23 +35,41 @@ class _FindingCardState extends State<FindingCard> {
 
   String _getEmoji(String type) {
     switch (type.toLowerCase()) {
-      case 'flights': return '✈️';
-      case 'crypto': return '💰';
-      case 'news': return '📰';
-      case 'products': return '🛍️';
-      case 'jobs': return '💼';
-      default: return '✨';
+      case 'flights':
+      case 'flight':
+        return '✈️';
+      case 'crypto':
+        return '💰';
+      case 'news':
+        return '📰';
+      case 'products':
+      case 'product':
+        return '🛍️';
+      case 'jobs':
+      case 'job':
+        return '💼';
+      default:
+        return '✨';
     }
   }
 
-  Color _getBorderColor(String type) {
+  Color _getTypeColor(String type) {
     switch (type.toLowerCase()) {
-      case 'flights': return Colors.blue;
-      case 'crypto': return Colors.green;
-      case 'news': return Colors.purple;
-      case 'products': return Colors.orange;
-      case 'jobs': return Colors.teal;
-      default: return AppTheme.primary;
+      case 'flights':
+      case 'flight':
+        return Colors.blue;
+      case 'crypto':
+        return Colors.green;
+      case 'news':
+        return Colors.purple;
+      case 'products':
+      case 'product':
+        return Colors.orange;
+      case 'jobs':
+      case 'job':
+        return Colors.teal;
+      default:
+        return AppTheme.primary;
     }
   }
 
@@ -79,88 +97,122 @@ class _FindingCardState extends State<FindingCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
+    final typeColor = _getTypeColor(widget.finding.type);
+
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: AppTheme.surface,
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+      ),
       child: InkWell(
         onTap: _onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(
-                color: _getBorderColor(widget.finding.type),
-                width: 4,
-              ),
-            ),
-          ),
-          padding: const EdgeInsets.all(16),
-          child: Row(
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                       children: [
-                         Text(_getEmoji(widget.finding.type), style: const TextStyle(fontSize: 14)),
-                         const SizedBox(width: 6),
-                         Text(
-                           widget.finding.watcherName?.toUpperCase() ?? widget.finding.type.toUpperCase(),
-                           style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textSecondary, letterSpacing: 0.5),
-                         ),
-                       ],
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: typeColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.finding.headline,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, height: 1.2),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.finding.detail ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        Text(_getEmoji(widget.finding.type), style: const TextStyle(fontSize: 12)),
+                        const SizedBox(width: 6),
                         Text(
-                          _getTimeAgo(widget.finding.foundAt),
-                          style: const TextStyle(color: Colors.grey, fontSize: 11),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '\$${widget.finding.costUsdc.toStringAsFixed(3)}',
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.secondary),
+                          widget.finding.type.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 9, 
+                            fontWeight: FontWeight.w900, 
+                            color: typeColor, 
+                            letterSpacing: 0.8,
                           ),
                         ),
                       ],
                     ),
-                  ],
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        _getTimeAgo(widget.finding.foundAt),
+                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                      ),
+                      if (!_localIsRead) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: AppTheme.primary,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(color: AppTheme.primary, blurRadius: 4),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text(
+                widget.finding.headline,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900, 
+                  fontSize: 17, 
+                  height: 1.2,
+                  letterSpacing: -0.4,
                 ),
               ),
-              if (!_localIsRead)
-                 Padding(
-                   padding: const EdgeInsets.only(left: 12, top: 4),
-                   child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle),
+              if (widget.finding.detail != null && widget.finding.detail!.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  widget.finding.detail!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.4),
+                ),
+              ],
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    widget.finding.watcherName ?? 'Unknown Agent',
+                    style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
                   ),
-                 ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppTheme.background,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '\$${widget.finding.costUsdc.toStringAsFixed(3)}',
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.black),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -168,4 +220,5 @@ class _FindingCardState extends State<FindingCard> {
     );
   }
 }
+
 

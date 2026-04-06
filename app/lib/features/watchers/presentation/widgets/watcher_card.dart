@@ -13,21 +13,17 @@ class WatcherCard extends StatelessWidget {
 
   String _getEmoji(String type) {
     switch (type.toLowerCase()) {
-      case 'flights':
-        return '✈️';
-      case 'crypto':
-        return '💰';
-      case 'news':
-        return '📰';
-      case 'products':
-        return '🛍️';
-      case 'jobs':
-        return '💼';
-      default:
-        return '👻';
+      case 'flight':
+      case 'flights': return '✈️';
+      case 'crypto': return '💰';
+      case 'news': return '📰';
+      case 'product':
+      case 'products': return '🛍️';
+      case 'job':
+      case 'jobs': return '💼';
+      default: return '👻';
     }
   }
-
 
   String _getLastCheckText(String? lastCheckAt) {
     if (lastCheckAt == null) return 'Never checked';
@@ -45,20 +41,24 @@ class WatcherCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final percentUsed = watcher.budgetPercentUsed ?? 0.0;
-    final budgetColor = percentUsed < 0.5 
-        ? Colors.green 
-        : (percentUsed < 0.8 ? Colors.yellow : Colors.red);
-
+    
     return InkWell(
       onTap: () => context.push('/watchers/${watcher.watcherId}'),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(28),
       child: Container(
         width: 180,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.surface.withAlpha(100)),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,29 +66,41 @@ class WatcherCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  _getEmoji(watcher.type),
-                  style: const TextStyle(fontSize: 24),
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppTheme.background,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: Text(
+                      _getEmoji(watcher.type),
+                      style: const TextStyle(fontSize: 22),
+                    ),
+                  ),
                 ),
                 StatusIndicator(status: watcher.status),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Text(
               watcher.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w900,
                 fontSize: 16,
+                letterSpacing: -0.5,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              _getLastCheckText(watcher.lastCheckAt),
+              'Checked ${_getLastCheckText(watcher.lastCheckAt)}',
               style: const TextStyle(
                 color: AppTheme.textSecondary,
                 fontSize: 12,
+                fontWeight: FontWeight.w500,
               ),
             ),
             const Spacer(),
@@ -99,16 +111,25 @@ class WatcherCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      'Budget',
-                      style: TextStyle(fontSize: 10, color: AppTheme.textSecondary),
+                      'BUDGET',
+                      style: TextStyle(
+                        fontSize: 9, 
+                        fontWeight: FontWeight.w900, 
+                        color: AppTheme.textSecondary,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                     Text(
                       '${(percentUsed * 100).toInt()}%',
-                      style: TextStyle(fontSize: 10, color: budgetColor),
+                      style: TextStyle(
+                        fontSize: 11, 
+                        fontWeight: FontWeight.w900, 
+                        color: percentUsed > 0.8 ? AppTheme.error : AppTheme.primary,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
                 AnimatedBudgetBar(
                   percentUsed: percentUsed,
                 ),
@@ -120,3 +141,4 @@ class WatcherCard extends StatelessWidget {
     );
   }
 }
+

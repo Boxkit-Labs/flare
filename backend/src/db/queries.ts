@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import pool from './database.js';
 
 /**
@@ -144,10 +145,22 @@ export const createFinding = async (finding: any) => {
     INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, action_url, cost_usdc, stellar_tx_hash)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
   `;
+  
+  // Use logical coalescing to avoid empty string or undefined results
+  const fId = (finding.finding_id && finding.finding_id.length > 0) ? finding.finding_id : (finding.findingId || uuidv4());
+  
   return pool.query(query, [
-    finding.findingId, finding.watcherId, finding.checkId, finding.userId,
-    finding.type, finding.headline, finding.detail, JSON.stringify(finding.data),
-    finding.actionUrl, finding.costUsdc, finding.stellarTxHash
+    fId,
+    finding.watcher_id || finding.watcherId, 
+    finding.check_id || finding.checkId, 
+    finding.user_id || finding.userId,
+    finding.type, 
+    finding.headline, 
+    finding.detail, 
+    JSON.stringify(finding.data),
+    finding.action_url || finding.actionUrl || null, 
+    finding.cost_usdc || finding.costUsdc || 0, 
+    finding.stellar_tx_hash || finding.stellarTxHash || null
   ]);
 };
 

@@ -45,16 +45,30 @@ class _WalletScreenState extends State<WalletScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
+        backgroundColor: AppTheme.background,
+        elevation: 0,
+        centerTitle: false,
+        automaticallyImplyLeading: false,
         title: const Text(
           'Wallet',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.8),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, size: 20),
+            onPressed: () {
+               // Future settings
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: BlocBuilder<WalletBloc, WalletState>(
         builder: (context, state) {
           return AnimatedSwitcher(
-            duration: const Duration(milliseconds: 500),
+            duration: const Duration(milliseconds: 300),
             child: _buildWalletContent(context, state),
           );
         },
@@ -66,12 +80,14 @@ class _WalletScreenState extends State<WalletScreen> {
     if (state is WalletLoaded) {
       return RefreshIndicator(
         key: const ValueKey('loaded'),
+        color: AppTheme.primary,
         onRefresh: () async {
           _refresh(force: true);
           await Future.delayed(const Duration(milliseconds: 800));
         },
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          physics: const BouncingScrollPhysics(),
           children: [
             _buildBalanceHeader(state.wallet),
             const SizedBox(height: 32),
@@ -82,9 +98,9 @@ class _WalletScreenState extends State<WalletScreen> {
             _buildWatcherBreakdown(state.stats),
             const SizedBox(height: 32),
             _buildSavingsBanner(state.stats),
-            const SizedBox(height: 32),
+            const SizedBox(height: 48),
             _buildTransactionHistory(state.transactions),
-            const SizedBox(height: 60),
+            const SizedBox(height: 100),
           ],
         ),
       );
@@ -100,27 +116,27 @@ class _WalletScreenState extends State<WalletScreen> {
 
     return ListView(
       key: const ValueKey('loading'),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       physics: const NeverScrollableScrollPhysics(),
       children: [
         const Center(
           child: Column(
             children: [
               ShimmerPlaceholder(width: 150, height: 16),
-              SizedBox(height: 8),
+              SizedBox(height: 12),
               ShimmerPlaceholder(width: 200, height: 60),
               SizedBox(height: 24),
-              ShimmerPlaceholder(width: 120, height: 40, borderRadius: 20),
+              ShimmerPlaceholder(width: 140, height: 48, borderRadius: 24),
             ],
           ),
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 48),
         const ShimmerGrid(itemCount: 3, itemHeight: 80, padding: EdgeInsets.zero),
-        const SizedBox(height: 40),
+        const SizedBox(height: 48),
         const ShimmerPlaceholder(width: 150, height: 24),
         const SizedBox(height: 24),
-        const ShimmerPlaceholder(width: double.infinity, height: 200, borderRadius: 20),
-        const SizedBox(height: 40),
+        const ShimmerPlaceholder(width: double.infinity, height: 200, borderRadius: 28),
+        const SizedBox(height: 48),
         const ShimmerHeader(),
         const SizedBox(height: 16),
         const ShimmerList(itemCount: 5, padding: EdgeInsets.zero),
@@ -136,57 +152,75 @@ class _WalletScreenState extends State<WalletScreen> {
       children: [
         const Text(
           'USDC on Stellar Testnet',
-          style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+          style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         TweenAnimationBuilder<double>(
           tween: Tween<double>(begin: 0, end: balance),
           duration: const Duration(seconds: 1),
+          curve: Curves.easeOutQuart,
           builder: (context, value, child) {
             return Text(
               '\$${value.toStringAsFixed(2)}',
-              style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2.0),
             );
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            OutlinedButton.icon(
-              onPressed: () {
-                final authState = context.read<AuthBloc>().state;
-                if (authState is AuthAuthenticated) {
-                  context.read<WalletBloc>().add(FundWalletUser(authState.user.userId));
-                  TopSnackbar.showSuccess(context, 'Requesting Testnet funds...');
-                }
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Add Funds'),
+            Container(
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(color: AppTheme.primary.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4)),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  final authState = context.read<AuthBloc>().state;
+                  if (authState is AuthAuthenticated) {
+                    context.read<WalletBloc>().add(FundWalletUser(authState.user.userId));
+                    TopSnackbar.showSuccess(context, 'Requesting Testnet funds...');
+                  }
+                },
+                icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+                label: const Text('Add Funds', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                ),
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         InkWell(
           onTap: () {
             Clipboard.setData(ClipboardData(text: address));
             TopSnackbar.showSuccess(context, 'Address copied!');
           },
+          borderRadius: BorderRadius.circular(16),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   '${address.substring(0, 8)}...${address.substring(address.length - 8)}',
-                  style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
                 ),
                 const SizedBox(width: 8),
-                const Icon(Icons.copy, size: 14, color: AppTheme.textSecondary),
+                const Icon(Icons.copy_rounded, size: 14, color: AppTheme.primary),
               ],
             ),
           ),
@@ -199,15 +233,21 @@ class _WalletScreenState extends State<WalletScreen> {
     return Row(
       children: [
         _buildStatPill(
-          'Spent today',
+          'SPENT TODAY',
           '\$${(stats?.spentToday ?? 0.0).toStringAsFixed(2)}',
+          Icons.arrow_downward_rounded,
         ),
         const SizedBox(width: 12),
-        _buildStatPill('Checks today', '${stats?.totalChecksToday ?? 0}'),
+        _buildStatPill(
+          'AGENT CHECKS', 
+          '${stats?.totalChecksToday ?? 0}',
+          Icons.bolt_rounded,
+        ),
         const SizedBox(width: 12),
         _buildStatPill(
-          'Findings',
+          'NEW FINDINGS',
           '${stats?.totalFindingsToday ?? 0}',
+          Icons.auto_awesome_rounded,
           isHighlight: true,
         ),
       ],
@@ -216,38 +256,43 @@ class _WalletScreenState extends State<WalletScreen> {
 
   Widget _buildStatPill(
     String label,
-    String value, {
+    String value, 
+    IconData icon, {
     bool isHighlight = false,
   }) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isHighlight
-              ? AppTheme.primary.withValues(alpha: 0.1)
-              : AppTheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isHighlight
-                ? AppTheme.primary.withValues(alpha: 0.2)
-                : Colors.transparent,
+                ? AppTheme.primary.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.04),
           ),
+          boxShadow: [
+             BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Icon(icon, size: 14, color: isHighlight ? AppTheme.primary : AppTheme.textSecondary),
+            const SizedBox(height: 8),
             Text(
               label,
               style: const TextStyle(
-                fontSize: 10,
+                fontSize: 8,
                 color: AppTheme.textSecondary,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.8,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               value,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: -0.5),
             ),
           ],
         ),
@@ -263,24 +308,40 @@ class _WalletScreenState extends State<WalletScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Spending History',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              'Spending Trend',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
             ),
-            SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(value: 7, label: Text('7D')),
-                ButtonSegment(value: 30, label: Text('30D')),
-              ],
-              selected: {_chartDays},
-              onSelectionChanged: (set) =>
-                  setState(() => _chartDays = set.first),
-              style: const ButtonStyle(visualDensity: VisualDensity.compact),
+            Container(
+              decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(12)),
+              child: SegmentedButton<int>(
+                segments: const [
+                  ButtonSegment(value: 7, label: Text('7D', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                  ButtonSegment(value: 30, label: Text('30D', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                ],
+                selected: {_chartDays},
+                onSelectionChanged: (set) =>
+                    setState(() => _chartDays = set.first),
+                style: SegmentedButton.styleFrom(
+                  backgroundColor: AppTheme.surface,
+                  selectedBackgroundColor: AppTheme.primary,
+                  selectedForegroundColor: Colors.white,
+                  foregroundColor: AppTheme.textSecondary,
+                  side: BorderSide.none,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
             ),
           ],
         ),
         const SizedBox(height: 24),
-        SizedBox(
-          height: 200,
+        Container(
+          height: 220,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+          ),
           child: BarChart(
             BarChartData(
               borderData: FlBorderData(show: false),
@@ -295,15 +356,15 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   List<BarChartGroupData> _generateBarGroups(SpendingStatsModel? stats) {
-    // Mock data generation for demo if stats null
     return List.generate(_chartDays, (index) {
+      final isLast = index == _chartDays - 1;
       return BarChartGroupData(
         x: index,
         barRods: [
           BarChartRodData(
-            toY: 0.05 + (index % 3) * 0.02,
-            color: index == 3 ? Colors.green : AppTheme.primary,
-            width: 12,
+            toY: 0.05 + (index % 5) * 0.015,
+            color: isLast ? AppTheme.primary : AppTheme.primary.withValues(alpha: 0.2),
+            width: 14,
             borderRadius: BorderRadius.circular(4),
           ),
         ],
@@ -312,25 +373,27 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Widget _buildWatcherBreakdown(SpendingStatsModel? stats) {
-    // Each watcher: name + emoji + amount this week + percentage of total
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Spending by Watcher',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          'Operational Allocation',
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: AppTheme.surface,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
           ),
           child: Column(
             children: [
               _buildWatcherRow('✈️ Tokyo Trip', '\$0.42', 45, Colors.blue),
+              const Divider(height: 24, color: AppTheme.background),
               _buildWatcherRow('💰 Bitcoin Alert', '\$0.28', 30, Colors.green),
+              const Divider(height: 24, color: AppTheme.background),
               _buildWatcherRow('🛍️ iPhone Watch', '\$0.15', 25, Colors.orange),
             ],
           ),
@@ -345,58 +408,60 @@ class _WalletScreenState extends State<WalletScreen> {
     double percent,
     Color color,
   ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                name,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              name,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
               ),
-              Text(
-                amount,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: percent / 100,
-              backgroundColor: Colors.white10,
-              color: color,
-              minHeight: 8,
             ),
-          ),
-        ],
-      ),
+            Text(
+              amount,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                color: AppTheme.primary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Stack(
+          children: [
+             Container(
+               height: 6,
+               width: double.infinity,
+               decoration: BoxDecoration(color: AppTheme.background, borderRadius: BorderRadius.circular(3)),
+             ),
+             Container(
+               height: 6,
+               width: (MediaQuery.of(context).size.width - 88) * (percent / 100),
+               decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
+             ),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildSavingsBanner(SpendingStatsModel? stats) {
-    final flareMonthly = 0.85; // Mock
+    final flareMonthly = 0.85; 
     final totalSavings = 57.15;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppTheme.primary, Color(0xFF6A1B9A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+           BoxShadow(color: AppTheme.primary.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,49 +470,62 @@ class _WalletScreenState extends State<WalletScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Savings Analysis',
+                'Efficiency Analysis',
                 style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+                  color: Colors.white60,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
                 ),
               ),
-              const Text(
-                'UNLIMITED AGENTS',
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(8)),
+                child: const Text(
+                  'UNLIMITED AGENTS',
+                  style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
+          const Text(
+            'Operational Savings',
+            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          ),
+          const SizedBox(height: 12),
           Text(
             'Flare this month: \$$flareMonthly',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w600),
           ),
           Text(
             "Traditional subscriptions: ~\$58.00/mo",
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
+            style: const TextStyle(color: Colors.white38, fontSize: 13, fontWeight: FontWeight.w500),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'You\'re saving: \$$totalSavings/month',
-            style: const TextStyle(
-              color: Colors.greenAccent,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Based on your current custom usage pattern.',
-            style: TextStyle(color: Colors.white54, fontSize: 10),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              const Icon(Icons.trending_up, color: Colors.greenAccent, size: 28),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '\$$totalSavings Saved',
+                    style: const TextStyle(
+                      color: Colors.greenAccent,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const Text(
+                    'Compared to single-purpose tools',
+                    style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -462,20 +540,29 @@ class _WalletScreenState extends State<WalletScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Transactions',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              'Activity Ledger',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5),
             ),
-            TextButton(onPressed: () {}, child: const Text('Export')),
+            TextButton(
+              onPressed: () {}, 
+              child: const Text('View All', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+            ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
         if (transactions == null || transactions.isEmpty)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: Text(
-                'No transactions yet',
-                style: TextStyle(color: AppTheme.textSecondary),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Column(
+                children: [
+                  const Text('📜', style: TextStyle(fontSize: 40)),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'No transaction activity',
+                    style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
             ),
           )
@@ -486,28 +573,37 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Widget _buildTransactionTile(TransactionModel tx) {
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 8),
-      color: AppTheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+      ),
       child: ListTile(
         onTap: () => _showTransactionDetail(tx),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         leading: Container(
-          padding: const EdgeInsets.all(8),
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
-            color: Colors.black26,
-            shape: BoxShape.circle,
+             color: AppTheme.background,
+             borderRadius: BorderRadius.circular(14),
           ),
-          child: const Text('👤', style: TextStyle(fontSize: 16)),
+          child: Center(
+            child: Text(
+              _getEmojiByServiceName(tx.serviceName),
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
         ),
         title: Text(
           tx.watcherName ?? tx.serviceName,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: -0.3),
         ),
         subtitle: Text(
           DateFormat('MMM d, HH:mm').format(DateTime.parse(tx.timestamp)),
-          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
+          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
         ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -515,48 +611,83 @@ class _WalletScreenState extends State<WalletScreen> {
           children: [
             Text(
               '-\$${tx.amountUsdc.toStringAsFixed(3)}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.black),
             ),
             if (tx.findingDetected == true)
-              const Icon(Icons.star, color: Colors.amber, size: 12),
+              Container(
+                margin: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                child: const Text('DETECTED', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.amber)),
+              ),
           ],
         ),
       ),
     );
   }
 
+  String _getEmojiByServiceName(String service) {
+     final s = service.toLowerCase();
+     if (s.contains('flight')) return '✈️';
+     if (s.contains('crypto')) return '💰';
+     if (s.contains('news')) return '📰';
+     if (s.contains('product')) return '🛍️';
+     if (s.contains('job')) return '💼';
+     return '🤖';
+  }
+
   void _showTransactionDetail(TransactionModel tx) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(28),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Transaction Detail',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+            Center(
+               child: Container(
+                 width: 40,
+                 height: 4,
+                 decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(2)),
+               ),
             ),
             const SizedBox(height: 24),
-            _buildDetailRow('Stellar Hash', tx.stellarTxHash, isCopyable: true),
-            _buildDetailRow('Service', tx.serviceName),
-            _buildDetailRow(
-              'Amount',
-              '\$${tx.amountUsdc.toStringAsFixed(3)} USDC',
+            const Text(
+              'Transaction Receipt',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: -0.8),
             ),
-            _buildDetailRow('Timestamp', tx.timestamp),
             const SizedBox(height: 32),
-            SizedBox(
+            _buildDetailRow('AGENT NAME', tx.watcherName ?? 'General Scanner'),
+            _buildDetailRow('SERVICE LAYER', tx.serviceName.toUpperCase()),
+            _buildDetailRow('AMOUNT', '\$${tx.amountUsdc.toStringAsFixed(3)} USDC'),
+            _buildDetailRow('TIMESTAMP', DateFormat('MMMM d, yyyy HH:mm').format(DateTime.parse(tx.timestamp))),
+            _buildDetailRow('STELLAR HASH', tx.stellarTxHash, isCopyable: true),
+            const SizedBox(height: 40),
+            Container(
               width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: ElevatedButton.icon(
-                icon: const Icon(Icons.rocket_launch, size: 18),
+                icon: const Icon(Icons.rocket_launch_rounded, size: 18, color: Colors.white),
                 onPressed: () {
                   final url = 'https://stellar.expert/explorer/testnet/tx/${tx.stellarTxHash}';
                   launchUrl(Uri.parse(url));
-                  TopSnackbar.showSuccess(context, 'Opening Stellar Explorer');
                 },
-                label: const Text('View on Stellar Explorer'),
+                label: const Text('View on Stellar Expert', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -572,12 +703,12 @@ class _WalletScreenState extends State<WalletScreen> {
     bool isCopyable = false,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.textSecondary)),
-          const SizedBox(width: 16),
+          Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+          const SizedBox(width: 24),
           Expanded(
             child: InkWell(
               onTap: isCopyable
@@ -590,7 +721,13 @@ class _WalletScreenState extends State<WalletScreen> {
                 value,
                 textAlign: TextAlign.end,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontWeight: FontWeight.w900, 
+                  fontSize: 13,
+                  fontFamily: isCopyable ? 'Courier' : null,
+                  color: isCopyable ? AppTheme.primary : AppTheme.textPrimary,
+                  decoration: isCopyable ? TextDecoration.underline : null,
+                ),
               ),
             ),
           ),
@@ -599,3 +736,4 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 }
+

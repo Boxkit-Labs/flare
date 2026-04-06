@@ -51,21 +51,27 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Findings', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Latest Activity', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.8)),
+        automaticallyImplyLeading: false,
+        centerTitle: false,
+        backgroundColor: AppTheme.background,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list),
+            icon: const Icon(Icons.tune_rounded),
             onPressed: () {
               // TODO: Advanced filters
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: BlocBuilder<FindingsBloc, FindingsState>(
         builder: (context, state) {
           return AnimatedSwitcher(
-            duration: const Duration(milliseconds: 500),
+            duration: const Duration(milliseconds: 300),
             child: _buildFindingsContent(context, state),
           );
         },
@@ -84,6 +90,7 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
       final grouped = _groupFindingsByDate(filteredFindings);
 
       return RefreshIndicator(
+        color: AppTheme.primary,
         onRefresh: () async {
           _refresh();
           await Future.delayed(const Duration(milliseconds: 800));
@@ -95,7 +102,8 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 100),
                 itemCount: grouped.keys.length,
                 itemBuilder: (context, index) {
                   final dateLabel = grouped.keys.elementAt(index);
@@ -105,25 +113,30 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
                         child: Text(
                           dateLabel.toUpperCase(),
                           style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
                             color: AppTheme.textSecondary,
                             letterSpacing: 1.2,
                           ),
                         ),
                       ),
-                      ...items.asMap().entries.map((entry) {
-                        final idx = entry.key;
-                        final finding = entry.value;
-                        return StaggeredReveal(
-                          index: idx,
-                          child: FindingCard(finding: finding),
-                        );
-                      }),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          children: items.asMap().entries.map((entry) {
+                            final idx = entry.key;
+                            final finding = entry.value;
+                            return StaggeredReveal(
+                              index: idx,
+                              child: FindingCard(finding: finding),
+                            );
+                          }).toList(),
+                        ),
+                      ),
                     ],
                   );
                 },
@@ -149,7 +162,7 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
         Expanded(
           child: ShimmerList(
             itemCount: 8,
-            itemHeight: 120,
+            itemHeight: 140,
             padding: const EdgeInsets.all(20),
           ),
         ),
@@ -158,31 +171,40 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
   }
 
   Widget _buildFilterChips(int unreadCount) {
-    return SizedBox(
-      height: 60,
+    return Container(
+      height: 52,
+      margin: const EdgeInsets.only(bottom: 8),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: _filters.length,
         itemBuilder: (context, index) {
           final filter = _filters[index];
           final isSelected = _selectedFilter == filter;
           
           return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: FilterChip(
+            padding: const EdgeInsets.only(right: 10),
+            child: ChoiceChip(
               label: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(filter),
                   if (filter == 'Unread' && unreadCount > 0) ...[
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.white : AppTheme.primary,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       child: Text(
                         '$unreadCount',
-                        style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 10, 
+                          color: isSelected ? AppTheme.primary : Colors.white, 
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ],
@@ -191,10 +213,23 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
               selected: isSelected,
               onSelected: (val) => setState(() => _selectedFilter = filter),
               backgroundColor: AppTheme.surface,
-              selectedColor: AppTheme.primary.withValues(alpha: 0.2),
-              checkmarkColor: AppTheme.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              side: BorderSide(color: isSelected ? AppTheme.primary : Colors.transparent),
+              selectedColor: AppTheme.primary,
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.white : AppTheme.textSecondary,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                fontSize: 13,
+              ),
+              showCheckmark: false,
+              elevation: 0,
+              pressElevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+                side: BorderSide(
+                  color: isSelected ? AppTheme.primary : Colors.black.withValues(alpha: 0.05),
+                  width: 1,
+                ),
+              ),
             ),
           );
         },
@@ -205,7 +240,17 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
   List<FindingModel> _applyFilter(List<FindingModel> findings) {
     if (_selectedFilter == 'All') return findings;
     if (_selectedFilter == 'Unread') return findings.where((f) => !f.isRead).toList();
-    return findings.where((f) => f.type.toLowerCase() == _selectedFilter.toLowerCase()).toList();
+    
+    final typeMap = {
+      'Flights': 'flight',
+      'Crypto': 'crypto',
+      'News': 'news',
+      'Products': 'product',
+      'Jobs': 'job',
+    };
+    
+    final targetType = typeMap[_selectedFilter] ?? _selectedFilter.toLowerCase();
+    return findings.where((f) => f.type.toLowerCase() == targetType).toList();
   }
 
   Map<String, List<FindingModel>> _groupFindingsByDate(List<FindingModel> findings) {
@@ -239,24 +284,55 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('👻', style: TextStyle(fontSize: 64)),
-          const SizedBox(height: 16),
-          const Text(
-            'No findings yet.\nYour agents are working on it.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 16),
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton(
-            onPressed: () => context.pushNamed('createWatcher'),
-            child: const Text('Deploy an Agent'),
-          ),
-        ],
-      ),
-    );
+     return SingleChildScrollView(
+       key: const ValueKey('empty'),
+       physics: const AlwaysScrollableScrollPhysics(),
+       child: Container(
+         height: MediaQuery.of(context).size.height * 0.6,
+         alignment: Alignment.center,
+         child: Column(
+           mainAxisAlignment: MainAxisAlignment.center,
+           children: [
+             Container(
+               padding: const EdgeInsets.all(32),
+               decoration: BoxDecoration(
+                 color: AppTheme.surface,
+                 shape: BoxShape.circle,
+                 boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 20),
+                 ],
+               ),
+               child: const Text('💎', style: TextStyle(fontSize: 48)),
+             ),
+             const SizedBox(height: 24),
+             const Text(
+               'No discoveries found',
+               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+             ),
+             const SizedBox(height: 12),
+             const Padding(
+               padding: EdgeInsets.symmetric(horizontal: 48),
+               child: Text(
+                 'Your agents are still scanning for matches. Increase your budget or refine your criteria to find results faster.',
+                 textAlign: TextAlign.center,
+                 style: TextStyle(color: AppTheme.textSecondary, height: 1.4),
+               ),
+             ),
+             const SizedBox(height: 32),
+             ElevatedButton(
+               onPressed: () => context.push('/watchers/create'),
+               style: ElevatedButton.styleFrom(
+                 backgroundColor: Colors.black,
+                 foregroundColor: Colors.white,
+                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+               ),
+               child: const Text('Deploy Agent', style: TextStyle(fontWeight: FontWeight.bold)),
+             ),
+           ],
+         ),
+       ),
+     );
   }
 }
+

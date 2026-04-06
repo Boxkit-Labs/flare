@@ -26,14 +26,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   void _finish() {
-    // OnboardingSuccess user should be passed to AuthBloc when done.
-    // However, we need the userId here.
-    // I'll assume the bloc is holding the user ID after registration step.
-    // My OnboardingBloc implementation didn't store it in every state, 
-    // but the success state of previous steps can be accessed.
-    
-    // In a real app, I'd have a more robust way. For now, I'll assume I have it.
-    // Let's check the API service singleton for the userId.
     final apiService = context.read<OnboardingBloc>().apiService;
     if (apiService.userId != null) {
       final timeStr = "${_briefingTime.hour.toString().padLeft(2, '0')}:${_briefingTime.minute.toString().padLeft(2, '0')}";
@@ -44,7 +36,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<OnboardingBloc, OnboardingState>(
-      listener: (context, state) {
+        listener: (context, state) {
         if (state is OnboardingSuccess) {
            // AuthBloc listener in OnboardingScreen handles this
         }
@@ -53,79 +45,156 @@ class _NotificationsPageState extends State<NotificationsPage> {
         final isLoading = state is OnboardingCompleting;
 
         return Container(
+          color: AppTheme.background,
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
+              const Text(
                 'Notifications',
-                style: Theme.of(context).textTheme.displaySmall,
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.0,
+                ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                'One more thing — Flare needs to wake you up',
+              const SizedBox(height: 12),
+              const Text(
+                'Flare sends your briefing while you sleep. Decide when you want to wake up to it.',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textSecondary),
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  height: 1.4,
+                ),
               ),
-              const SizedBox(height: 40),
-              const Text('Morning Briefing Time:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 48),
+              
+              const Text(
+                'DAILY DIGEST DELIVERY', 
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppTheme.textSecondary, letterSpacing: 1.0)
+              ),
               const SizedBox(height: 16),
+              
               GestureDetector(
                 onTap: () async {
-                   final time = await showTimePicker(context: context, initialTime: _briefingTime);
+                   final time = await showTimePicker(
+                     context: context, 
+                     initialTime: _briefingTime,
+                     builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.light(
+                              primary: AppTheme.primary,
+                              onPrimary: Colors.white,
+                              surface: Colors.white,
+                              onSurface: Colors.black,
+                            ),
+                          ),
+                          child: child!,
+                        );
+                     }
+                   );
                    if (time != null) setState(() => _briefingTime = time);
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
                   decoration: BoxDecoration(
                     color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+                    boxShadow: [
+                       BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 20, offset: const Offset(0, 8)),
+                    ],
                   ),
-                  child: Text(
-                    _briefingTime.format(context),
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: AppTheme.primary),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.access_time_filled_rounded, color: AppTheme.primary, size: 24),
+                      const SizedBox(width: 16),
+                      Text(
+                        _briefingTime.format(context),
+                        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1.0, color: AppTheme.textPrimary),
+                      ),
+                    ],
                   ),
                 ),
               ),
+              
               const SizedBox(height: 60),
-              ElevatedButton(
-                onPressed: _notificationsEnabled ? null : _enableNotifications,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _notificationsEnabled ? AppTheme.secondary.withValues(alpha: 0.2) : AppTheme.primary,
-                  foregroundColor: _notificationsEnabled ? AppTheme.secondary : Colors.white,
+              
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: _notificationsEnabled ? Colors.green.withValues(alpha: 0.05) : AppTheme.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: _notificationsEnabled ? Colors.green.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.04)),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(_notificationsEnabled ? Icons.check : Icons.notifications_active_outlined),
-                    const SizedBox(width: 8),
-                    Text(_notificationsEnabled ? 'Notifications Enabled' : 'Enable Notifications'),
-                  ],
+                child: InkWell(
+                  onTap: _notificationsEnabled ? null : _enableNotifications,
+                  borderRadius: BorderRadius.circular(24),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _notificationsEnabled ? Icons.check_circle_rounded : Icons.notifications_active_rounded, 
+                          color: _notificationsEnabled ? Colors.green : AppTheme.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          _notificationsEnabled ? 'Notifications Enabled' : 'Enable Notifications',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900, 
+                            fontSize: 15, 
+                            color: _notificationsEnabled ? Colors.green : AppTheme.textPrimary
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              if (!_notificationsEnabled)
-                 const Padding(
-                   padding: EdgeInsets.only(top: 8.0),
-                   child: Text('Required for morning briefings', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                 ),
+              
               const Spacer(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   TextButton(
                     onPressed: isLoading ? null : widget.onBack,
-                    child: const Text('Back', style: TextStyle(color: AppTheme.textSecondary)),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.textSecondary,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    ),
+                    child: const Text('Back', style: TextStyle(fontWeight: FontWeight.w900)),
                   ),
-                  ElevatedButton(
-                    onPressed: isLoading ? null : _finish,
-                    child: isLoading 
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Start Flare'),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(color: AppTheme.primary.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4)),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : _finish,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: isLoading 
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Start Flare', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 48),
             ],
           ),
         );
@@ -133,3 +202,4 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 }
+

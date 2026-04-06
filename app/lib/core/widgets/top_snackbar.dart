@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flare_app/core/utils/error_formatter.dart';
 
@@ -50,11 +51,10 @@ class _SnackbarWidget extends StatefulWidget {
   final VoidCallback onDismissed;
 
   const _SnackbarWidget({
-    Key? key,
     required this.message,
     required this.isError,
     required this.onDismissed,
-  }) : super(key: key);
+  });
 
   @override
   _SnackbarWidgetState createState() => _SnackbarWidgetState();
@@ -62,14 +62,18 @@ class _SnackbarWidget extends StatefulWidget {
 
 class _SnackbarWidgetState extends State<_SnackbarWidget> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<Offset> _offsetAnimation;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 300));
-    _offsetAnimation = Tween<Offset>(begin: const Offset(0, -1.5), end: Offset.zero).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 600));
+    
+    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, -0.2), end: Offset.zero).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutQuart),
     );
 
     _controller.forward();
@@ -90,50 +94,73 @@ class _SnackbarWidgetState extends State<_SnackbarWidget> with SingleTickerProvi
 
   @override
   Widget build(BuildContext context) {
-    return SlideTransition(
-      position: _offsetAnimation,
-      child: GestureDetector(
-        onTap: () async {
-            await _controller.reverse();
-            widget.onDismissed();
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: widget.isError ? const Color(0xFFD32F2F) : const Color(0xFF388E3C),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 10,
-                offset: Offset(0, 5),
-              )
-            ],
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Icon(
-                widget.isError ? Icons.warning_amber_rounded : Icons.check_circle_outline_rounded,
-                color: Colors.white,
-                size: 28,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  widget.message,
-                  style: const TextStyle(
-                      color: Colors.white, 
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      height: 1.4,
-                  ),
+    final color = widget.isError ? const Color(0xFFEF4444) : const Color(0xFF10B981);
+    
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: GestureDetector(
+          onTap: () async {
+              await _controller.reverse();
+              widget.onDismissed();
+          },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    )
+                  ],
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Icon(
+                          widget.isError ? Icons.warning_amber_rounded : Icons.check_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        widget.message,
+                        style: const TextStyle(
+                            color: Colors.white, 
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                            letterSpacing: -0.2,
+                            height: 1.2,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 }
+

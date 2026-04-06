@@ -23,30 +23,20 @@ class WatcherListTile extends StatelessWidget {
   String _getEmoji(String type) {
     switch (type.toLowerCase()) {
       case 'flights':
+      case 'flight':
         return '✈️';
       case 'crypto':
         return '💰';
       case 'news':
         return '📰';
       case 'products':
+      case 'product':
         return '🛍️';
       case 'jobs':
+      case 'job':
         return '💼';
       default:
         return '👻';
-    }
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return Colors.green;
-      case 'paused':
-        return Colors.yellow;
-      case 'error':
-        return Colors.red;
-      default:
-        return Colors.grey;
     }
   }
 
@@ -69,41 +59,80 @@ class WatcherListTile extends StatelessWidget {
       context: context,
       backgroundColor: AppTheme.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(
-                watcher.status == 'active' ? Icons.pause_circle_outline : Icons.play_circle_outline,
-                color: AppTheme.textPrimary,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-              title: Text(watcher.status == 'active' ? 'Pause Watcher' : 'Resume Watcher'),
-              onTap: () {
-                Navigator.pop(context);
-                onToggle(watcher.status != 'active');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.edit_outlined, color: AppTheme.textPrimary),
-              title: const Text('Edit Configuration'),
-              onTap: () {
-                Navigator.pop(context);
-                if (onEdit != null) onEdit!();
-              },
-            ),
-            const Divider(color: Colors.grey),
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: Colors.orange),
-              title: const Text('Delete Watcher', style: TextStyle(color: Colors.orange)),
-              onTap: () {
-                Navigator.pop(context);
-                if (onDelete != null) onDelete!();
-              },
-            ),
-          ],
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    watcher.status == 'active' ? Icons.pause_circle_outline : Icons.play_circle_outline,
+                    color: AppTheme.primary,
+                  ),
+                ),
+                title: Text(
+                  watcher.status == 'active' ? 'Pause Watcher' : 'Resume Watcher',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  onToggle(watcher.status != 'active');
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.edit_outlined, color: Colors.blue),
+                ),
+                title: const Text('Edit Configuration', style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(context);
+                  if (onEdit != null) onEdit!();
+                },
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: Divider(),
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.delete_outline, color: Colors.red),
+                ),
+                title: const Text('Delete Watcher', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                onTap: () {
+                  Navigator.pop(context);
+                  if (onDelete != null) onDelete!();
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -114,101 +143,130 @@ class WatcherListTile extends StatelessWidget {
     final bool isActive = watcher.status == 'active';
     final percentUsed = watcher.budgetPercentUsed ?? 0.0;
 
-    return InkWell(
-      onTap: () => context.push('/watchers/${watcher.watcherId}'),
-      onLongPress: () => _showOptions(context),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    _getEmoji(watcher.type),
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        watcher.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+      ),
+      child: InkWell(
+        onTap: () => context.push('/watchers/${watcher.watcherId}'),
+        onLongPress: () => _showOptions(context),
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppTheme.background,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        isActive 
-                            ? 'Checking every ${watcher.checkIntervalMinutes}m · Last: ${_getTimeAgo(watcher.lastCheckAt)}'
-                            : watcher.status == 'paused' 
-                                ? 'Paused — Tap to resume'
-                                : 'Error — Tap to retry',
-                        style: TextStyle(
-                          color: isActive ? AppTheme.textSecondary : _getStatusColor(watcher.status),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _getEmoji(watcher.type),
+                      style: const TextStyle(fontSize: 26),
+                    ),
                   ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(watcher.status).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          StatusIndicator(status: watcher.status, size: 6),
-                          const SizedBox(width: 6),
-                          Text(
-                            watcher.status.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 8,
-                              fontWeight: FontWeight.bold,
-                              color: _getStatusColor(watcher.status),
-                            ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          watcher.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                            letterSpacing: -0.5,
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                             StatusIndicator(status: watcher.status, size: 6),
+                             const SizedBox(width: 6),
+                             Text(
+                              isActive 
+                                  ? 'Active · Every ${watcher.checkIntervalMinutes}m'
+                                  : watcher.status == 'paused' 
+                                      ? 'Paused'
+                                      : 'Error',
+                              style: TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Switch(
-                      value: isActive,
-                      onChanged: onToggle,
-                      activeTrackColor: Colors.green.withValues(alpha: 0.5),
-                      activeThumbColor: Colors.green,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  _buildToggleSwitch(isActive),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Last: ${_getTimeAgo(watcher.lastCheckAt)}',
+                    style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    '${(percentUsed * 100).toInt()}% budget used',
+                    style: TextStyle(
+                      fontSize: 11, 
+                      color: percentUsed > 0.8 ? Colors.red : AppTheme.textSecondary,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            AnimatedBudgetBar(
-              percentUsed: percentUsed,
-              minHeight: 3,
-            ),
-          ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              AnimatedBudgetBar(
+                percentUsed: percentUsed,
+                minHeight: 5,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+
+  Widget _buildToggleSwitch(bool isActive) {
+    return Transform.scale(
+      scale: 0.8,
+      child: Switch(
+        value: isActive,
+        onChanged: (val) => onToggle(val),
+        activeTrackColor: AppTheme.primary.withValues(alpha: 0.2),
+        activeColor: AppTheme.primary,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+    );
+  }
 }
+

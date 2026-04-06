@@ -92,13 +92,29 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
         }
       },
       child: Scaffold(
+        backgroundColor: AppTheme.background,
         appBar: AppBar(
-          title: const Text('Edit Watcher', style: TextStyle(fontWeight: FontWeight.bold)),
+          backgroundColor: AppTheme.background,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+            onPressed: () => context.pop(),
+          ),
+          title: const Text('Edit Agent', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.8)),
           actions: [
             if (!_isLoading)
-              TextButton(
-                onPressed: _save,
-                child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                child: Container(
+                   decoration: BoxDecoration(
+                    gradient: AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TextButton(
+                    onPressed: _save,
+                    child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                ),
               ),
           ],
         ),
@@ -111,38 +127,78 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
 
   Widget _buildContent() {
     return ListView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       children: [
-        _buildHeader(),
+        _buildInfoCard(),
+        const SizedBox(height: 24),
+        _buildSectionHeader('Configuration'),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+          ),
+          child: _buildDynamicForm(),
+        ),
         const SizedBox(height: 32),
-        _buildDynamicForm(),
-        const SizedBox(height: 32),
-        _buildScheduleAndBudget(),
-        const SizedBox(height: 60),
-        _buildDangerZone(),
-        const SizedBox(height: 80),
+        _buildSectionHeader('Schedule & Budget'),
+        const SizedBox(height: 12),
+        _buildScheduleAndBudgetCard(),
+        const SizedBox(height: 48),
+        _buildDangerZoneCard(),
+        const SizedBox(height: 100),
       ],
     );
   }
 
-  Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(_watcher!.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text('Agent ID: ${_watcher!.watcherId.substring(0, 8)}...', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-          ],
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(12)),
-          child: Text(_watcher!.type.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
-        ),
-      ],
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+    );
+  }
+
+  Widget _buildInfoCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+        border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.psychology_outlined, color: AppTheme.primary),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_watcher!.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text('ID: ${_watcher!.watcherId.substring(0, 12)}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)),
+            child: Text(_watcher!.type.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.0)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -171,96 +227,117 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
     }
   }
 
-  Widget _buildScheduleAndBudget() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Schedule & Economy', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        const SizedBox(height: 24),
-        
-        // Interval Dropdown
-        const Text('Check Frequency', style: TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
-        const SizedBox(height: 12),
-        _buildDropdown(
-          'check_interval_minutes',
-          {
-            2: 'Every 2 minutes',
-            5: 'Every 5 minutes',
-            15: 'Every 15 minutes', 
-            60: 'Every hour', 
-            360: 'Every 6 hours', 
-            1440: 'Once a day'
-          },
-        ),
-        const SizedBox(height: 24),
-
-        // Budget Slider
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Weekly Budget Cap', style: TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
-            Text('\$${(_formData['weekly_budget_usdc'] ?? 0.0).toStringAsFixed(2)} USDC', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary)),
-          ],
-        ),
-        Slider(
-          value: _formData['weekly_budget_usdc'],
-          min: 0.1,
-          max: 2.0,
-          onChanged: (val) => _handleDataChange({..._formData, 'weekly_budget_usdc': val}),
-        ),
-        const SizedBox(height: 24),
-
-        // Priority
-        const Text('Priority Level', style: TextStyle(fontSize: 14, color: AppTheme.textSecondary)),
-        const SizedBox(height: 12),
-        SegmentedButton<String>(
-          segments: const [
-            ButtonSegment(value: 'low', label: Text('Low')),
-            ButtonSegment(value: 'medium', label: Text('Med')),
-            ButtonSegment(value: 'high', label: Text('High')),
-          ],
-          selected: {_formData['priority']},
-          onSelectionChanged: (set) => _handleDataChange({..._formData, 'priority': set.first}),
-        ),
-      ],
+  Widget _buildScheduleAndBudgetCard() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Check Frequency', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+          const SizedBox(height: 12),
+          _buildDropdown(
+            'check_interval_minutes',
+            {
+              2: 'Every 2 minutes',
+              5: 'Every 5 minutes',
+              15: 'Every 15 minutes', 
+              60: 'Every hour', 
+              360: 'Every 6 hours', 
+              1440: 'Once a day'
+            },
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Weekly Budget Cap', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+              Text('\$${(_formData['weekly_budget_usdc'] ?? 0.0).toStringAsFixed(2)} USDC', style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.primary)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Slider(
+            value: _formData['weekly_budget_usdc'],
+            min: 0.1,
+            max: 2.0,
+            activeColor: AppTheme.primary,
+            inactiveColor: AppTheme.primary.withValues(alpha: 0.1),
+            onChanged: (val) => _handleDataChange({..._formData, 'weekly_budget_usdc': val}),
+          ),
+          const SizedBox(height: 16),
+          const Text('Priority Level', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<String>(
+              segments: const [
+                ButtonSegment(value: 'low', label: Text('Low')),
+                ButtonSegment(value: 'medium', label: Text('Med')),
+                ButtonSegment(value: 'high', label: Text('High')),
+              ],
+              selected: {_formData['priority']},
+              onSelectionChanged: (set) => _handleDataChange({..._formData, 'priority': set.first}),
+              style: SegmentedButton.styleFrom(
+                selectedBackgroundColor: AppTheme.primary,
+                selectedForegroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                side: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildDropdown(String key, Map<int, String> options) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(12)),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppTheme.background, 
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.02)),
+      ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
           value: _formData[key],
-          items: options.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+          items: options.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)))).toList(),
           onChanged: (val) => _handleDataChange({..._formData, key: val}),
           isExpanded: true,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textSecondary),
           dropdownColor: AppTheme.surface,
+          borderRadius: BorderRadius.circular(16),
         ),
       ),
     );
   }
 
-  Widget _buildDangerZone() {
+  Widget _buildDangerZoneCard() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.redAccent.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.redAccent.withValues(alpha: 0.1)),
+        color: Colors.red.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.08)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Danger Zone', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 24),
+          const Text('Danger Zone', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w900, fontSize: 16)),
+          const SizedBox(height: 20),
           _buildDangerAction(
             _watcher!.status == 'active' ? 'Pause Watcher' : 'Resume Watcher',
             'Temporarily stop this agent from running checks.',
             onTap: () => context.read<WatchersBloc>().add(ToggleWatcher(widget.watcherId)),
           ),
-          const Divider(height: 32, color: Colors.white10),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(color: Colors.red, thickness: 0.1),
+          ),
           _buildDangerAction(
             'Delete Watcher',
             'Irreversibly stop and remove this agent.',
@@ -275,18 +352,31 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
   Widget _buildDangerAction(String title, String subtitle, {required VoidCallback onTap, bool isCritical = false}) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
       child: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isCritical ? Colors.redAccent : AppTheme.textPrimary)),
+                Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isCritical ? Colors.red : AppTheme.textPrimary)),
+                const SizedBox(height: 2),
                 Text(subtitle, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
               ],
             ),
           ),
-          Icon(isCritical ? Icons.delete_outline : Icons.pause_circle_outline, color: isCritical ? Colors.redAccent : AppTheme.textSecondary),
+          Container(
+             padding: const EdgeInsets.all(8),
+             decoration: BoxDecoration(
+               color: (isCritical ? Colors.red : AppTheme.textSecondary).withValues(alpha: 0.1),
+               shape: BoxShape.circle,
+             ),
+             child: Icon(
+              isCritical ? Icons.delete_outline_rounded : Icons.pause_circle_outline_rounded, 
+              color: isCritical ? Colors.red : AppTheme.textSecondary,
+              size: 20,
+            ),
+          ),
         ],
       ),
     );
@@ -296,20 +386,26 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete ${_watcher!.name}?'),
-        content: Text('You\'ve spent \$${_watcher!.totalSpentUsdc.toStringAsFixed(3)} on ${_watcher!.totalChecks} checks so far. This cannot be undone.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: AppTheme.surface,
+        title: Text('Delete ${_watcher!.name}?', style: const TextStyle(fontWeight: FontWeight.w900)),
+        content: Text('You\'ve spent \$${_watcher!.totalSpentUsdc.toStringAsFixed(3)} on ${_watcher!.totalChecks} checks so far. This action cannot be undone.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Keep Watcher')),
+          TextButton(
+            onPressed: () => Navigator.pop(context), 
+            child: const Text('Keep Agent', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold))
+          ),
           TextButton(
             onPressed: () {
                context.read<WatchersBloc>().add(DeleteWatcher(widget.watcherId));
                Navigator.pop(context);
                context.pop();
             }, 
-            child: const Text('Delete', style: TextStyle(color: Colors.redAccent))
+            child: const Text('Delete Permanently', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
           ),
         ],
       ),
     );
   }
 }
+
