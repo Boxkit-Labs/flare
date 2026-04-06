@@ -7,7 +7,10 @@ import {
     getCryptoData, 
     getNewsAlerts, 
     getJobPostings, 
-    getProductPrices 
+    getProductPrices,
+    getStockData,
+    getRealEstateData,
+    getSportsData
 } from './mock-data.js';
 
 dotenv.config();
@@ -24,93 +27,117 @@ const USDC_CONTRACT = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA'
 const SOROBAN_RPC_URL = 'https://soroban-testnet.stellar.org';
 
 /**
- * Health Check
+ * Health Check (Free)
  */
 app.get('/health', (req: Request, res: Response) => {
     res.json({ status: 'ok', service: 'flare-combined-services', timestamp: new Date().toISOString() });
 });
 
 /**
- * 1. Flight Data Service
- * /flight/api/flights
+ * 1. Flight Data Service (0.008 USDC)
  */
 app.post('/flight/api/flights', stellarPaywall({
-    priceStroops: 80000, // 0.008 USDC
+    priceStroops: 80000,
     recipientAddress: RECIPIENT_ADDRESS,
     usdcContractId: USDC_CONTRACT,
     rpcUrl: SOROBAN_RPC_URL
 }), (req: Request, res: Response) => {
-    const { origin, destination } = req.body;
-    if (!origin || !destination) {
-        res.status(400).json({ error: "Missing origin or destination" });
-        return;
-    }
-    res.json(getFlightPrice(origin.toUpperCase(), destination.toUpperCase()));
+    const { origin, destination, filters } = req.body;
+    res.json(getFlightPrice(origin || 'JFK', destination || 'LAX', filters));
 });
 
 /**
- * 2. Crypto Data Service
- * /crypto/api/crypto
+ * 2. Crypto Data Service (0.003 USDC)
  */
-app.get('/crypto/api/crypto', stellarPaywall({
-    priceStroops: 50000, // 0.005 USDC
+app.post('/crypto/api/crypto', stellarPaywall({
+    priceStroops: 30000,
     recipientAddress: RECIPIENT_ADDRESS,
     usdcContractId: USDC_CONTRACT,
     rpcUrl: SOROBAN_RPC_URL
 }), (req: Request, res: Response) => {
-    res.json(getCryptoData());
+    const { symbols } = req.body;
+    res.json(getCryptoData(symbols));
 });
 
 /**
- * 3. News Data Service
- * /news/api/news
+ * 3. News Data Service (0.005 USDC)
  */
-app.get('/news/api/news', stellarPaywall({
-    priceStroops: 30000, // 0.003 USDC
+app.post('/news/api/news', stellarPaywall({
+    priceStroops: 50000,
     recipientAddress: RECIPIENT_ADDRESS,
     usdcContractId: USDC_CONTRACT,
     rpcUrl: SOROBAN_RPC_URL
 }), (req: Request, res: Response) => {
-    res.json(getNewsAlerts());
+    const { topic } = req.body;
+    res.json(getNewsAlerts(topic));
 });
 
 /**
- * 4. Product Data Service
- * /product/api/products
+ * 4. Product Data Service (0.006 USDC)
  */
 app.post('/product/api/products', stellarPaywall({
-    priceStroops: 40000, // 0.004 USDC
+    priceStroops: 60000,
     recipientAddress: RECIPIENT_ADDRESS,
     usdcContractId: USDC_CONTRACT,
     rpcUrl: SOROBAN_RPC_URL
 }), (req: Request, res: Response) => {
-    const { name } = req.body;
-    if (!name) {
-        res.status(400).json({ error: "Missing product name" });
-        return;
-    }
-    res.json(getProductPrices(name));
+    const { query } = req.body;
+    res.json(getProductPrices(query || 'Sony XM5'));
 });
 
 /**
- * 5. Job Data Service
- * /job/api/jobs
+ * 5. Job Data Service (0.007 USDC)
  */
 app.post('/job/api/jobs', stellarPaywall({
-    priceStroops: 60000, // 0.006 USDC
+    priceStroops: 70000,
     recipientAddress: RECIPIENT_ADDRESS,
     usdcContractId: USDC_CONTRACT,
     rpcUrl: SOROBAN_RPC_URL
 }), (req: Request, res: Response) => {
     const { role } = req.body;
-    if (!role) {
-        res.status(400).json({ error: "Missing role" });
-        return;
-    }
-    res.json(getJobPostings(role));
+    res.json(getJobPostings(role || 'Flutter Developer'));
+});
+
+/**
+ * 6. Stocks Data Service (0.004 USDC)
+ */
+app.post('/stocks/api/stocks', stellarPaywall({
+    priceStroops: 40000,
+    recipientAddress: RECIPIENT_ADDRESS,
+    usdcContractId: USDC_CONTRACT,
+    rpcUrl: SOROBAN_RPC_URL
+}), (req: Request, res: Response) => {
+    const { symbols } = req.body;
+    res.json(getStockData(symbols));
+});
+
+/**
+ * 7. Real Estate Data Service (0.008 USDC)
+ */
+app.post('/realestate/api/realestate', stellarPaywall({
+    priceStroops: 80000,
+    recipientAddress: RECIPIENT_ADDRESS,
+    usdcContractId: USDC_CONTRACT,
+    rpcUrl: SOROBAN_RPC_URL
+}), (req: Request, res: Response) => {
+    const { city } = req.body;
+    res.json(getRealEstateData(city));
+});
+
+/**
+ * 8. Sports Data Service (0.005 USDC)
+ */
+app.post('/sports/api/sports', stellarPaywall({
+    priceStroops: 50000,
+    recipientAddress: RECIPIENT_ADDRESS,
+    usdcContractId: USDC_CONTRACT,
+    rpcUrl: SOROBAN_RPC_URL
+}), (req: Request, res: Response) => {
+    const { team } = req.body;
+    res.json(getSportsData(team));
 });
 
 app.listen(PORT, () => {
-    console.log(`Flare Combined Services listening on port ${PORT}`);
+    console.log(`Flare Consolidated Services listening on port ${PORT}`);
     console.log(`Recipient: ${RECIPIENT_ADDRESS}`);
 });

@@ -38,6 +38,9 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
     {'id': 'news', 'name': 'News', 'emoji': '📰', 'rec_interval': 720},
     {'id': 'product', 'name': 'Products', 'emoji': '🛍️', 'rec_interval': 720},
     {'id': 'job', 'name': 'Jobs', 'emoji': '💼', 'rec_interval': 1440},
+    {'id': 'stock', 'name': 'Stocks', 'emoji': '📊', 'rec_interval': 60},
+    {'id': 'realestate', 'name': 'Real Estate', 'emoji': '🏠', 'rec_interval': 1440},
+    {'id': 'sports', 'name': 'Sports', 'emoji': '⚽', 'rec_interval': 360},
   ];
 
   void _onTypeSelect(String typeId) {
@@ -217,6 +220,10 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
               return ProductWatcherForm(onChanged: _onFormChanged, key: const ValueKey('product_form'));
             case 'job':
               return JobWatcherForm(onChanged: _onFormChanged, key: const ValueKey('job_form'));
+            case 'stock':
+            case 'realestate':
+            case 'sports':
+              return NewsWatcherForm(onChanged: _onFormChanged, key: ValueKey('${_selectedType}_form'));
             default:
               return const SizedBox.shrink();
           }

@@ -83,6 +83,15 @@ export class CheckExecutor {
         case 'job':
           serviceUrl = `${baseUrl}/job/api/jobs`;
           break;
+        case 'stock':
+          serviceUrl = `${baseUrl}/stocks/api/stocks`;
+          break;
+        case 'realestate':
+          serviceUrl = `${baseUrl}/realestate/api/realestate`;
+          break;
+        case 'sports':
+          serviceUrl = `${baseUrl}/sports/api/sports`;
+          break;
         default:
           throw new Error(`Unknown watcher type: ${watcher.type}`);
       }
@@ -164,15 +173,47 @@ export class CheckExecutor {
       let agentReasoning = '';
 
       if (finding) {
-          // 13. If Finding Detected
-          finding.check_id = checkId;
-          await createFinding(finding);
-          findingDetected = true;
-          findingId = finding.finding_id;
-          agentReasoning = finding.agent_reasoning || 'Finding matched conditions.';
-          console.log(`FINDING: ${finding.headline}`);
+          // --- DEAD FINDING PREVENTION: RE-VERIFICATION LOOP ---
+          console.log(`[Re-Verify] Finding detected for ${watcher.name}. Verifying in 60s...`);
           
-          await notificationService.sendFindingNotification(watcher.user_id, finding, watcher);
+          // 1. Wait 60 seconds
+          await new Promise(resolve => setTimeout(resolve, 60000));
+
+          // 2. Perform SECOND payment and check
+          try {
+            console.log(`[Re-Verify] Executing second check for ${watcher.type} ...`);
+            const vResult = await payForService({
+              serviceUrl, method, body, payerSecretKey, rpcUrl: SOROBAN_RPC_URL
+            });
+            
+            const vFinding = await detector.detectFinding(watcher, vResult.data, responseData, vResult.costPaid / 10000000, vResult.txHash);
+            
+            if (vFinding) {
+              console.log(`[Re-Verify] CONFIRMED! Finding is still valid. ✓`);
+              finding.verified = true;
+              finding.verification_tx_hash = vResult.txHash;
+              finding.verification_check_id = uuidv4(); // Placeholder for secondary check record
+              
+              // Boost confidence in headline/reasoning
+              finding.headline = `✓ [Verified] ${finding.headline}`;
+              
+              finding.check_id = checkId;
+              await createFinding(finding);
+              findingDetected = true;
+              findingId = finding.finding_id;
+              agentReasoning = finding.agent_reasoning || 'Finding matched and re-verified.';
+              
+              await notificationService.sendFindingNotification(watcher.user_id, finding, watcher);
+            } else {
+              console.log(`[Re-Verify] FAILED. Finding no longer valid. Suppressing alert.`);
+              findingDetected = false;
+              agentReasoning = "Initial check found finding, but re-verification 60s later failed. Alert suppressed.";
+            }
+          } catch (vError) {
+             console.error("[Re-Verify] Verification failed due to payment/network error.", vError);
+             findingDetected = false;
+             agentReasoning = "Finding detected but verification check failed.";
+          }
       } else {
           // 14. If No Finding
           agentReasoning = "No finding matched the alert criteria.";

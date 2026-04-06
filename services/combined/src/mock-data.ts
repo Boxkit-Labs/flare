@@ -1,126 +1,168 @@
-// Consolidated Mock Data for Combined Services
+import { v4 as uuidv4 } from 'uuid';
 
-// --- Flight Data ---
+// --- Global State ---
+const state: any = {
+    flights: {},
+    crypto: {},
+    products: {},
+    jobs: [],
+    stocks: {},
+    realestate: [],
+    sports: { tickets: [], scores: [] }
+};
 
-const AIRLINES = ["Stellar Airways", "Lumen Wings", "Galactic Express", "Horizon Air"];
+const startTime = Date.now();
 
-const flightPriceState: Record<string, number[]> = {};
+// --- 1. Flight Data (Enhanced) ---
+const AIRLINES = ["ANA", "Stellar Airways", "Lumen Wings", "Galactic Express", "Horizon Air", "JAL", "Delta", "United", "Emirates"];
+const CABINS = ["economy", "premium_economy", "business", "first"];
 
-export function getFlightPrice(origin: string, destination: string) {
+export function getFlightPrice(origin: string, destination: string, filters: any = {}) {
     const routeKey = `${origin}-${destination}`;
-    if (!flightPriceState[routeKey]) {
-        flightPriceState[routeKey] = [Math.floor(400 + Math.random() * 600)];
+    if (!state.flights[routeKey]) {
+        state.flights[routeKey] = [Math.floor(400 + Math.random() * 600)];
     }
 
-    const history = flightPriceState[routeKey];
+    const history = state.flights[routeKey];
     const lastPrice = history[history.length - 1];
     
-    // Add volatility
-    const volatility = (Math.random() * 40) - 20; // -20 to +20
-    let price = Math.max(200, Math.min(1500, lastPrice + volatility));
-    
-    // 1 in 10 chance of price drop
-    if (Math.random() < 0.1) {
-        price = price * 0.75;
-    }
-
+    // Simulate error fare (1 in 20)
+    let isErrorFare = Math.random() < 0.05;
+    let price = isErrorFare ? lastPrice * 0.35 : lastPrice * (1 + (Math.random() * 0.1 - 0.05));
     price = Math.round(price);
-    history.push(price);
-    if (history.length > 5) history.shift();
 
-    const today = new Date();
-    const dep = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const ret = new Date(dep.getTime() + 5 * 24 * 60 * 60 * 1000);
+    history.push(price);
+    if (history.length > 10) history.shift();
+
+    const isATH = price <= Math.min(...history);
 
     return {
         origin,
         destination,
         cheapest_price: price,
         airline: AIRLINES[Math.floor(Math.random() * AIRLINES.length)],
-        departure_date: dep.toISOString().split('T')[0],
-        return_date: ret.toISOString().split('T')[0],
+        cabin_class: filters.cabin || "economy",
+        is_error_fare: isErrorFare,
+        is_historical_low: isATH,
         price_history: [...history],
         checked_at: new Date().toISOString()
     };
 }
 
-// --- Crypto Data ---
-
-const CRYPTO_BASE_PRICES: Record<string, number> = {
-    XLM: 0.14, ETH: 3200, BTC: 68000, SOL: 145, USDT: 1.00, XRP: 0.52
+// --- 2. Crypto Data (Enhanced) ---
+const CRYPTO_CONFIG: any = {
+    BTC: { base: 68000, vol: 0.03 }, XLM: { base: 0.14, vol: 0.05 }, ETH: { base: 3200, vol: 0.04 }, SOL: { base: 145, vol: 0.06 }
 };
 
-const cryptoPriceHistory: Record<string, number[]> = {};
+export function getCryptoData(symbols: string[] = ['BTC', 'ETH', 'XLM', 'SOL']) {
+    const prices: any = {};
+    const changes: any = {};
 
-export function getCryptoData() {
-    const symbols = Object.keys(CRYPTO_BASE_PRICES);
-    const prices: Record<string, number> = {};
-    const changes_24h: Record<string, number> = {};
-    
-    symbols.forEach(symbol => {
-        if (!cryptoPriceHistory[symbol]) cryptoPriceHistory[symbol] = [CRYPTO_BASE_PRICES[symbol]];
-        const history = cryptoPriceHistory[symbol];
-        const lastPrice = history[history.length - 1];
-        
-        const variation = (Math.random() * 0.04) - 0.02; // -2% to +2%
-        let newPrice = lastPrice * (1 + variation);
-        
-        prices[symbol] = symbol === 'BTC' || symbol === 'ETH' ? Math.round(newPrice * 100) / 100 : Math.round(newPrice * 10000) / 10000;
-        history.push(prices[symbol]);
-        if (history.length > 10) history.shift();
-        
-        changes_24h[symbol] = Math.round(((prices[symbol] - history[0]) / history[0]) * 10000) / 100;
+    symbols.forEach(s => {
+        const conf = CRYPTO_CONFIG[s] || { base: 100, vol: 0.05 };
+        if (!state.crypto[s]) state.crypto[s] = [conf.base];
+        const hist = state.crypto[s];
+        const last = hist[hist.length - 1];
+        const next = last * (1 + (Math.random() * conf.vol * 2 - conf.vol));
+        hist.push(next);
+        if (hist.length > 20) hist.shift();
+        prices[s] = parseFloat(next.toFixed(s === 'XLM' ? 4 : 2));
+        changes[s] = parseFloat(((next - hist[0]) / hist[0] * 100).toFixed(2));
     });
 
+    return { prices, changes_24h: changes, volumes: symbols.reduce((a,s)=>({...a,[s]:Math.random()*3}), {}), checked_at: new Date().toISOString() };
+}
+
+// --- 3. News Data (Enhanced) ---
+export function getNewsAlerts(topic: string = 'Stellar') {
     return {
-        prices,
-        changes_24h,
+        articles: [
+            { id: uuidv4(), title: `${topic} Network adoption spikes`, source: "TechDaily", sentiment_score: 0.8, sentiment_label: 'positive', relevance_score: 0.95 },
+            { id: uuidv4(), title: `Market analysis: ${topic} potential`, source: "FinanceTimes", sentiment_score: 0.2, sentiment_label: 'neutral', relevance_score: 0.88 }
+        ],
+        trending_score: 85,
         checked_at: new Date().toISOString()
     };
 }
 
-// --- News Data ---
-
-const NEWS_TOPICS = ["Stellar Protocol 21", "Soroban Adoption", "USDC Yields", "Meridian Conference", "Smart Contract Security"];
-
-export function getNewsAlerts() {
+// --- 4. Product Data (Enhanced) ---
+export function getProductPrices(query: string) {
+    const base = 299;
+    if (!state.products[query]) state.products[query] = [base];
+    const hist = state.products[query];
+    const last = hist[hist.length-1];
+    const price = last * (1 + (Math.random()*0.1-0.05));
+    hist.push(price);
+    
     return {
-        alerts: NEWS_TOPICS.map(topic => ({
-            title: `${topic} Update`,
-            impact: Math.random() > 0.5 ? "high" : "medium",
-            summary: `Significant developments in ${topic} reported today.`,
-            timestamp: new Date().toISOString()
-        })).slice(0, 3)
+        product_name: query,
+        current_price: parseFloat(price.toFixed(2)),
+        stores: [
+            { store: "Amazon", price: parseFloat(price.toFixed(2)), in_stock: true },
+            { store: "Best Buy", price: parseFloat((price * 0.95).toFixed(2)), in_stock: true }
+        ],
+        is_ath: price <= Math.min(...hist),
+        on_sale: Math.random() > 0.8,
+        checked_at: new Date().toISOString()
     };
 }
 
-// --- Job Data ---
-
-const JOB_TITLES = ["Smart Contract Engineer", "Rust Developer", "Stellar Architect", "Protocol Researcher"];
-
+// --- 5. Job Data (Enhanced) ---
 export function getJobPostings(role: string) {
     return {
-        role,
-        postings: JOB_TITLES.map(title => ({
-            title: `${title} - ${role}`,
-            company: "Stellar Ecosystem Org",
-            salary: `$${Math.floor(120 + Math.random() * 80)}k`,
-            location: "Remote",
-            posted_at: "Today"
-        }))
+        listings: [
+            { id: uuidv4(), title: `Senior ${role}`, company: "Stellar Dev", salary: 165000, is_hot: true, posted_at: new Date().toISOString() },
+            { id: uuidv4(), title: `Staff ${role}`, company: "Galactic Labs", salary: 210000, is_hot: false, posted_at: new Date().toISOString() }
+        ],
+        salary_trends: { p50: 160000, p90: 220000, trend: 'up' },
+        checked_at: new Date().toISOString()
     };
 }
 
-// --- Product Data ---
+// --- 6. Stock Data (New) ---
+const STOCK_CONFIG: any = {
+    AAPL: 185, TSLA: 171, NVDA: 890, MSFT: 420
+};
 
-const PRODUCTS = ["MacBook Pro M3", "iPhone 15 Pro", "Sony WH-1000XM5", "iPad Air"];
+export function getStockData(symbols: string[] = ['AAPL', 'TSLA', 'NVDA']) {
+    const stocks = symbols.map(s => {
+        const base = STOCK_CONFIG[s] || 100;
+        if (!state.stocks[s]) state.stocks[s] = [base];
+        const hist = state.stocks[s];
+        const next = hist[hist.length-1] * (1 + (Math.random()*0.02-0.01));
+        hist.push(next);
+        return {
+            symbol: s,
+            price: parseFloat(next.toFixed(2)),
+            change_percent: parseFloat(((next - hist[0])/hist[0]*100).toFixed(2)),
+            high_52w: base * 1.2,
+            low_52w: base * 0.8,
+            event: Math.random() > 0.9 ? "Analyst Upgrade" : undefined
+        };
+    });
+    return { stocks, checked_at: new Date().toISOString() };
+}
 
-export function getProductPrices(name: string) {
+// --- 7. Real Estate Data (New) ---
+export function getRealEstateData(city: string = 'Austin') {
     return {
-        product_name: name,
-        current_price: 199 + Math.floor(Math.random() * 1000),
-        store: "E-Shop",
-        on_sale: Math.random() > 0.8,
+        listings: [
+            { id: uuidv4(), address: "123 Solar St", city, neighborhood: "Downtown", type: "condo", price: 550000, is_new: true, listing_date: new Date().toISOString() },
+            { id: uuidv4(), address: "456 Stellar Ave", city, neighborhood: "East Side", type: "house", price: 820000, price_reduced: true, listing_date: new Date().toISOString() }
+        ],
+        stats: { avg_rent: 2100, trend: 'down' },
+        checked_at: new Date().toISOString()
+    };
+}
+
+// --- 8. Sports Data (New) ---
+export function getSportsData(team: string = 'Warriors') {
+    return {
+        match: { home: team, away: "Lakers", score: "102-98", time: "Final", odds: { home: 1.8, away: 2.1 } },
+        tickets: [
+            { section: "Floor", price: 450, history: [500, 480, 450], price_dropped: true },
+            { section: "Lower Bowl", price: 220, history: [220, 220, 220], price_dropped: false }
+        ],
         checked_at: new Date().toISOString()
     };
 }

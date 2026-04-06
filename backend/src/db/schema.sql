@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS watchers (
   watcher_id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('flight','crypto','news','product','job','custom')),
+  type TEXT NOT NULL CHECK (type IN ('flight','crypto','news','product','job','custom','stock','realestate','sports')),
   parameters TEXT NOT NULL, -- JSON string
   alert_conditions TEXT NOT NULL, -- JSON string
   check_interval_minutes INTEGER NOT NULL DEFAULT 360,
@@ -70,6 +70,9 @@ CREATE TABLE IF NOT EXISTS findings (
   stellar_tx_hash TEXT,
   read BOOLEAN DEFAULT false,
   notified BOOLEAN DEFAULT false,
+  verified BOOLEAN DEFAULT false,
+  verification_tx_hash TEXT,
+  verification_check_id TEXT,
   found_at TIMESTAMPTZ DEFAULT NOW()
 );
 

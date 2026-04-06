@@ -124,6 +124,27 @@ class _FindingDetailScreenState extends State<FindingDetailScreen> {
                ),
              ),
              const Spacer(),
+             if (finding.verified)
+               Container(
+                 margin: const EdgeInsets.only(right: 12),
+                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                 decoration: BoxDecoration(
+                   color: Colors.blue.withValues(alpha: 0.1),
+                   borderRadius: BorderRadius.circular(8),
+                   border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                 ),
+                 child: const Row(
+                   mainAxisSize: MainAxisSize.min,
+                   children: [
+                     Icon(Icons.verified_rounded, size: 10, color: Colors.blue),
+                     SizedBox(width: 4),
+                     Text(
+                       'Verified with 2 checks',
+                       style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.blue),
+                     ),
+                   ],
+                 ),
+               ),
              Text(
                _getTimeAgo(finding.foundAt),
                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
@@ -277,12 +298,22 @@ class _FindingDetailScreenState extends State<FindingDetailScreen> {
               : 'VERIFYING...', 
               onTap: finding.stellarTxHash != null ? () => launchUrl(Uri.parse('https://stellar.expert/explorer/testnet/tx/${finding.stellarTxHash}')) : null),
           _buildReceiptRow('Timestamp', DateFormat('MMM d, HH:mm').format(DateTime.parse(finding.foundAt))),
+          if (finding.verified) ...[
+            const Divider(height: 32),
+            const Text('Verification Check (60s later)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+            const SizedBox(height: 12),
+            _buildReceiptRow('Verification Tx', finding.verificationTxHash != null 
+                ? '${finding.verificationTxHash!.substring(0, 8)}...${finding.verificationTxHash!.substring(finding.verificationTxHash!.length - 8)}' 
+                : 'N/A',
+                onTap: finding.verificationTxHash != null ? () => launchUrl(Uri.parse('https://stellar.expert/explorer/testnet/tx/${finding.verificationTxHash}')) : null),
+             _buildReceiptRow('Status', 'VERIFIED ✓', color: Colors.green),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildReceiptRow(String label, String value, {VoidCallback? onTap}) {
+  Widget _buildReceiptRow(String label, String value, {VoidCallback? onTap, Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -297,7 +328,7 @@ class _FindingDetailScreenState extends State<FindingDetailScreen> {
                 fontWeight: FontWeight.bold, 
                 fontSize: 13, 
                 fontFamily: onTap != null ? 'Courier' : null,
-                color: onTap != null ? AppTheme.primary : AppTheme.textPrimary,
+                color: color ?? (onTap != null ? AppTheme.primary : AppTheme.textPrimary),
                 decoration: onTap != null ? TextDecoration.underline : null,
               ),
             ),
@@ -390,6 +421,13 @@ class _FindingDetailScreenState extends State<FindingDetailScreen> {
       case 'jobs':
       case 'job':
         return '💼';
+      case 'stock':
+      case 'stocks':
+        return '📊';
+      case 'realestate':
+        return '🏠';
+      case 'sports':
+        return '⚽';
       default:
         return '✨';
     }

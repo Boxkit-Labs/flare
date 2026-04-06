@@ -238,6 +238,9 @@ class FindingModel {
   final String foundAt;
   final String? watcherName;
   final String? watcherType;
+  final bool verified;
+  final String? verificationTxHash;
+  final String? verificationCheckId;
 
   const FindingModel({
     required this.findingId,
@@ -256,6 +259,9 @@ class FindingModel {
     required this.foundAt,
     this.watcherName,
     this.watcherType,
+    this.verified = false,
+    this.verificationTxHash,
+    this.verificationCheckId,
   });
 
   factory FindingModel.fromJson(Map<String, dynamic> json) {
@@ -283,6 +289,9 @@ class FindingModel {
       foundAt: json['found_at'] ?? '',
       watcherName: json['watcher_name'],
       watcherType: json['watcher_type'],
+      verified: json['verified'] == 1 || json['verified'] == true,
+      verificationTxHash: json['verification_tx_hash'],
+      verificationCheckId: json['verification_check_id'],
     );
   }
 }
