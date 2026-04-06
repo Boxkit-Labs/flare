@@ -35,6 +35,8 @@ app.use('/api/transactions', transactionsRouter);
 app.use('/services', servicesRouter);
 
 
+import { initializeDatabase } from './db/database.js';
+
 app.get('/health', (req: Request, res: Response) => {
   res.json({
     status: 'ok',
@@ -43,8 +45,23 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server is running on 0.0.0.0:${port}`);
-  // Start the background scheduler once the server is listening
-  scheduler.start().catch(e => console.error("Scheduler failed to start:", e));
-});
+async function main() {
+  try {
+    // 1. Initialize database tables
+    await initializeDatabase();
+    console.log('Database schema initialized');
+
+    // 2. Start server
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`Server is running on 0.0.0.0:${port}`);
+      
+      // 3. Start scheduler AFTER everything else is ready
+      scheduler.start().catch(e => console.error("Scheduler failed to start:", e));
+    });
+  } catch (err) {
+    console.error('Failed to start:', err);
+    process.exit(1);
+  }
+}
+
+main();
