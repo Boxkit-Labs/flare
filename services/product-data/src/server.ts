@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { stellarPaywall } from '../../../backend/src/middleware/stellar-paywall.js';
-import { getProductData } from './mock-data.js';
+import { compareProduct, monitorWishlist, checkAvailability, searchCategoryDeals } from './mock-data.js';
 
 dotenv.config();
 
@@ -27,18 +27,32 @@ app.post('/api/products', stellarPaywall({
   usdcContractId: USDC_CONTRACT,
   rpcUrl: SOROBAN_RPC_URL
 }), (req: Request, res: Response) => {
-  const { product_name } = req.body;
-  if (!product_name) {
-    res.status(400).json({ error: "Missing product_name" });
-    return;
-  }
+  const { mode = 'comparison', query, items, product_name } = req.body;
 
-  const result = getProductData(product_name);
-  if (!result) {
-    res.status(404).json({ error: "Product not found" });
-    return;
+  try {
+    switch (mode) {
+      case 'wishlist':
+        if (!items || !Array.isArray(items)) return res.status(400).json({ error: "Missing items array for wishlist mode" });
+        return res.json(monitorWishlist(items));
+      
+      case 'availability':
+        if (!product_name) return res.status(400).json({ error: "Missing product_name for availability mode" });
+        return res.json(checkAvailability(product_name));
+      
+      case 'deals':
+        if (!query) return res.status(400).json({ error: "Missing query for deals mode" });
+        return res.json(searchCategoryDeals(query));
+      
+      case 'comparison':
+      default:
+        if (!query) return res.status(400).json({ error: "Missing query for comparison mode" });
+        const result = compareProduct(query);
+        if (!result) return res.status(404).json({ error: "Product not found" });
+        return res.json(result);
+    }
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
   }
-  res.json(result);
 });
 
 /**

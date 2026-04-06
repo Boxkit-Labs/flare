@@ -1,135 +1,130 @@
+import { v4 as uuidv4 } from 'uuid';
+
 export interface JobListing {
   id: string;
   title: string;
   company: string;
   location: string;
   remote: boolean;
+  type: 'full-time' | 'contract' | 'freelance';
   salary_min: number;
   salary_max: number;
+  hourly_rate?: number;
+  duration_months?: number;
   keywords: string[];
   posted_at: string;
   url: string;
-  relevance_score?: number;
-  is_new?: boolean;
+  skills_score: number;
+  is_hot: boolean;
+  is_new: boolean;
 }
 
-const COMPANIES = ["Stripe", "Coinbase", "Stellar", "Google", "Meta", "Apple", "Figma", "Linear", "Vercel", "Supabase"];
-const TITLES = ["Flutter Developer", "Mobile Engineer", "Blockchain Developer", "Full Stack Engineer", "AI/ML Engineer", "DevOps Engineer", "Product Designer", "Smart Contract Developer"];
-const LOCATIONS = ["San Francisco, CA", "New York, NY", "London, UK", "Berlin, DE", "Singapore", "Austin, TX", "Remote"];
+const COMPANIES = ["Google", "Stripe", "Stellar", "Meta", "Apple", "Coinbase", "Linear", "Figma", "OpenAI", "Anthropic", "Vercel", "Supabase"];
+const ROLES = ["Senior Flutter Engineer", "Staff Mobile Engineer", "Blockchain Architect", "Full Stack Dev", "AI/ML Engineer", "Product Designer", "DevOps Specialist", "Marketing Lead"];
 
-const JOB_POOL: JobListing[] = Array.from({ length: 40 }).map((_, i) => {
+const JOB_POOL: JobListing[] = Array.from({ length: 85 }).map((_, i) => {
   const company = COMPANIES[i % COMPANIES.length];
-  const title = TITLES[i % TITLES.length];
-  const locationIdx = i % LOCATIONS.length;
-  const location = LOCATIONS[locationIdx];
-  const remote = location === 'Remote' || i % 3 === 0;
-  const salaryMin = 80000 + (Math.floor(Math.random() * 12) * 10000);
-  const salaryMax = salaryMin + 20000 + (Math.floor(Math.random() * 5) * 10000);
+  const role = ROLES[i % ROLES.length];
+  const type: any = (i % 5 === 0) ? 'contract' : (i % 7 === 0 ? 'freelance' : 'full-time');
+  
+  const salaryMin = 90000 + (Math.floor(Math.random() * 10) * 15000);
+  const salaryMax = salaryMin + 30000 + (Math.floor(Math.random() * 5) * 10000);
+  
+  const skillsScore = 60 + Math.floor(Math.random() * 40);
+  const isHot = salaryMax > 220000;
 
   return {
     id: `job-${i}`,
-    title,
+    title: role,
     company,
-    location: remote ? "Remote" : location,
-    remote,
+    location: i % 3 === 0 ? "Remote" : "New York, NY",
+    remote: i % 3 === 0,
+    type,
     salary_min: salaryMin,
     salary_max: salaryMax,
-    keywords: [
-      title.split(' ')[0].toLowerCase(),
-      company.toLowerCase(),
-      ["blockchain", "AI", "mobile", "web", "infra"][i % 5],
-      ["stellar", "soroban", "react", "flutter", "typescript"][i % 5]
-    ],
-    posted_at: new Date(Date.now() - (i * 86400000)).toISOString(), // Distributed over last 40 days
-    url: `https://example.com/jobs/job-${i}`
+    hourly_rate: type !== 'full-time' ? 80 + Math.floor(Math.random() * 70) : undefined,
+    duration_months: type !== 'full-time' ? 3 + Math.floor(Math.random() * 9) : undefined,
+    keywords: [role.toLowerCase().split(' ')[0], company.toLowerCase(), "tech"],
+    posted_at: new Date(Date.now() - (i * 2 * 3600000)).toISOString(),
+    url: `https://jobs.io/apply/${uuidv4()}`,
+    skills_score: skillsScore,
+    is_hot: isHot,
+    is_new: i < 5
   };
 });
 
 const startTime = Date.now();
-const seenJobIds = new Set<string>();
 
-export function searchJobs(keywords: string[], location?: string, remoteOnly?: boolean, salaryMin?: number): any {
-  // Simulate rotation: add 1-3 new jobs every 4 hours
-  const hoursSinceStart = Math.floor((Date.now() - startTime) / (3600000 * 4));
-  if (hoursSinceStart > 0) {
-    for (let j = 0; j < Math.min(hoursSinceStart * 2, 10); j++) {
-      const newId = `new-job-${hoursSinceStart}-${j}`;
-      if (!JOB_POOL.some(job => job.id === newId)) {
-          const company = COMPANIES[Math.floor(Math.random() * COMPANIES.length)];
-          const title = TITLES[Math.floor(Math.random() * TITLES.length)];
-          JOB_POOL.push({
-            id: newId,
-            title,
-            company,
-            location: Math.random() > 0.5 ? "Remote" : "New York, NY",
-            remote: Math.random() > 0.5,
-            salary_min: 120000,
-            salary_max: 180000,
-            keywords: ["new", "fresh", title.toLowerCase()],
-            posted_at: new Date().toISOString(),
-            url: `https://example.com/jobs/${newId}`
-          });
-      }
-    }
+export function getCompanyJobs(companyName: string): any {
+  const jobs = JOB_POOL.filter(j => j.company.toLowerCase() === companyName.toLowerCase());
+  const newToday = jobs.filter(j => (Date.now() - new Date(j.posted_at).getTime()) < 86400000).length;
+  
+  let insight = `${companyName} is maintaining steady hiring.`;
+  if (newToday > 1) {
+    insight = `${companyName} is actively hiring ${jobs[0]?.title.split(' ').pop()}s — ${newToday} new roles today!`;
   }
-
-  let results = JOB_POOL.map(job => {
-    // Score by keyword overlap
-    const score = keywords.reduce((acc, k) => {
-      let s = 0;
-      if (job.title.toLowerCase().includes(k.toLowerCase())) s += 2;
-      if (job.keywords.some(jk => jk.toLowerCase().includes(k.toLowerCase()))) s += 1;
-      return acc + s;
-    }, 0);
-
-    return { ...job, relevance_score: score };
-  });
-
-  // Filters
-  if (keywords.length > 0) {
-    results = results.filter(j => j.relevance_score && j.relevance_score > 0);
-  }
-  if (location) {
-    results = results.filter(j => j.location.toLowerCase().includes(location.toLowerCase()));
-  }
-  if (remoteOnly) {
-    results = results.filter(j => j.remote);
-  }
-  if (salaryMin) {
-    results = results.filter(j => j.salary_min >= salaryMin);
-  }
-
-  // Sort by relevance then date
-  results.sort((a, b) => b.relevance_score! - a.relevance_score! || new Date(b.posted_at).getTime() - new Date(a.posted_at).getTime());
-
-  // Detect new listings (seen per session)
-  let newCount = 0;
-  const listings = results.map(j => {
-    const isNew = !seenJobIds.has(j.id);
-    if (isNew) {
-      newCount++;
-      // Actually in a real session you'd wait for a "clear" or similar, but here we'll flag it
-    }
-    return {
-      title: j.title,
-      company: j.company,
-      location: j.location,
-      remote: j.remote,
-      salary_range: `$${j.salary_min/1000}k - $${j.salary_max/1000}k`,
-      url: j.url,
-      relevance_score: j.relevance_score,
-      posted_at: j.posted_at,
-      is_new: isNew
-    };
-  });
-
-  // Mark all as seen for next check in this session
-  results.forEach(j => seenJobIds.add(j.id));
 
   return {
-    listings,
-    total_matches: results.length,
-    new_since_last_check: newCount,
+    company: companyName,
+    jobs,
+    insight,
+    total_openings: jobs.length,
+    new_today: newToday,
+    checked_at: new Date().toISOString()
+  };
+}
+
+export function getSalaryTrends(roleTitle: string): any {
+  const filtered = JOB_POOL.filter(j => j.title.toLowerCase().includes(roleTitle.toLowerCase()));
+  if (filtered.length === 0) return { error: "No data for this role" };
+
+  const salaries = filtered.map(j => j.salary_max).sort((a, b) => a - b);
+  const avg = salaries.reduce((a, b) => a + b, 0) / salaries.length;
+  
+  const getPercentile = (p: number) => salaries[Math.floor((p / 100) * (salaries.length - 1))];
+
+  return {
+    role: roleTitle,
+    average: Math.round(avg),
+    percentiles: {
+      p25: getPercentile(25),
+      p50: getPercentile(50),
+      p75: getPercentile(75),
+      p90: getPercentile(90)
+    },
+    trend: Math.random() > 0.5 ? 'up' : 'down',
+    top_payers: [...new Set(filtered.sort((a, b) => b.salary_max - a.salary_max).slice(0, 3).map(j => j.company))],
+    insight: `Market demand for ${roleTitle} is ${avg > 160000 ? 'very high' : 'stable'}.`
+  };
+}
+
+export function getFreelanceJobs(): any {
+  const jobs = JOB_POOL.filter(j => j.type === 'contract' || j.type === 'freelance');
+  return {
+    jobs: jobs.map(j => ({
+      ...j,
+      is_high_value: (j.hourly_rate || 0) > 130
+    })),
+    total: jobs.length,
+    checked_at: new Date().toISOString()
+  };
+}
+
+export function searchJobs(params: { keywords?: string[]; min_salary?: number; skills_min?: number }): any {
+  // Simulating rotation: add 2-3 jobs every few hours
+  const hours = Math.floor((Date.now() - startTime) / 3600000);
+  const rotationCount = Math.floor(hours / 3) * 2;
+  
+  let results = JOB_POOL.filter(j => {
+    const keywordMatch = !params.keywords || params.keywords.some(k => j.title.toLowerCase().includes(k.toLowerCase()) || j.keywords.includes(k.toLowerCase()));
+    const salaryMatch = !params.min_salary || j.salary_min >= params.min_salary;
+    const skillsMatch = !params.skills_min || j.skills_score >= params.skills_min;
+    return keywordMatch && salaryMatch && skillsMatch;
+  });
+
+  return {
+    results: results.slice(0, 20),
+    total: results.length,
     checked_at: new Date().toISOString()
   };
 }
