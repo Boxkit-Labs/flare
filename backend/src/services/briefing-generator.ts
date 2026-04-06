@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { getUserById, getChecksSince, getWatchersByUserId, createBriefing } from '../db/queries.js';
+import { getUserById, getChecksSince, getWatchersByUserId, createBriefing, getFindingById, getSpendingStats } from '../db/queries.js';
 import { notificationService, NotificationService } from './notification.js';
 import { CheckExecutor } from './check-executor.js';
 
@@ -110,9 +110,45 @@ export class BriefingGenerator {
        totalCost += summary.spent;
     }
 
-    // 7. Generate summary text
-    const activeWatchersRan = watcherSummaries.filter(s => s.checks_run > 0).length;
-    const generatedSummary = `Overnight, ${activeWatchersRan} of your watchers ran ${totalChecks} checks costing $${totalCost.toFixed(2)} total. We found ${totalFindings} new matches.`;
+    // 7. Generate Enhanced Summary Text
+    let findingsSection = "⚡ FINDINGS\n";
+    if (totalFindings === 0) {
+      findingsSection += "No new findings overnight.\n";
+    } else {
+      for (const fId of findingsIds) {
+        const f = await getFindingById(fId);
+        if (!f) continue;
+        const vStatus = f.verified ? "Verified ✓" : "Single Check";
+        const cStatus = f.collaboration_result ? " | Cross-checked ✓" : "";
+        // Cost: 0.008 (standard) + 0.008 (verify) + 0.008 (collab)
+        let cost = f.cost_usdc || 0.008;
+        let checkCount = 1;
+        if (f.verified) { cost += 0.008; checkCount++; }
+        if (f.collaboration_result) { cost += 0.008; checkCount++; }
+
+        findingsSection += `• ${f.watcher_name || 'Watcher'}: ${f.headline} (Confidence: ${f.confidence_score}%)\n`;
+        findingsSection += `  ${vStatus}${cStatus} | Cost: $${cost.toFixed(3)} (${checkCount} checks)\n`;
+      }
+    }
+
+    let noChangeSection = "\n📊 NO CHANGE\n";
+    const noChangeWatchers = watcherSummaries.filter(s => s.findings_count === 0 && s.checks_run > 0);
+    for (const s of noChangeWatchers) {
+      noChangeSection += `• ${s.type.toUpperCase()}: ${s.watcher_name} - ${s.latest_data_summary}\n`;
+    }
+
+    // Overnight Summary & Projection
+    const totalSpent = totalCost;
+    const estSavings = totalFindings * 45.0; // Placeholder ROI: $45 per finding
+    const ghostScore = Math.min(100, Math.round((totalFindings * 15) + (totalChecks * 0.5) + 50));
+    
+    // Wallet Projection
+    const walletRes = await getSpendingStats(userId);
+    const balance = (user as any).balance_usdc || 5.0; // Mock or fetch if possible
+    const dailyRate = Math.max(0.01, walletRes.spent_today || (totalSpent / 1));
+    const daysLeft = Math.round(balance / dailyRate);
+
+    const generatedSummary = `${findingsSection}${noChangeSection}\n💸 OVERNIGHT SUMMARY\nCost: $${totalSpent.toFixed(3)} across ${totalChecks} checks\nEstimated savings: $${estSavings}\nGhost Score: ${ghostScore}/100\n\n💰 Wallet lasts ~${daysLeft} more days at current rate.`;
 
     // 8. Create DB Record
     const today = now.toISOString().split('T')[0];
@@ -181,6 +217,18 @@ export class BriefingGenerator {
                const jobCount = Array.isArray(data.jobs) ? data.jobs.length : 0;
                return jobCount === 0 ? "0 new listings" : `${jobCount} new matches`;
                
+            case 'stock':
+                if (data && data.price) {
+                   return `${data.symbol || 'Stock'}: $${data.price} (${data.change > 0 ? '+' : ''}${data.change}%)`;
+                }
+                return "Latest price stable.";
+                
+            case 'realestate':
+                return data.address ? `Active listing: ${data.address.substring(0, 15)}...` : "Market monitored.";
+
+            case 'sports':
+                return data.event ? `${data.event}: $${data.price}` : "Event seats monitored.";
+
             default:
                return "Data collected successfully.";
          }

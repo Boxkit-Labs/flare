@@ -16,6 +16,7 @@ import 'package:flare_app/features/settings/presentation/screens/settings_screen
 import 'package:flare_app/features/watchers/presentation/screens/watcher_templates_screen.dart';
 import 'package:flare_app/features/wallet/presentation/screens/payment_stream_screen.dart';
 import 'package:flare_app/features/home/presentation/screens/shell_screen.dart';
+import 'package:flare_app/features/wallet/presentation/screens/stellar_proof_screen.dart';
 
 class AppRouter {
   AppRouter._();
@@ -117,6 +118,23 @@ class AppRouter {
             child: const PaymentStreamScreen(),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
+            },
+          ),
+        ),
+        GoRoute(
+          path: '/wallet/proof',
+          name: 'stellarProof',
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const StellarProofScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOut)),
+                child: child,
+              );
             },
           ),
         ),

@@ -88,20 +88,43 @@ async function seed() {
         );
 
         db.prepare(`
-            INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(randomUUID(), DEMO_USER_ID, watcher1Id, checkId, cost, 'FlightService', txHash, checkTime.toISOString());
+            INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(randomUUID(), DEMO_USER_ID, watcher1Id, checkId, cost, 'FlightService', txHash, 'check', checkTime.toISOString());
 
         if (isFinding) {
             const findingId = randomUUID();
+            const verifyHash = generateStellarHash();
+            const collabHash = generateStellarHash();
+            
             db.prepare(`
-                INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, cost_usdc, stellar_tx_hash, found_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, cost_usdc, stellar_tx_hash, verified, verification_tx_hash, collaboration_result, confidence_score, confidence_tier, found_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(
                 findingId, watcher1Id, checkId, DEMO_USER_ID, 'flight',
-                'Price drop for Tokyo!', `Price found at $${prices[i]} which is below your $800 threshold.`,
-                JSON.stringify({ price: prices[i] }), 0.0, txHash, checkTime.toISOString()
+                'Tokyo Flight: $789 ✈️', `Price found at $789 which is significantly below your $800 threshold.`,
+                JSON.stringify({ price: 789, previous_price: 810 }), 0.024, txHash, 
+                1, verifyHash, 
+                JSON.stringify({ 
+                    triggered_service: 'news', 
+                    safe: true, 
+                    result_summary: 'No travel advisories found for Tokyo.', 
+                    tx_hash: collabHash 
+                }),
+                96, 'Very High',
+                checkTime.toISOString()
             );
+
+            // Add the verification and collaboration transactions to the audit log
+            db.prepare(`
+                INSERT INTO transactions (tx_id, user_id, watcher_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(randomUUID(), DEMO_USER_ID, watcher1Id, 0.008, 'FlightService/Verify', verifyHash, 'verification', checkTime.toISOString());
+
+            db.prepare(`
+                INSERT INTO transactions (tx_id, user_id, watcher_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(randomUUID(), DEMO_USER_ID, watcher1Id, 0.008, 'NewsService/Collab', collabHash, 'collaboration', checkTime.toISOString());
             totalFindings++;
         }
 
@@ -145,19 +168,28 @@ async function seed() {
         );
 
         db.prepare(`
-            INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(randomUUID(), DEMO_USER_ID, watcher2Id, checkId, cost, 'CryptoService', txHash, checkTime.toISOString());
+            INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(randomUUID(), DEMO_USER_ID, watcher2Id, checkId, cost, 'CryptoService', txHash, 'check', checkTime.toISOString());
 
         if (isFinding) {
+            const verifyHash = generateStellarHash();
             db.prepare(`
-                INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, cost_usdc, stellar_tx_hash, found_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, cost_usdc, stellar_tx_hash, verified, verification_tx_hash, confidence_score, confidence_tier, found_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(
                 randomUUID(), watcher2Id, checkId, DEMO_USER_ID, 'crypto',
-                'ETH Volatility Alert', 'ETH price spiked 12% in the last hour.',
-                JSON.stringify({ eth: 3500 }), 0.0, txHash, checkTime.toISOString()
+                'ETH Volatility Alert 🪙', 'ETH price spiked 12% in the last hour.',
+                JSON.stringify({ price: 3500, previous_price: 3120 }), 0.016, txHash, 
+                1, verifyHash, 
+                88, 'High',
+                checkTime.toISOString()
             );
+
+            db.prepare(`
+                INSERT INTO transactions (tx_id, user_id, watcher_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(randomUUID(), DEMO_USER_ID, watcher2Id, 0.008, 'CryptoService/Verify', verifyHash, 'verification', checkTime.toISOString());
         }
 
         totalSpent += cost;
@@ -198,18 +230,18 @@ async function seed() {
         );
 
         db.prepare(`
-            INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(randomUUID(), DEMO_USER_ID, watcher3Id, checkId, cost, 'NewsService', txHash, checkTime.toISOString());
+            INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(randomUUID(), DEMO_USER_ID, watcher3Id, checkId, cost, 'NewsService', txHash, 'check', checkTime.toISOString());
 
         if (isFinding) {
             db.prepare(`
-                INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, cost_usdc, stellar_tx_hash, found_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, cost_usdc, stellar_tx_hash, verified, confidence_score, confidence_tier, found_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(
                 randomUUID(), watcher3Id, checkId, DEMO_USER_ID, 'news',
-                'New Stellar Ecosystem News', 'Found articles regarding Soroban adoption and SDK updates.',
-                JSON.stringify({ count: 3 }), 0.0, txHash, checkTime.toISOString()
+                'Stellar Soroban SDK Update 📰', 'Major release 2.0 announced with massive performance gains.',
+                JSON.stringify({ articles: 3 }), 0.008, txHash, 0, 72, 'Moderate', checkTime.toISOString()
             );
         }
 
@@ -251,18 +283,18 @@ async function seed() {
         );
 
         db.prepare(`
-            INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(randomUUID(), DEMO_USER_ID, watcher4Id, checkId, cost, 'JobService', txHash, checkTime.toISOString());
+            INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(randomUUID(), DEMO_USER_ID, watcher4Id, checkId, cost, 'JobService', txHash, 'check', checkTime.toISOString());
 
         if (isFinding) {
             db.prepare(`
-                INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, cost_usdc, stellar_tx_hash, found_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, cost_usdc, stellar_tx_hash, verified, confidence_score, confidence_tier, found_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(
                 randomUUID(), watcher4Id, checkId, DEMO_USER_ID, 'job',
-                '2 Remote Flutter Jobs Found', 'New openings at Boxkit and Flare-Tech.',
-                JSON.stringify({ count: 2 }), 0.0, txHash, checkTime.toISOString()
+                'Flutter Developer @ Boxkit 💼', 'High-priority remote role matching your profile.',
+                JSON.stringify({ jobs: 2 }), 0.008, txHash, 0, 68, 'Moderate', checkTime.toISOString()
             );
         }
 

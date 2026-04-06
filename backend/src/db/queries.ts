@@ -259,10 +259,13 @@ export const getTodayBriefing = async (userId: string) => {
 
 export const createTransaction = async (tx: any) => {
   const query = `
-    INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, tx_type)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
   `;
-  return pool.query(query, [tx.txId, tx.userId, tx.watcherId, tx.checkId || null, tx.amountUsdc, tx.serviceName, tx.stellarTxHash]);
+  return pool.query(query, [
+    tx.txId, tx.userId, tx.watcherId, tx.checkId || null, 
+    tx.amountUsdc, tx.serviceName, tx.stellarTxHash, tx.txType || 'check'
+  ]);
 };
 
 export const getTransactionsByUserId = async (userId: string, limit: number = 20, offset: number = 0) => {

@@ -8,8 +8,9 @@ import 'package:flare_app/injection_container.dart';
 import 'package:flare_app/services/notification_service.dart';
 
 class NotificationsPage extends StatefulWidget {
+  final VoidCallback onNext;
   final VoidCallback onBack;
-  const NotificationsPage({super.key, required this.onBack});
+  const NotificationsPage({super.key, required this.onNext, required this.onBack});
 
   @override
   State<NotificationsPage> createState() => _NotificationsPageState();
@@ -29,7 +30,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final apiService = context.read<OnboardingBloc>().apiService;
     if (apiService.userId != null) {
       final timeStr = "${_briefingTime.hour.toString().padLeft(2, '0')}:${_briefingTime.minute.toString().padLeft(2, '0')}";
-      context.read<OnboardingBloc>().add(CompleteOnboarding(apiService.userId!, timeStr));
+      context.read<OnboardingBloc>().add(UpdateBriefingTime(apiService.userId!, timeStr));
+      widget.onNext();
     }
   }
 

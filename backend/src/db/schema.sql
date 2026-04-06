@@ -105,6 +105,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   amount_usdc REAL NOT NULL,
   service_name TEXT NOT NULL,
   stellar_tx_hash TEXT NOT NULL,
+  tx_type TEXT DEFAULT 'check' CHECK (tx_type IN ('check', 'verification', 'collaboration')),
   timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 

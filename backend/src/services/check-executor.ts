@@ -160,7 +160,8 @@ export class CheckExecutor {
         checkId: checkId,
         amountUsdc: costUsdc,
         serviceName: watcher.type,
-        stellarTxHash: txHash
+        stellarTxHash: txHash,
+        txType: 'check'
       });
 
       // 11. Run Finding Detector
@@ -186,6 +187,18 @@ export class CheckExecutor {
             });
             
             const vFinding = await detector.detectFinding(watcher, vResult.data, responseData, vResult.costPaid / 10000000, vResult.txHash);
+            
+            // Log verification transaction
+            await createTransaction({
+              txId: uuidv4(),
+              userId: watcher.user_id,
+              watcherId: watcherId,
+              checkId: checkId, // Associate with main check
+              amountUsdc: vResult.costPaid / 10000000,
+              serviceName: `${watcher.type} (verify)`,
+              stellarTxHash: vResult.txHash,
+              txType: 'verification'
+            });
             
             if (vFinding) {
               console.log(`[Re-Verify] CONFIRMED! Finding is still valid. ✓`);
@@ -345,6 +358,18 @@ export class CheckExecutor {
         body: triggeredService === 'news' ? { q: query } : { search: query },
         payerSecretKey,
         rpcUrl: SOROBAN_RPC_URL
+      });
+
+      // Log collaboration transaction
+      await createTransaction({
+        txId: uuidv4(),
+        userId: watcher.user_id,
+        watcherId: watcher.watcher_id,
+        checkId: finding.checkId || finding.check_id,
+        amountUsdc: result.costPaid / 10000000,
+        serviceName: triggeredService,
+        stellarTxHash: result.txHash,
+        txType: 'collaboration'
       });
 
       let summary = '';

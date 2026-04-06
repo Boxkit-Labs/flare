@@ -133,9 +133,26 @@ class _FindingDetailScreenState extends State<FindingDetailScreen> {
         children: [
           Icon(isVerified ? Icons.verified_rounded : Icons.bolt_rounded, size: 14, color: color),
           const SizedBox(width: 8),
-          Text(
-            isVerified ? 'Verified with 2 independent checks' : 'Single check — not yet re-verified',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: color),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isVerified ? '✅ Verified with 2 independent checks' : '⚡ Single check — not yet re-verified',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: color),
+                ),
+                if (isVerified && finding.verificationTxHash != null) ...[
+                  const SizedBox(height: 4),
+                  InkWell(
+                    onTap: () => launchUrl(Uri.parse('https://stellar.expert/explorer/testnet/tx/${finding.verificationTxHash}')),
+                    child: Text(
+                      'Verify 2nd Check: ${finding.verificationTxHash!.substring(0, 16)}...',
+                      style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.8), decoration: TextDecoration.underline, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),

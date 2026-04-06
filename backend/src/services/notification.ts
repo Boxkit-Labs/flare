@@ -89,16 +89,23 @@ export class NotificationService {
         }
 
         const bodyDetail = finding.detail ? finding.detail.substring(0, 100) : 'New finding match.';
+        const vText = finding.verified ? "Verified across 2 checks." : "Single check match.";
 
         const message = {
             notification: {
-                title: finding.headline,
-                body: bodyDetail.length === 100 ? bodyDetail + '...' : bodyDetail
+                title: `${watcher.name} — ${finding.confidence_score}% Confidence`,
+                body: `${finding.headline}. ${vText}`
+            },
+            android: {
+                notification: {
+                    channel_id: "ghost_findings",
+                    priority: "high" as const
+                }
             },
             data: {
                 type: "finding",
                 finding_id: finding.finding_id,
-                watcher_id: finding.watcher_id,
+                watcher_id: finding.watcherId || finding.watcher_id,
                 deep_link: `/findings/${finding.finding_id}`
             }
         };
@@ -111,8 +118,13 @@ export class NotificationService {
     async sendBriefingNotification(userId: string, briefing: any): Promise<void> {
         const message = {
             notification: {
-                title: "☀️ Your Morning Briefing",
-                body: `${briefing.total_findings} findings overnight. Cost: $${briefing.total_cost_usdc.toFixed(2)}`
+                title: `☀️ Morning Briefing — ${briefing.total_findings} findings`,
+                body: `Saved est. $${(briefing.total_findings * 45).toFixed(0)}. Cost: $${briefing.total_cost_usdc.toFixed(3)}. Score: ${Math.round(50 + (briefing.total_findings * 10))}`
+            },
+            android: {
+                notification: {
+                    channel_id: "ghost_briefings"
+                }
             },
             data: {
                 type: "briefing",
@@ -127,8 +139,13 @@ export class NotificationService {
     async sendBudgetWarning(userId: string, watcher: WatcherRow, percentUsed: number): Promise<void> {
         const message = {
             notification: {
-                title: `Budget Warning: ${watcher.name}`,
-                body: `${percentUsed}% of $${watcher.weekly_budget_usdc} weekly budget used`
+                title: `Budget Alert: ${watcher.name}`,
+                body: `${percentUsed}% of $${watcher.weekly_budget_usdc} weekly budget used. 2 days at current rate.`
+            },
+            android: {
+                notification: {
+                    channel_id: "ghost_budget"
+                }
             },
             data: {
                 type: "budget_warning",
@@ -162,6 +179,11 @@ export class NotificationService {
                 title: "Wallet Running Low",
                 body: `Balance: $${balance} USDC. Your watchers may pause soon.`
             },
+            android: {
+                notification: {
+                    channel_id: "ghost_budget"
+                }
+            },
             data: {
                 type: "low_balance",
                 deep_link: "/wallet"
@@ -169,6 +191,26 @@ export class NotificationService {
         };
         await this.sendPayload(userId, message);
         console.log(`Low Balance Notification sent to user ${userId}`);
+    }
+
+    async sendWeeklySummary(userId: string, stats: any): Promise<void> {
+        const message = {
+            notification: {
+                title: "👻 Weekly Ghost Report",
+                body: `Score: ${stats.score}. Saved: $${stats.saved}. Cost: $${stats.cost}. ${stats.txCount} Stellar transactions.`
+            },
+            android: {
+                notification: {
+                    channel_id: "ghost_weekly"
+                }
+            },
+            data: {
+                type: "weekly_summary",
+                deep_link: "/wallet"
+            }
+        };
+        await this.sendPayload(userId, message);
+        console.log(`Weekly Summary Notification sent to user ${userId}`);
     }
 }
 

@@ -449,6 +449,7 @@ class TransactionModel {
   final double amountUsdc;
   final String serviceName;
   final String stellarTxHash;
+  final String txType; // 'check', 'verification', 'collaboration'
   final String timestamp;
   final String? watcherName;
   final bool? findingDetected;
@@ -461,6 +462,7 @@ class TransactionModel {
     required this.amountUsdc,
     required this.serviceName,
     required this.stellarTxHash,
+    this.txType = 'check',
     required this.timestamp,
     this.watcherName,
     this.findingDetected,
@@ -482,6 +484,7 @@ class TransactionModel {
       amountUsdc: parseDouble(json['amount_usdc'], 0),
       serviceName: json['service_name'] ?? '',
       stellarTxHash: json['stellar_tx_hash'] ?? '',
+      txType: json['tx_type'] ?? 'check',
       timestamp: json['timestamp'] ?? '',
       watcherName: json['watcher_name'],
       findingDetected:

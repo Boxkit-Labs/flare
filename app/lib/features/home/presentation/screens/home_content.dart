@@ -179,9 +179,68 @@ class HomeContent extends StatelessWidget {
           // ─── AGENT ACTIVITY INDICATOR ───
           const SizedBox(height: 60),
           const Center(child: AgentActivityIndicator()),
+
+          // ─── SAVINGS FOOTER ───
+          const SizedBox(height: 48),
+          _buildSavingsFooter(context),
           const SizedBox(height: 100), // Extra space for the floating-effect navbar
         ],
       ),
+    );
+  }
+
+  Widget _buildSavingsFooter(BuildContext context) {
+    return BlocBuilder<WalletBloc, WalletState>(
+      builder: (context, state) {
+        double totalSaved = 0;
+        double totalCost = 0;
+        if (state is WalletLoaded) {
+          totalCost = state.stats?.totalSpentAllTime ?? 0;
+          // Simplified ROI: $45 per finding (same as briefing)
+          final findingsState = context.read<FindingsBloc>().state;
+          if (findingsState is FindingsLoaded) {
+            totalSaved = findingsState.findings.length * 45.0;
+          }
+        }
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF10B981).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48, height: 48,
+                decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
+                child: const Icon(Icons.show_chart_rounded, color: Colors.white),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('TOTAL SAVINGS (ROI)', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF065F46), letterSpacing: 1.0)),
+                    const SizedBox(height: 4),
+                    Text('\$${totalSaved.toStringAsFixed(0)}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF065F46))),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text('GHOST COST', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF065F46), letterSpacing: 1.0)),
+                  const SizedBox(height: 4),
+                  Text('\$${totalCost.toStringAsFixed(3)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF065F46))),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -288,12 +347,15 @@ class HomeContent extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${briefing.totalFindings} findings · \$${briefing.totalCostUsdc.toStringAsFixed(2)} overnight',
-                            style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
+                            briefing.generatedSummary ?? '',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w500, height: 1.4),
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Icon(Icons.arrow_forward_ios_rounded, color: Colors.white.withValues(alpha: 0.5), size: 16),
                   ],
                 ),

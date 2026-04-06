@@ -48,6 +48,13 @@ class _ConfidenceGaugeState extends State<ConfidenceGauge> with SingleTickerProv
     return Colors.redAccent;
   }
 
+  String _getTierLabel(int score) {
+    if (score >= 90) return 'Very High Confidence';
+    if (score >= 75) return 'High Confidence';
+    if (score >= 50) return 'Moderate';
+    return 'Low Confidence';
+  }
+
   @override
   Widget build(BuildContext context) {
     final color = _getScoreColor(widget.score);
@@ -99,7 +106,7 @@ class _ConfidenceGaugeState extends State<ConfidenceGauge> with SingleTickerProv
                             ),
                           ),
                           Text(
-                            widget.tier.toUpperCase(),
+                            _getTierLabel(widget.score).toUpperCase(),
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w900,
