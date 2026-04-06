@@ -1,0 +1,19 @@
+﻿src/routes/watchers.ts(241,20): error TS2339: Property 'changes' does not exist on type 'QueryResult<any>'.
+src/services/briefing-generator.ts(55,20): error TS2352: Conversion of type 'Promise<any[]>' to type 'any[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Promise<any[]>' is missing the following properties from type 'any[]': length, pop, push, concat, and 28 more.
+src/services/briefing-generator.ts(62,22): error TS2352: Conversion of type 'Promise<any[]>' to type 'any[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Promise<any[]>' is missing the following properties from type 'any[]': length, pop, push, concat, and 28 more.
+src/services/briefing-generator.ts(196,24): error TS2352: Conversion of type 'Promise<any[]>' to type 'any[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Promise<any[]>' is missing the following properties from type 'any[]': length, pop, push, concat, and 28 more.
+src/services/check-executor.ts(28,9): error TS2740: Type 'Promise<any>' is missing the following properties from type 'WatcherRow': watcher_id, user_id, name, type, and 7 more.
+src/services/check-executor.ts(92,40): error TS2339: Property 'length' does not exist on type 'Promise<any[]>'.
+src/services/check-executor.ts(92,53): error TS7053: Element implicitly has an 'any' type because expression of type '0' can't be used to index type 'Promise<any[]>'.
+  Property '0' does not exist on type 'Promise<any[]>'.
+src/services/scheduler.ts(24,27): error TS2488: Type 'Promise<any[]>' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/services/scheduler.ts(29,52): error TS2339: Property 'length' does not exist on type 'Promise<any[]>'.
+src/services/scheduler.ts(72,28): error TS2352: Conversion of type 'Promise<any>' to type 'WatcherRow' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Promise<any>' is missing the following properties from type 'WatcherRow': watcher_id, user_id, name, type, and 7 more.
+src/services/scheduler.ts(173,60): error TS2345: Argument of type 'Promise<any>' is not assignable to parameter of type 'WatcherRow'.
+  Type 'Promise<any>' is missing the following properties from type 'WatcherRow': watcher_id, user_id, name, type, and 7 more.
+src/services/scheduler.ts(195,27): error TS2352: Conversion of type 'Promise<any[]>' to type 'any[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Promise<any[]>' is missing the following properties from type 'any[]': length, pop, push, concat, and 28 more.

@@ -3,6 +3,7 @@ import { getActiveWatchers, getWatcherById, updateWatcher, getAllUsers, getToday
 import { WatcherRow } from '../types.js';
 import { CheckExecutor } from './check-executor.js';
 import { briefingGenerator } from './briefing-generator.js';
+import pool from '../db/database.js';
 
 export class SchedulerService {
   private activeJobs: Map<string, NodeJS.Timeout>;
@@ -18,11 +19,11 @@ export class SchedulerService {
   async start(): Promise<void> {
     if (this.isRunning) return;
 
-    // Load active watchers from SQLite
-    const watchers = getActiveWatchers();
+    // Load active watchers from PG
+    const watchers = await getActiveWatchers();
     
     for (const watcher of watchers) {
-      this.scheduleWatcher(watcher);
+      this.scheduleWatcher(watcher as WatcherRow);
     }
     
     this.isRunning = true;
@@ -69,7 +70,7 @@ export class SchedulerService {
     if (!this.isRunning) return; // Scheduler was stopped mid-execution
 
     // 3. Reload watcher state to determine recurring continuation
-    const updatedWatcher = getWatcherById(watcherId) as WatcherRow;
+    const updatedWatcher = await getWatcherById(watcherId) as WatcherRow;
 
     if (!updatedWatcher) {
       console.log(`Watcher ${watcherId} no longer exists. Unscheduled.`);
@@ -130,21 +131,16 @@ export class SchedulerService {
 
   private initWeeklyBudgetCron(): void {
     // Runs at midnight (00:00) UTC every day
-    cron.schedule('0 0 * * *', () => {
+    cron.schedule('0 0 * * *', async () => {
        console.log('Running daily midnight maintenance job for Watchers...');
        
        const limitTimestamp = new Date();
        limitTimestamp.setDate(limitTimestamp.getDate() - 7); // Exactly 7 days ago
-
-       // Note: To be more efficient we could select just needed ones in SQL,
-       // but since we need to examine them here, we do it in memory.
-       // Easiest is to select active and paused_budget watchers to reset.
-       const db = require('../db/database.js').default;
        
        try {
-         // SQLite transaction for safety
-         const runReset = db.transaction(() => {
-            const updatableWatchers = db.prepare(`SELECT * FROM watchers WHERE status IN ('active', 'paused_budget')`).all();
+         const runReset = async () => {
+            const res = await pool.query(`SELECT * FROM watchers WHERE status IN ('active', 'paused_budget')`);
+            const updatableWatchers = res.rows;
             
             for (const row of updatableWatchers) {
                 if (!row.week_start) continue;
@@ -164,19 +160,18 @@ export class SchedulerService {
                        updates.status = 'active';
                    }
 
-                   // Note: this uses the centralized updateWatcher function to handle JSON correctly
-                   updateWatcher(row.watcher_id, updates);
+                   await updateWatcher(row.watcher_id, updates);
                    
                    // If we just reactivated it, kick off scheduling
                    if (row.status === 'paused_budget' && this.isRunning) {
-                      const reactivated = getWatcherById(row.watcher_id);
-                      if(reactivated) this.scheduleWatcher(reactivated);
+                      const reactivated = await getWatcherById(row.watcher_id);
+                      if(reactivated) this.scheduleWatcher(reactivated as WatcherRow);
                    }
                 }
             }
-         });
+         };
          
-         runReset();
+         await runReset();
          console.log('Daily maintenance complete.');
 
        } catch (err) {
@@ -192,7 +187,7 @@ export class SchedulerService {
     cron.schedule('*/15 * * * *', async () => {
         console.log('Running 15-minute check for Morning Briefings...');
         try {
-            const users = getAllUsers() as any[];
+            const users = await getAllUsers() as any[];
             for (const user of users) {
                 if (!user.briefing_time || !user.timezone) continue;
 
@@ -206,7 +201,7 @@ export class SchedulerService {
 
                 // e.g. "07:00"
                 if (userTimeStr === user.briefing_time) {
-                    const existingBriefing = getTodayBriefing(user.user_id);
+                    const existingBriefing = await getTodayBriefing(user.user_id);
                     if (!existingBriefing) {
                         console.log(`Generating morning briefing for user: ${user.user_id}`);
                         await briefingGenerator.generateBriefing(user.user_id);
@@ -219,3 +214,4 @@ export class SchedulerService {
     });
   }
 }
+

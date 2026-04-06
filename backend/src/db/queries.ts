@@ -1,300 +1,313 @@
-import db from './database.js';
+import pool from './database.js';
 
 /**
  * Data Access Layer for Flare Backend.
  * All functions use parameterized queries and handle JSON stringification/parsing.
+ * Updated for PostgreSQL (async/await, $ placeholders).
  */
 
 // --- USER QUERIES ---
 
-export const createUser = (user: any) => {
-  const stmt = db.prepare(`
+export const createUser = async (user: any) => {
+  const query = `
     INSERT INTO users (user_id, device_id, stellar_public_key, stellar_secret_key_encrypted, fcm_token, briefing_time, timezone, dnd_start, dnd_end, global_daily_cap)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  return stmt.run(
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+  `;
+  return pool.query(query, [
     user.userId, user.deviceId, user.stellarPublicKey, user.stellarSecretKeyEncrypted,
     user.fcmToken, user.briefingTime, user.timezone, user.dndStart, user.dndEnd, user.globalDailyCap
-  );
+  ]);
 };
 
-export const getUserById = (id: string) => {
-  return db.prepare('SELECT * FROM users WHERE user_id = ?').get(id);
+export const getUserById = async (id: string) => {
+  const res = await pool.query('SELECT * FROM users WHERE user_id = $1', [id]);
+  return res.rows[0];
 };
 
-export const getAllUsers = () => {
-  return db.prepare('SELECT * FROM users').all();
+export const getAllUsers = async () => {
+  const res = await pool.query('SELECT * FROM users');
+  return res.rows;
 };
 
-export const getUserByDeviceId = (deviceId: string) => {
-  return db.prepare('SELECT * FROM users WHERE device_id = ?').get(deviceId);
+export const getUserByDeviceId = async (deviceId: string) => {
+  const res = await pool.query('SELECT * FROM users WHERE device_id = $1', [deviceId]);
+  return res.rows[0];
 };
 
-export const updateUserFcmToken = (userId: string, token: string) => {
-  return db.prepare('UPDATE users SET fcm_token = ? WHERE user_id = ?').run(token, userId);
+export const updateUserFcmToken = async (userId: string, token: string) => {
+  return pool.query('UPDATE users SET fcm_token = $1 WHERE user_id = $2', [token, userId]);
 };
 
-export const updateUser = (id: string, fields: any) => {
+export const updateUser = async (id: string, fields: any) => {
   const keys = Object.keys(fields);
-  const assignments = keys.map(key => `${key} = ?`).join(', ');
+  if (keys.length === 0) return;
+  const assignments = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
   const values = keys.map(key => fields[key]);
-  const stmt = db.prepare(`UPDATE users SET ${assignments} WHERE user_id = ?`);
-  return stmt.run(...values, id);
+  const query = `UPDATE users SET ${assignments} WHERE user_id = $${keys.length + 1}`;
+  return pool.query(query, [...values, id]);
 };
 
 // --- WATCHER QUERIES ---
 
-export const createWatcher = (watcher: any) => {
-  const stmt = db.prepare(`
+export const createWatcher = async (watcher: any) => {
+  const query = `
     INSERT INTO watchers (watcher_id, user_id, name, type, parameters, alert_conditions, check_interval_minutes, weekly_budget_usdc, priority, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  return stmt.run(
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+  `;
+  return pool.query(query, [
     watcher.watcherId, watcher.userId, watcher.name, watcher.type,
     JSON.stringify(watcher.parameters), JSON.stringify(watcher.alertConditions),
     watcher.checkIntervalMinutes, watcher.weeklyBudgetUsdc, watcher.priority, watcher.status
-  );
+  ]);
 };
 
-export const getWatcherById = (id: string) => {
-  const row: any = db.prepare('SELECT * FROM watchers WHERE watcher_id = ?').get(id);
+export const getWatcherById = async (id: string) => {
+  const res = await pool.query('SELECT * FROM watchers WHERE watcher_id = $1', [id]);
+  const row = res.rows[0];
   if (row) {
-    row.parameters = JSON.parse(row.parameters);
-    row.alert_conditions = JSON.parse(row.alert_conditions);
+    if (typeof row.parameters === 'string') row.parameters = JSON.parse(row.parameters);
+    if (typeof row.alert_conditions === 'string') row.alert_conditions = JSON.parse(row.alert_conditions);
   }
   return row;
 };
 
-export const getWatchersByUserId = (userId: string) => {
-  const rows: any[] = db.prepare('SELECT * FROM watchers WHERE user_id = ?').all(userId);
-  return rows.map(row => ({
+export const getWatchersByUserId = async (userId: string) => {
+  const res = await pool.query('SELECT * FROM watchers WHERE user_id = $1', [userId]);
+  return res.rows.map(row => ({
     ...row,
-    parameters: JSON.parse(row.parameters),
-    alert_conditions: JSON.parse(row.alert_conditions)
+    parameters: typeof row.parameters === 'string' ? JSON.parse(row.parameters) : row.parameters,
+    alert_conditions: typeof row.alert_conditions === 'string' ? JSON.parse(row.alert_conditions) : row.alert_conditions
   }));
 };
 
-export const updateWatcher = (id: string, fields: any) => {
+export const updateWatcher = async (id: string, fields: any) => {
   const keys = Object.keys(fields);
-  const assignments = keys.map(key => `${key} = ?`).join(', ');
+  if (keys.length === 0) return;
+  const assignments = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
   const values = keys.map(key => {
     if (key === 'parameters' || key === 'alert_conditions') return JSON.stringify(fields[key]);
     return fields[key];
   });
-  const stmt = db.prepare(`UPDATE watchers SET ${assignments}, updated_at = datetime('now') WHERE watcher_id = ?`);
-  return stmt.run(...values, id);
+  const query = `UPDATE watchers SET ${assignments}, updated_at = NOW() WHERE watcher_id = $${keys.length + 1}`;
+  return pool.query(query, [...values, id]);
 };
 
-export const deleteWatcher = (id: string) => {
-  return db.prepare('DELETE FROM watchers WHERE watcher_id = ?').run(id);
+export const deleteWatcher = async (id: string) => {
+  return pool.query('DELETE FROM watchers WHERE watcher_id = $1', [id]);
 };
 
-export const getActiveWatchers = () => {
-    const rows: any[] = db.prepare("SELECT * FROM watchers WHERE status = 'active'").all();
-    return rows.map(row => ({
+export const getActiveWatchers = async () => {
+    const res = await pool.query("SELECT * FROM watchers WHERE status = 'active'");
+    return res.rows.map(row => ({
       ...row,
-      parameters: JSON.parse(row.parameters),
-      alert_conditions: JSON.parse(row.alert_conditions)
+      parameters: typeof row.parameters === 'string' ? JSON.parse(row.parameters) : row.parameters,
+      alert_conditions: typeof row.alert_conditions === 'string' ? JSON.parse(row.alert_conditions) : row.alert_conditions
     }));
 };
 
 // --- CHECK QUERIES ---
 
-export const createCheck = (check: any) => {
-  const stmt = db.prepare(`
+export const createCheck = async (check: any) => {
+  const query = `
     INSERT INTO checks (check_id, watcher_id, user_id, service_name, request_payload, response_data, cost_usdc, stellar_tx_hash, finding_detected, finding_id, agent_reasoning)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  return stmt.run(
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+  `;
+  return pool.query(query, [
     check.checkId, check.watcherId, check.userId, check.serviceName,
     JSON.stringify(check.requestPayload), JSON.stringify(check.responseData),
-    check.costUsdc, check.stellarTxHash, check.findingDetected ? 1 : 0, check.findingId, check.agentReasoning
-  );
+    check.costUsdc, check.stellarTxHash, check.findingDetected, check.findingId, check.agentReasoning
+  ]);
 };
 
-export const getChecksByWatcherId = (watcherId: string, limit: number = 10, offset: number = 0) => {
-  const rows: any[] = db.prepare('SELECT * FROM checks WHERE watcher_id = ? ORDER BY checked_at DESC LIMIT ? OFFSET ?').all(watcherId, limit, offset);
-  return rows.map(row => ({
+export const getChecksByWatcherId = async (watcherId: string, limit: number = 10, offset: number = 0) => {
+  const res = await pool.query('SELECT * FROM checks WHERE watcher_id = $1 ORDER BY checked_at DESC LIMIT $2 OFFSET $3', [watcherId, limit, offset]);
+  return res.rows.map(row => ({
     ...row,
-    request_payload: JSON.parse(row.request_payload),
-    response_data: JSON.parse(row.response_data)
+    request_payload: typeof row.request_payload === 'string' ? JSON.parse(row.request_payload) : row.request_payload,
+    response_data: typeof row.response_data === 'string' ? JSON.parse(row.response_data) : row.response_data
   }));
 };
 
-export const getChecksSince = (userId: string, since: string) => {
-  const rows: any[] = db.prepare('SELECT * FROM checks WHERE user_id = ? AND checked_at > ?').all(userId, since);
-  return rows.map(row => ({
+export const getChecksSince = async (userId: string, since: string) => {
+  const res = await pool.query('SELECT * FROM checks WHERE user_id = $1 AND checked_at > $2', [userId, since]);
+  return res.rows.map(row => ({
     ...row,
-    request_payload: JSON.parse(row.request_payload),
-    response_data: JSON.parse(row.response_data)
+    request_payload: typeof row.request_payload === 'string' ? JSON.parse(row.request_payload) : row.request_payload,
+    response_data: typeof row.response_data === 'string' ? JSON.parse(row.response_data) : row.response_data
   }));
 };
 
 // --- FINDING QUERIES ---
 
-export const createFinding = (finding: any) => {
-  const stmt = db.prepare(`
+export const createFinding = async (finding: any) => {
+  const query = `
     INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, action_url, cost_usdc, stellar_tx_hash)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  return stmt.run(
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+  `;
+  return pool.query(query, [
     finding.findingId, finding.watcherId, finding.checkId, finding.userId,
     finding.type, finding.headline, finding.detail, JSON.stringify(finding.data),
     finding.actionUrl, finding.costUsdc, finding.stellarTxHash
-  );
+  ]);
 };
 
-export const getFindingById = (id: string) => {
-  const row: any = db.prepare('SELECT * FROM findings WHERE finding_id = ?').get(id);
-  if (row) row.data = JSON.parse(row.data);
+export const getFindingById = async (id: string) => {
+  const res = await pool.query('SELECT * FROM findings WHERE finding_id = $1', [id]);
+  const row = res.rows[0];
+  if (row && typeof row.data === 'string') row.data = JSON.parse(row.data);
   return row;
 };
 
-export const getFindingsByUserId = (userId: string, limit: number = 50, offset: number = 0) => {
-  const rows: any[] = db.prepare(`
+export const getFindingsByUserId = async (userId: string, limit: number = 50, offset: number = 0) => {
+  const res = await pool.query(`
     SELECT f.*, w.name as watcher_name, w.type as watcher_type 
     FROM findings f
     JOIN watchers w ON f.watcher_id = w.watcher_id
-    WHERE f.user_id = ? 
-    ORDER BY f.found_at DESC LIMIT ? OFFSET ?
-  `).all(userId, limit, offset);
-  return rows.map(row => ({ ...row, data: JSON.parse(row.data) }));
+    WHERE f.user_id = $1 
+    ORDER BY f.found_at DESC LIMIT $2 OFFSET $3
+  `, [userId, limit, offset]);
+  return res.rows.map(row => ({ ...row, data: typeof row.data === 'string' ? JSON.parse(row.data) : row.data }));
 };
 
-export const getFindingDetail = (id: string) => {
-  const row: any = db.prepare(`
+export const getFindingDetail = async (id: string) => {
+  const res = await pool.query(`
     SELECT f.*, w.name as watcher_name, w.type as watcher_type, c.checked_at as check_time, c.response_data as check_data
     FROM findings f
     JOIN watchers w ON f.watcher_id = w.watcher_id
     JOIN checks c ON f.check_id = c.check_id
-    WHERE f.finding_id = ?
-  `).get(id);
+    WHERE f.finding_id = $1
+  `, [id]);
+  const row = res.rows[0];
   if (row) {
-    row.data = JSON.parse(row.data);
-    row.check_data = JSON.parse(row.check_data);
+    if (typeof row.data === 'string') row.data = JSON.parse(row.data);
+    if (typeof row.check_data === 'string') row.check_data = JSON.parse(row.check_data);
   }
   return row;
 };
 
-export const getFindingsByWatcherId = (watcherId: string) => {
-  const rows: any[] = db.prepare('SELECT * FROM findings WHERE watcher_id = ? ORDER BY found_at DESC').all(watcherId);
-  return rows.map(row => ({ ...row, data: JSON.parse(row.data) }));
+export const getFindingsByWatcherId = async (watcherId: string) => {
+  const res = await pool.query('SELECT * FROM findings WHERE watcher_id = $1 ORDER BY found_at DESC', [watcherId]);
+  return res.rows.map(row => ({ ...row, data: typeof row.data === 'string' ? JSON.parse(row.data) : row.data }));
 };
 
-export const markFindingRead = (id: string) => {
-  return db.prepare('UPDATE findings SET read = 1 WHERE finding_id = ?').run(id);
+export const markFindingRead = async (id: string) => {
+  return pool.query('UPDATE findings SET read = true WHERE finding_id = $1', [id]);
 };
 
-export const markFindingNotified = (id: string) => {
-  return db.prepare('UPDATE findings SET notified = 1 WHERE finding_id = ?').run(id);
+export const markFindingNotified = async (id: string) => {
+  return pool.query('UPDATE findings SET notified = true WHERE finding_id = $1', [id]);
 };
 
 // --- BRIEFING QUERIES ---
 
-export const createBriefing = (briefing: any) => {
-  const stmt = db.prepare(`
+export const createBriefing = async (briefing: any) => {
+  const query = `
     INSERT INTO briefings (briefing_id, user_id, date, period_start, period_end, total_checks, total_findings, total_cost_usdc, findings_json, watcher_summaries_json, generated_summary)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  return stmt.run(
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+  `;
+  return pool.query(query, [
     briefing.briefingId, briefing.userId, briefing.date, briefing.periodStart, briefing.periodEnd,
     briefing.totalChecks, briefing.totalFindings, briefing.totalCostUsdc,
     JSON.stringify(briefing.findingsJson), JSON.stringify(briefing.watcherSummariesJson), briefing.generatedSummary
-  );
+  ]);
 };
 
-export const getBriefingsByUserId = (userId: string, limit: number = 10) => {
-  const rows: any[] = db.prepare('SELECT * FROM briefings WHERE user_id = ? ORDER BY generated_at DESC LIMIT ?').all(userId, limit);
-  return rows.map(row => ({
+export const getBriefingsByUserId = async (userId: string, limit: number = 10) => {
+  const res = await pool.query('SELECT * FROM briefings WHERE user_id = $1 ORDER BY generated_at DESC LIMIT $2', [userId, limit]);
+  return res.rows.map(row => ({
     ...row,
-    findings_json: JSON.parse(row.findings_json),
-    watcher_summaries_json: JSON.parse(row.watcher_summaries_json)
+    findings_json: typeof row.findings_json === 'string' ? JSON.parse(row.findings_json) : row.findings_json,
+    watcher_summaries_json: typeof row.watcher_summaries_json === 'string' ? JSON.parse(row.watcher_summaries_json) : row.watcher_summaries_json
   }));
 };
 
-export const getTodayBriefing = (userId: string) => {
+export const getTodayBriefing = async (userId: string) => {
     const today = new Date().toISOString().split('T')[0];
-    const row: any = db.prepare('SELECT * FROM briefings WHERE user_id = ? AND date = ?').get(userId, today);
+    const res = await pool.query('SELECT * FROM briefings WHERE user_id = $1 AND date = $2', [userId, today]);
+    const row = res.rows[0];
     if (row) {
-      row.findings_json = JSON.parse(row.findings_json);
-      row.watcher_summaries_json = JSON.parse(row.watcher_summaries_json);
+      if (typeof row.findings_json === 'string') row.findings_json = JSON.parse(row.findings_json);
+      if (typeof row.watcher_summaries_json === 'string') row.watcher_summaries_json = JSON.parse(row.watcher_summaries_json);
     }
     return row;
 };
 
 // --- TRANSACTION QUERIES ---
 
-export const createTransaction = (tx: any) => {
-  const stmt = db.prepare(`
+export const createTransaction = async (tx: any) => {
+  const query = `
     INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `);
-  return stmt.run(tx.txId, tx.userId, tx.watcherId, tx.checkId || null, tx.amountUsdc, tx.serviceName, tx.stellarTxHash);
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+  `;
+  return pool.query(query, [tx.txId, tx.userId, tx.watcherId, tx.checkId || null, tx.amountUsdc, tx.serviceName, tx.stellarTxHash]);
 };
 
-export const getTransactionsByUserId = (userId: string, limit: number = 20, offset: number = 0) => {
-  return db.prepare(`
+export const getTransactionsByUserId = async (userId: string, limit: number = 20, offset: number = 0) => {
+  const res = await pool.query(`
     SELECT t.*, w.name as watcher_name, c.finding_detected
     FROM transactions t
     LEFT JOIN watchers w ON t.watcher_id = w.watcher_id
     LEFT JOIN checks c ON t.check_id = c.check_id
-    WHERE t.user_id = ? 
-    ORDER BY t.timestamp DESC LIMIT ? OFFSET ?
-  `).all(userId, limit, offset);
+    WHERE t.user_id = $1 
+    ORDER BY t.timestamp DESC LIMIT $2 OFFSET $3
+  `, [userId, limit, offset]);
+  return res.rows;
 };
 
-export const getTransactionsByWatcherId = (watcherId: string, limit: number = 20, offset: number = 0) => {
-  return db.prepare(`
+export const getTransactionsByWatcherId = async (watcherId: string, limit: number = 20, offset: number = 0) => {
+  const res = await pool.query(`
     SELECT t.*, c.finding_detected
     FROM transactions t
     LEFT JOIN checks c ON t.check_id = c.check_id
-    WHERE t.watcher_id = ? 
-    ORDER BY t.timestamp DESC LIMIT ? OFFSET ?
-  `).all(watcherId, limit, offset);
+    WHERE t.watcher_id = $1 
+    ORDER BY t.timestamp DESC LIMIT $2 OFFSET $3
+  `, [watcherId, limit, offset]);
+  return res.rows;
 };
 
-export const getSpendingStats = (userId: string) => {
-    return db.prepare(`
+export const getSpendingStats = async (userId: string) => {
+    const res = await pool.query(`
       SELECT 
-        SUM(amount_usdc) as total_spent,
-        SUM(CASE WHEN timestamp >= date('now','start of day') THEN amount_usdc ELSE 0 END) as spent_today,
-        SUM(CASE WHEN timestamp >= date('now','-7 days') THEN amount_usdc ELSE 0 END) as spent_this_week
+        COALESCE(SUM(amount_usdc), 0) as total_spent,
+        COALESCE(SUM(CASE WHEN timestamp >= date_trunc('day', NOW()) THEN amount_usdc ELSE 0 END), 0) as spent_today,
+        COALESCE(SUM(CASE WHEN timestamp >= NOW() - INTERVAL '7 days' THEN amount_usdc ELSE 0 END), 0) as spent_this_week
       FROM transactions 
-      WHERE user_id = ?
-    `).get(userId);
+      WHERE user_id = $1
+    `, [userId]);
+    return res.rows[0];
 };
 
-export const getWalletAnalytics = (userId: string) => {
-  const dailySpending = db.prepare(`
+export const getWalletAnalytics = async (userId: string) => {
+  const dailySpendingRes = await pool.query(`
     SELECT date(timestamp) as date, SUM(amount_usdc) as amount
     FROM transactions
-    WHERE user_id = ? AND timestamp >= date('now', '-7 days')
+    WHERE user_id = $1 AND timestamp >= NOW() - INTERVAL '7 days'
     GROUP BY date(timestamp)
     ORDER BY date ASC
-  `).all(userId);
+  `, [userId]);
 
-  const perWatcherSpending = db.prepare(`
+  const perWatcherSpendingRes = await pool.query(`
     SELECT w.watcher_id, w.name as watcher_name, SUM(t.amount_usdc) as amount
     FROM transactions t
     JOIN watchers w ON t.watcher_id = w.watcher_id
-    WHERE t.user_id = ? AND t.timestamp >= date('now', 'weekday 0', '-7 days') -- Start of current week (Sunday)
+    WHERE t.user_id = $1 AND t.timestamp >= date_trunc('week', NOW())
     GROUP BY w.watcher_id
-  `).all(userId);
+  `, [userId]);
 
-  const totals = db.prepare(`
+  const totalsRes = await pool.query(`
     SELECT 
-      (SELECT COUNT(*) FROM checks WHERE user_id = ? AND checked_at >= date('now','start of day')) as total_checks_today,
-      (SELECT COUNT(*) FROM findings WHERE user_id = ? AND found_at >= date('now','start of day')) as total_findings_today,
-      (SELECT COUNT(*) FROM findings WHERE user_id = ?) as total_findings_all_time,
-      (SELECT SUM(amount_usdc) FROM transactions WHERE user_id = ?) as total_spent_all_time
-  `).get(userId, userId, userId, userId) as any;
+      (SELECT COUNT(*) FROM checks WHERE user_id = $1 AND checked_at >= date_trunc('day', NOW())) as total_checks_today,
+      (SELECT COUNT(*) FROM findings WHERE user_id = $2 AND found_at >= date_trunc('day', NOW())) as total_findings_today,
+      (SELECT COUNT(*) FROM findings WHERE user_id = $3) as total_findings_all_time,
+      (SELECT COALESCE(SUM(amount_usdc), 0) FROM transactions WHERE user_id = $4) as total_spent_all_time
+  `, [userId, userId, userId, userId]);
 
   return {
-    daily_spending: dailySpending,
-    per_watcher_spending: perWatcherSpending,
-    total_checks_today: totals.total_checks_today,
-    total_findings_today: totals.total_findings_today,
-    total_findings_all_time: totals.total_findings_all_time,
-    total_spent_all_time: totals.total_spent_all_time
+    daily_spending: dailySpendingRes.rows,
+    per_watcher_spending: perWatcherSpendingRes.rows,
+    total_checks_today: Number(totalsRes.rows[0].total_checks_today),
+    total_findings_today: Number(totalsRes.rows[0].total_findings_today),
+    total_findings_all_time: Number(totalsRes.rows[0].total_findings_all_time),
+    total_spent_all_time: totalsRes.rows[0].total_spent_all_time
   };
 };
