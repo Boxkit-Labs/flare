@@ -142,11 +142,15 @@ export const getChecksSince = async (userId: string, since: string) => {
 
 export const createFinding = async (finding: any) => {
   const query = `
-    INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, action_url, cost_usdc, stellar_tx_hash)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    INSERT INTO findings (
+      finding_id, watcher_id, check_id, user_id, type, 
+      headline, detail, data, action_url, cost_usdc, 
+      stellar_tx_hash, verified, verification_tx_hash, verification_check_id,
+      collaboration_result, confidence_score, confidence_tier
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
   `;
   
-  // Use logical coalescing to avoid empty string or undefined results
   const fId = (finding.finding_id && finding.finding_id.length > 0) ? finding.finding_id : (finding.findingId || uuidv4());
   
   return pool.query(query, [
@@ -160,7 +164,13 @@ export const createFinding = async (finding: any) => {
     JSON.stringify(finding.data),
     finding.action_url || finding.actionUrl || null, 
     finding.cost_usdc || finding.costUsdc || 0, 
-    finding.stellar_tx_hash || finding.stellarTxHash || null
+    finding.stellar_tx_hash || finding.stellarTxHash || null,
+    finding.verified || false,
+    finding.verification_tx_hash || null,
+    finding.verification_check_id || null,
+    finding.collaboration_result ? JSON.stringify(finding.collaboration_result) : null,
+    finding.confidence_score || 0,
+    finding.confidence_tier || null
   ]);
 };
 

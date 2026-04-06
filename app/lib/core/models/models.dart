@@ -241,6 +241,9 @@ class FindingModel {
   final bool verified;
   final String? verificationTxHash;
   final String? verificationCheckId;
+  final Map<String, dynamic>? collaborationResult;
+  final int confidenceScore;
+  final String? confidenceTier;
 
   const FindingModel({
     required this.findingId,
@@ -262,6 +265,9 @@ class FindingModel {
     this.verified = false,
     this.verificationTxHash,
     this.verificationCheckId,
+    this.collaborationResult,
+    this.confidenceScore = 0,
+    this.confidenceTier,
   });
 
   factory FindingModel.fromJson(Map<String, dynamic> json) {
@@ -292,6 +298,13 @@ class FindingModel {
       verified: json['verified'] == 1 || json['verified'] == true,
       verificationTxHash: json['verification_tx_hash'],
       verificationCheckId: json['verification_check_id'],
+      collaborationResult: json['collaboration_result'] is Map 
+          ? Map<String, dynamic>.from(json['collaboration_result']) 
+          : (json['collaboration_result'] is String 
+              ? null // JSON parsing usually handled outside or would need jsonDecode
+              : null),
+      confidenceScore: json['confidence_score'] ?? 0,
+      confidenceTier: json['confidence_tier'],
     );
   }
 }

@@ -13,6 +13,7 @@ import 'package:flare_app/features/findings/presentation/screens/finding_detail_
 import 'package:flare_app/features/briefing/presentation/screens/briefing_screen.dart';
 import 'package:flare_app/features/wallet/presentation/screens/wallet_screen.dart';
 import 'package:flare_app/features/settings/presentation/screens/settings_screen.dart';
+import 'package:flare_app/features/watchers/presentation/screens/watcher_templates_screen.dart';
 import 'package:flare_app/features/home/presentation/screens/shell_screen.dart';
 
 class AppRouter {
@@ -63,7 +64,7 @@ class AppRouter {
           name: 'createWatcher',
           pageBuilder: (context, state) => CustomTransitionPage(
             key: state.pageKey,
-            child: const CreateWatcherScreen(),
+            child: CreateWatcherScreen(templateData: state.extra as Map<String, dynamic>?),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return SlideTransition(
                 position: Tween<Offset>(
@@ -74,6 +75,11 @@ class AppRouter {
               );
             },
           ),
+        ),
+        GoRoute(
+          path: '/watchers/templates',
+          name: 'watcherTemplates',
+          builder: (context, state) => const WatcherTemplatesScreen(),
         ),
         GoRoute(
           path: '/watchers/:id',

@@ -280,7 +280,12 @@ class HomeContent extends StatelessWidget {
                 child: WatcherCard(watcher: watchers[index]),
               );
             }
-            return _buildAddButton(context);
+            return Row(
+              children: [
+                _buildAddButton(context),
+                _buildTemplatesButton(context),
+              ],
+            );
           },
         ),
       );
@@ -401,6 +406,45 @@ class HomeContent extends StatelessWidget {
             const Text(
               'Add Watcher',
               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTemplatesButton(BuildContext context) {
+    return InkWell(
+      onTap: () => context.push('/watchers/templates'),
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        width: 140,
+        margin: const EdgeInsets.only(right: 16),
+        decoration: BoxDecoration(
+          color: AppTheme.primary.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.1)),
+          boxShadow: [
+             BoxShadow(color: AppTheme.primary.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.auto_awesome_rounded, size: 24, color: AppTheme.primary),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Try Templates',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.primary),
             ),
           ],
         ),

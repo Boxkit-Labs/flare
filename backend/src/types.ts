@@ -31,4 +31,7 @@ export interface Finding {
   verified?: boolean;
   verification_tx_hash?: string;
   verification_check_id?: string;
+  collaboration_result?: any;
+  confidence_score?: number;
+  confidence_tier?: string;
 }

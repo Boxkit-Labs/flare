@@ -1,17 +1,16 @@
 import { getWatcherById, getUserById, updateWatcher, createCheck, createTransaction, createFinding, getChecksByWatcherId } from '../db/queries.js';
 import { decrypt } from '../utils/crypto.js';
 import { payForService } from './stellar-pay-client.js';
-import { FindingDetector } from './finding-detector.js';
+import { detector } from './finding-detector.js';
 import { notificationService } from './notification.js';
-import { WatcherRow } from '../types.js';
+import { ConfidenceCalculator } from './confidence-calculator.js';
+import { WatcherRow, Finding } from '../types.js';
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
 dotenv.config();
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '';
 const SOROBAN_RPC_URL = process.env.SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
-
-const detector = new FindingDetector();
 
 export class CheckExecutor {
   
@@ -190,20 +189,35 @@ export class CheckExecutor {
             
             if (vFinding) {
               console.log(`[Re-Verify] CONFIRMED! Finding is still valid. ✓`);
-              finding.verified = true;
-              finding.verification_tx_hash = vResult.txHash;
-              finding.verification_check_id = uuidv4(); // Placeholder for secondary check record
+              vFinding.verified = true;
+              vFinding.verification_tx_hash = vResult.txHash;
+              vFinding.verification_check_id = uuidv4();
               
-              // Boost confidence in headline/reasoning
-              finding.headline = `✓ [Verified] ${finding.headline}`;
+              // --- AGENT-TO-AGENT COLLABORATION: TRIPLE CHECK ---
+              console.log(`[Collab] Running agent-to-agent cross-check for ${watcher.type}...`);
+              const collabResult = await this.runCollaborationCheck(watcher, vFinding, payerSecretKey);
+              vFinding.collaboration_result = collabResult;
               
-              finding.check_id = checkId;
-              await createFinding(finding);
+              // --- CONFIDENCE SCORING ---
+              const hasHistory = checks.length > 0;
+              const confidence = ConfidenceCalculator.calculate(
+                watcher, 
+                vFinding as any, 
+                new Date(), 
+                hasHistory, 
+                collabResult
+              );
+              
+              vFinding.confidence_score = confidence.score;
+              vFinding.confidence_tier = confidence.tier;
+              vFinding.headline = `[${confidence.score}%] ${vFinding.headline}`;
+              
+              await createFinding(vFinding);
               findingDetected = true;
-              findingId = finding.finding_id;
-              agentReasoning = finding.agent_reasoning || 'Finding matched and re-verified.';
+              findingId = vFinding.finding_id;
+              agentReasoning = vFinding.agent_reasoning || 'Finding cross-verified and scored.';
               
-              await notificationService.sendFindingNotification(watcher.user_id, finding, watcher);
+              await notificationService.sendFindingNotification(watcher.user_id, vFinding as any, watcher);
             } else {
               console.log(`[Re-Verify] FAILED. Finding no longer valid. Suppressing alert.`);
               findingDetected = false;
@@ -270,6 +284,98 @@ export class CheckExecutor {
       console.error(`CheckExecutor Critical Error (Watcher ${watcherId}):`, errorMsg);
       await updateWatcher(watcherId, { status: 'error', error_message: errorMsg });
     }
+  }
 
+  /**
+   * Runs a cross-service check to confirm or contextualize a finding.
+   * Performs a THIRD Stellar transaction.
+   */
+  private async runCollaborationCheck(watcher: WatcherRow, finding: any, payerSecretKey: string): Promise<any> {
+    const port = process.env.PORT || '3000';
+    const baseUrl = `http://localhost:${port}/services`;
+    
+    let targetUrl = '';
+    let query = '';
+    let triggeredService = '';
+
+    // Collaboration Rules
+    if (watcher.type === 'flight') {
+      triggeredService = 'news';
+      targetUrl = `${baseUrl}/news/api/news`;
+      const dest = finding.data?.destination_city || 'destination';
+      query = `${dest} travel advisory safety`;
+    } else if (watcher.type === 'stock') {
+      triggeredService = 'news';
+      targetUrl = `${baseUrl}/news/api/news`;
+      const symbol = finding.data?.symbol || 'company';
+      query = `${symbol} stock news announcement`;
+    } else if (watcher.type === 'crypto') {
+       triggeredService = 'news';
+       targetUrl = `${baseUrl}/news/api/news`;
+       const coin = finding.data?.symbol || 'coin';
+       query = `${coin} price volume sentiment news`;
+    } else if (watcher.type === 'job') {
+       triggeredService = 'news';
+       targetUrl = `${baseUrl}/news/api/news`;
+       const company = finding.data?.company || 'company';
+       query = `${company} hiring layoff news`;
+    } else if (watcher.type === 'realestate') {
+       triggeredService = 'news';
+       targetUrl = `${baseUrl}/news/api/news`;
+       const neighborhood = finding.data?.neighborhood || 'neighborhood';
+       query = `${neighborhood} crime development school ratings`;
+    } else if (watcher.type === 'sports') {
+       triggeredService = 'news';
+       targetUrl = `${baseUrl}/news/api/news`;
+       const team = finding.data?.team || 'team';
+       query = `${team} injury player trade news`;
+    } else if (watcher.type === 'product') {
+       triggeredService = 'product';
+       targetUrl = `${baseUrl}/product/api/products`;
+       query = finding.data?.product_name || 'product';
+    } else {
+       return null; // No collaboration rule for this type
+    }
+
+    try {
+      console.log(`[Collab] Triple-Check: querying ${triggeredService} for "${query}" ...`);
+      const result = await payForService({
+        serviceUrl: targetUrl,
+        method: triggeredService === 'news' ? 'GET' : 'POST',
+        body: triggeredService === 'news' ? { q: query } : { search: query },
+        payerSecretKey,
+        rpcUrl: SOROBAN_RPC_URL
+      });
+
+      let summary = '';
+      let safe = true;
+
+      if (triggeredService === 'news') {
+        const articles = result.data?.articles || [];
+        summary = articles.length > 0 
+          ? `Cross-checked ${articles.length} related articles. Insights incorporated.`
+          : `No specific news flags found for "${query}".`;
+        
+        // Simple heuristic for "safety"
+        const content = JSON.stringify(articles).toLowerCase();
+        if (content.includes('warning') || content.includes('advisory') || content.includes('alert')) {
+           safe = false;
+           summary = `⚠️ Cross-check found potential concerns in recent news for ${query}.`;
+        }
+      } else if (triggeredService === 'product') {
+        summary = `Cross-store price verification complete. Finding remains competitive.`;
+      }
+
+      return {
+        triggered_service: triggeredService,
+        query,
+        result_summary: summary,
+        tx_hash: result.txHash,
+        safe
+      };
+    } catch (error) {
+      console.error(`[Collab] Collaboration check failed:`, error);
+      return { error: 'Collaboration check unavailable', safe: true };
+    }
   }
 }

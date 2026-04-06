@@ -214,3 +214,5 @@ export class FindingDetector {
     return null;
   }
 }
+
+export const detector = new FindingDetector();

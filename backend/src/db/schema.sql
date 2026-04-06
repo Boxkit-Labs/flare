@@ -73,6 +73,9 @@ CREATE TABLE IF NOT EXISTS findings (
   verified BOOLEAN DEFAULT false,
   verification_tx_hash TEXT,
   verification_check_id TEXT,
+  collaboration_result TEXT, -- JSON
+  confidence_score INTEGER DEFAULT 0,
+  confidence_tier TEXT,
   found_at TIMESTAMPTZ DEFAULT NOW()
 );
 

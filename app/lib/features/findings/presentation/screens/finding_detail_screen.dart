@@ -61,7 +61,9 @@ class _FindingDetailScreenState extends State<FindingDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeroSection(finding),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
+                  _buildConfidenceMeter(finding),
+                  const SizedBox(height: 24),
                   _buildDetailCard(finding),
                   if (finding.actionUrl != null) ...[
                     const SizedBox(height: 24),
@@ -69,6 +71,10 @@ class _FindingDetailScreenState extends State<FindingDetailScreen> {
                   ],
                   const SizedBox(height: 32),
                   _buildPaymentReceipt(finding),
+                  if (finding.collaborationResult != null) ...[
+                    const SizedBox(height: 32),
+                    _buildCollaborationCard(finding),
+                  ],
                   const SizedBox(height: 32),
                   _buildAgentReasoning(finding),
                   const SizedBox(height: 32),
@@ -133,14 +139,14 @@ class _FindingDetailScreenState extends State<FindingDetailScreen> {
                    borderRadius: BorderRadius.circular(8),
                    border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
                  ),
-                 child: const Row(
+                 child: Row(
                    mainAxisSize: MainAxisSize.min,
                    children: [
-                     Icon(Icons.verified_rounded, size: 10, color: Colors.blue),
-                     SizedBox(width: 4),
+                     const Icon(Icons.verified_rounded, size: 10, color: Colors.blue),
+                     const SizedBox(width: 4),
                      Text(
-                       'Verified with 2 checks',
-                       style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.blue),
+                       '${finding.confidenceScore}% Confidence - ${finding.confidenceTier ?? "High"}',
+                       style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.blue),
                      ),
                    ],
                  ),
@@ -406,7 +412,100 @@ class _FindingDetailScreenState extends State<FindingDetailScreen> {
     );
   }
 
+  Widget _buildConfidenceMeter(FindingModel finding) {
+    final color = finding.confidenceScore >= 80 ? Colors.green : (finding.confidenceScore >= 60 ? Colors.orange : Colors.red);
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: color.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Intelligence Confidence', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+              Text('${finding.confidenceScore}%', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: color)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LinearProgressIndicator(
+            value: finding.confidenceScore / 100,
+            backgroundColor: color.withValues(alpha: 0.1),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+            minHeight: 8,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Analysis based on freshness, history, and cross-verification.',
+            style: TextStyle(fontSize: 11, color: color.withValues(alpha: 0.7), fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCollaborationCard(FindingModel finding) {
+    final res = finding.collaborationResult!;
+    final isSafe = res['safe'] ?? true;
+    final color = isSafe ? Colors.green : Colors.red;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+                child: Icon(isSafe ? Icons.handshake_rounded : Icons.warning_amber_rounded, size: 20, color: color),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Cross-Agent Verification', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                  Text('${res['triggered_service']?.toUpperCase()} AGENT COLLABORATION', style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Text(
+            res['result_summary'] ?? 'No results from secondary agent.',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary, height: 1.5),
+          ),
+          const SizedBox(height: 20),
+          TextButton.icon(
+            onPressed: () => launchUrl(Uri.parse('https://stellar.expert/explorer/testnet/tx/${res['tx_hash']}')),
+            icon: const Icon(Icons.open_in_new_rounded, size: 14),
+            label: const Text('View Collaboration TX (3rd Check)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, fontFamily: 'Courier')),
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.primary,
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(0, 30),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _getEmoji(String type) {
+    // ... rest of the helper methods
     switch (type.toLowerCase()) {
       case 'flights':
       case 'flight':
