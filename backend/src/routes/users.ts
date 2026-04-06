@@ -30,7 +30,7 @@ router.post('/register', async (req: Request, res: Response) => {
         if (!device_id) return res.status(400).json({ error: 'device_id is required' });
 
         // Check for existing user
-        const existingUser = queries.getUserByDeviceId(device_id) as User | undefined;
+        const existingUser = await queries.getUserByDeviceId(device_id) as User | undefined;
         if (existingUser) {
             const { stellar_secret_key_encrypted, ...userProfile } = existingUser;
             return res.json(userProfile);
@@ -48,7 +48,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
         // Save to DB
         const userId = crypto.randomUUID();
-        queries.createUser({
+        await queries.createUser({
             userId,
             deviceId: device_id,
             stellarPublicKey: publicKey,
@@ -79,7 +79,7 @@ router.post('/register', async (req: Request, res: Response) => {
 router.post('/:id/fund', async (req: Request, res: Response) => {
     try {
         const userId = req.params.id as string;
-        const user = queries.getUserById(userId) as User | undefined;
+        const user = await queries.getUserById(userId) as User | undefined;
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         const publicKey = user.stellar_public_key;
@@ -142,7 +142,7 @@ router.post('/:id/fund', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
     try {
         const userId = req.params.id as string;
-        const user = queries.getUserById(userId) as User | undefined;
+        const user = await queries.getUserById(userId) as User | undefined;
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         const { stellar_secret_key_encrypted, ...profile } = user;
@@ -159,11 +159,11 @@ router.get('/:id', async (req: Request, res: Response) => {
 /**
  * POST /api/users/:id/fcm-token
  */
-router.post('/:id/fcm-token', (req: Request, res: Response) => {
+router.post('/:id/fcm-token', async (req: Request, res: Response) => {
     try {
         const { fcm_token } = req.body;
         const userId = req.params.id as string;
-        queries.updateUserFcmToken(userId, fcm_token);
+        await queries.updateUserFcmToken(userId, fcm_token);
         res.json({ success: true });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -173,11 +173,11 @@ router.post('/:id/fcm-token', (req: Request, res: Response) => {
 /**
  * PUT /api/users/:id/settings
  */
-router.put('/:id/settings', (req: Request, res: Response) => {
+router.put('/:id/settings', async (req: Request, res: Response) => {
     try {
         const userId = req.params.id as string;
-        queries.updateUser(userId, req.body); 
-        const updated = queries.getUserById(userId) as User | undefined;
+        await queries.updateUser(userId, req.body); 
+        const updated = await queries.getUserById(userId) as User | undefined;
         if (!updated) return res.status(404).json({ error: 'User not found' });
         const { stellar_secret_key_encrypted, ...profile } = updated;
         res.json(profile);

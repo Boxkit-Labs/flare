@@ -12,7 +12,7 @@ const server = new Horizon.Server('https://horizon-testnet.stellar.org');
 router.get('/:user_id', async (req: Request, res: Response) => {
     try {
         const userId = req.params.user_id as string;
-        const user = queries.getUserById(userId) as any;
+        const user = await queries.getUserById(userId) as any;
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         const publicKey = user.stellar_public_key;
@@ -27,7 +27,7 @@ router.get('/:user_id', async (req: Request, res: Response) => {
             // Account might not be funded yet
         }
 
-        const stats = queries.getSpendingStats(userId);
+        const stats = await queries.getSpendingStats(userId);
 
         res.json({
             public_key: publicKey,
@@ -45,13 +45,13 @@ router.get('/:user_id', async (req: Request, res: Response) => {
  * GET /api/wallet/:user_id/stats
  * Full analytics dashboard data.
  */
-router.get('/:user_id/stats', (req: Request, res: Response) => {
+router.get('/:user_id/stats', async (req: Request, res: Response) => {
     try {
         const userId = req.params.user_id as string;
-        const user = queries.getUserById(userId) as any;
+        const user = await queries.getUserById(userId) as any;
         if (!user) return res.status(404).json({ error: 'User not found' });
 
-        const analytics = queries.getWalletAnalytics(userId);
+        const analytics = await queries.getWalletAnalytics(userId);
         
         // Subscription Savings Comparison
         const traditionalEstimate = 58.00; // Hardcoded per requirements

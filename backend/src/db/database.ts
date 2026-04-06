@@ -1,5 +1,5 @@
-import Database from 'better-sqlite3';
-import { readFileSync, existsSync } from 'node:fs';
+import pg from 'pg';
+import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
@@ -9,37 +9,33 @@ const __dirname = dirname(__filename);
 
 dotenv.config();
 
-/**
- * Singleton database instance initialization.
- * Configures the database path from .env (DB_PATH) or defaults to 'flare.sqlite'.
- */
-const dbPath = process.env.DB_PATH || 'flare.sqlite';
-const db = new Database(dbPath, { verbose: console.log });
+const { Pool } = pg;
 
-// Enable foreign key constraints
-db.pragma('foreign_keys = ON');
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
-/**
- * Checks for the existence of core tables. 
- * If 'users' doesn't exist, it assumes the database is uninitialized and runs schema.sql.
- */
-const initializeDatabase = () => {
-    const tableCheck = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").get();
+export const initializeDatabase = async () => {
+    try {
+        const tableCheck = await pool.query(`
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'users'
+            );
+        `);
 
-    if (!tableCheck) {
-        console.log('Initializing database schema for the first time...');
-        try {
+        if (!tableCheck.rows[0].exists) {
+            console.log('Initializing database schema for the first time...');
             const schemaPath = join(__dirname, 'schema.sql');
             const schema = readFileSync(schemaPath, 'utf8');
-            db.exec(schema);
+            await pool.query(schema);
             console.log('Database schema initialized successfully.');
-        } catch (error) {
-            console.error('Failed to initialize database schema:', error);
-            process.exit(1);
         }
+    } catch (error) {
+        console.error('Failed to initialize database schema:', error);
+        process.exit(1);
     }
 };
 
-initializeDatabase();
-
-export default db;
+export default pool;

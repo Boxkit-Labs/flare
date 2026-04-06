@@ -7,7 +7,7 @@ const router = Router();
  * GET /api/transactions
  * Filtering by user_id or watcher_id.
  */
-router.get('/', (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
     try {
         const userId = req.query.user_id as string;
         const watcherId = req.query.watcher_id as string;
@@ -15,12 +15,12 @@ router.get('/', (req: Request, res: Response) => {
         const offset = parseInt(req.query.offset as string) || 0;
 
         if (watcherId) {
-            const txs = queries.getTransactionsByWatcherId(watcherId, limit, offset);
+            const txs = await queries.getTransactionsByWatcherId(watcherId, limit, offset);
             return res.json(txs);
         }
 
         if (userId) {
-            const txs = queries.getTransactionsByUserId(userId, limit, offset);
+            const txs = await queries.getTransactionsByUserId(userId, limit, offset);
             return res.json(txs);
         }
 

@@ -23,7 +23,7 @@ export class BriefingGenerator {
     await this.triggerInitialChecks(userId);
 
     // 1. Load user settings
-    const user = getUserById(userId) as any;
+    const user = await getUserById(userId) as any;
     if (!user) throw new Error(`User ${userId} not found`);
 
     // 2. Determine the briefing period
@@ -52,14 +52,14 @@ export class BriefingGenerator {
     }
 
     // 3. Query all checks for this user since period_start
-    const checks = getChecksSince(userId, periodStart) as any[];
+    const checks = await getChecksSince(userId, periodStart) as any[];
 
     // 4. Separate findings from non-findings
     const checkIds = checks.map(c => c.check_id);
     const findingsIds = checks.filter(c => c.finding_detected === 1).map(c => c.finding_id).filter(id => id);
 
     // Get all user's watchers to seed the summaries (even if 0 checks)
-    const watchers = getWatchersByUserId(userId) as any[];
+    const watchers = await getWatchersByUserId(userId) as any[];
 
     // 5. Group checks by watcher
     const summaryMap = new Map<string, any>();
@@ -132,7 +132,7 @@ export class BriefingGenerator {
         generatedSummary: generatedSummary
     };
 
-    createBriefing(briefingData);
+    await createBriefing(briefingData);
 
     // 9. Fire Notification
     // briefing payload for notificationService expects exact keys or we can map them
@@ -193,7 +193,7 @@ export class BriefingGenerator {
     if (!this.checkExecutor) return;
 
     try {
-      const watchers = getWatchersByUserId(userId) as any[];
+      const watchers = await getWatchersByUserId(userId) as any[];
       // Find active watchers with 0 checks
       const newWatchers = watchers.filter(w => w.status === 'active' && (w.total_checks || 0) === 0);
       

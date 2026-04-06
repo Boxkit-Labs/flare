@@ -71,7 +71,7 @@ router.post('/', async (req: Request, res: Response) => {
         }
 
         // Verify User Exists
-        const user = queries.getUserById(user_id);
+        const user = await queries.getUserById(user_id);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         const watcherId = randomUUID();
@@ -91,15 +91,15 @@ router.post('/', async (req: Request, res: Response) => {
             status: 'active'
         };
 
-        queries.createWatcher(newWatcher);
+        await queries.createWatcher(newWatcher);
 
         // Update timestamps and calculated fields that weren't in the base create query
-        queries.updateWatcher(watcherId, {
+        await queries.updateWatcher(watcherId, {
             week_start: getMostRecentMonday(),
             next_check_at: nextCheck.toISOString()
         });
 
-        const insertedWatcher = queries.getWatcherById(watcherId) as WatcherRow;
+        const insertedWatcher = await queries.getWatcherById(watcherId) as WatcherRow;
         scheduler.addWatcher(insertedWatcher);
         res.status(201).json(insertedWatcher);
     } catch (error: any) {
@@ -111,12 +111,12 @@ router.post('/', async (req: Request, res: Response) => {
  * GET /api/watchers
  * List watchers for a user with computed fields.
  */
-router.get('/', (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
     try {
         const userId = req.query.user_id as string;
         if (!userId) return res.status(400).json({ error: 'user_id query param is required' });
 
-        const watchers = queries.getWatchersByUserId(userId) as WatcherRow[];
+        const watchers = await queries.getWatchersByUserId(userId) as WatcherRow[];
         
         const enhancedWatchers = watchers.map(w => {
             const budgetPercentUsed = w.weekly_budget_usdc > 0 
@@ -135,14 +135,14 @@ router.get('/', (req: Request, res: Response) => {
  * GET /api/watchers/:id
  * Single watcher detail with last 10 checks and last 5 findings.
  */
-router.get('/:id', (req: Request, res: Response) => {
+router.get('/:id', async (req: Request, res: Response) => {
     try {
         const watcherId = req.params.id as string;
-        const watcher = queries.getWatcherById(watcherId) as WatcherRow | undefined;
+        const watcher = await queries.getWatcherById(watcherId) as WatcherRow | undefined;
         if (!watcher) return res.status(404).json({ error: 'Watcher not found' });
 
-        const checks = queries.getChecksByWatcherId(watcherId, 10) as Check[];
-        const findings = (queries.getFindingsByWatcherId(watcherId) as Finding[]).slice(0, 5);
+        const checks = await queries.getChecksByWatcherId(watcherId, 10) as Check[];
+        const findings = (await queries.getFindingsByWatcherId(watcherId) as Finding[]).slice(0, 5);
 
         res.json({
             ...watcher,
@@ -158,10 +158,10 @@ router.get('/:id', (req: Request, res: Response) => {
  * PUT /api/watchers/:id
  * Partial update for a watcher.
  */
-router.put('/:id', (req: Request, res: Response) => {
+router.put('/:id', async (req: Request, res: Response) => {
     try {
         const watcherId = req.params.id as string;
-        const existing = queries.getWatcherById(watcherId) as WatcherRow | undefined;
+        const existing = await queries.getWatcherById(watcherId) as WatcherRow | undefined;
         if (!existing) return res.status(404).json({ error: 'Watcher not found' });
 
         const allowedUpdates = ['name', 'parameters', 'alert_conditions', 'check_interval_minutes', 'weekly_budget_usdc', 'priority'];
@@ -179,8 +179,8 @@ router.put('/:id', (req: Request, res: Response) => {
              updates.next_check_at = new Date(now.getTime() + updates.check_interval_minutes * 60000).toISOString();
         }
 
-        queries.updateWatcher(watcherId, updates);
-        const updatedWatcher = queries.getWatcherById(watcherId) as WatcherRow;
+        await queries.updateWatcher(watcherId, updates);
+        const updatedWatcher = await queries.getWatcherById(watcherId) as WatcherRow;
         if (updates.check_interval_minutes && updates.check_interval_minutes !== existing.check_interval_minutes) {
              scheduler.rescheduleWatcher(updatedWatcher);
         }
@@ -194,10 +194,10 @@ router.put('/:id', (req: Request, res: Response) => {
  * POST /api/watchers/:id/toggle
  * Toggles active/paused_manual state.
  */
-router.post('/:id/toggle', (req: Request, res: Response) => {
+router.post('/:id/toggle', async (req: Request, res: Response) => {
     try {
         const watcherId = req.params.id as string;
-        const watcher = queries.getWatcherById(watcherId) as WatcherRow | undefined;
+        const watcher = await queries.getWatcherById(watcherId) as WatcherRow | undefined;
         if (!watcher) return res.status(404).json({ error: 'Watcher not found' });
 
         let newStatus = '';
@@ -215,8 +215,8 @@ router.post('/:id/toggle', (req: Request, res: Response) => {
         }
 
         updates.status = newStatus;
-        queries.updateWatcher(watcherId, updates);
-        const updatedWatcher = queries.getWatcherById(watcherId) as WatcherRow;
+        await queries.updateWatcher(watcherId, updates);
+        const updatedWatcher = await queries.getWatcherById(watcherId) as WatcherRow;
         
         if (newStatus === 'active') {
             scheduler.addWatcher(updatedWatcher);
@@ -234,11 +234,11 @@ router.post('/:id/toggle', (req: Request, res: Response) => {
  * DELETE /api/watchers/:id
  * Deletes a watcher record.
  */
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response) => {
     try {
         const watcherId = req.params.id as string;
-        const result = queries.deleteWatcher(watcherId);
-        if (result.changes === 0) return res.status(404).json({ error: 'Watcher not found' });
+        const result = await queries.deleteWatcher(watcherId);
+        if (result.rowCount === 0) return res.status(404).json({ error: 'Watcher not found' });
         
         res.json({ success: true });
         scheduler.removeWatcher(watcherId);
@@ -254,7 +254,7 @@ router.delete('/:id', (req: Request, res: Response) => {
 router.post('/:id/check', async (req: Request, res: Response) => {
     try {
         const watcherId = req.params.id as string;
-        const watcher = queries.getWatcherById(watcherId) as WatcherRow | undefined;
+        const watcher = await queries.getWatcherById(watcherId) as WatcherRow | undefined;
         if (!watcher) return res.status(404).json({ error: 'Watcher not found' });
 
         console.log(`Manual check triggered for watcher: ${watcher.name} (${watcherId})`);
@@ -264,7 +264,7 @@ router.post('/:id/check', async (req: Request, res: Response) => {
         // although executeScheduledCheck DOES reschedule if status is active.
         await scheduler.executeScheduledCheck(watcherId, watcher.check_interval_minutes * 60 * 1000);
         
-        const updatedWatcher = queries.getWatcherById(watcherId);
+        const updatedWatcher = await queries.getWatcherById(watcherId);
         res.json({ message: 'Check executed', watcher: updatedWatcher });
     } catch (error: any) {
         console.error('Manual check failed:', error);

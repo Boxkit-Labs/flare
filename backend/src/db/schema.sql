@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
   dnd_start TEXT DEFAULT '23:00',
   dnd_end TEXT DEFAULT '07:00',
   global_daily_cap REAL,
-  created_at TEXT DEFAULT (datetime('now'))
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Watchers table
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS watchers (
   check_interval_minutes INTEGER NOT NULL DEFAULT 360,
   weekly_budget_usdc REAL NOT NULL DEFAULT 0.50,
   spent_this_week_usdc REAL NOT NULL DEFAULT 0.0,
-  week_start TEXT DEFAULT (datetime('now')),
+  week_start TIMESTAMPTZ DEFAULT NOW(),
   priority TEXT DEFAULT 'medium' CHECK (priority IN ('low','medium','high')),
   status TEXT DEFAULT 'active' CHECK (status IN ('active','paused_budget','paused_manual','paused_wallet','error')),
   error_message TEXT,
@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS watchers (
   total_checks INTEGER DEFAULT 0,
   total_findings INTEGER DEFAULT 0,
   total_spent_usdc REAL DEFAULT 0.0,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Checks table
@@ -49,10 +49,10 @@ CREATE TABLE IF NOT EXISTS checks (
   response_data TEXT, -- JSON
   cost_usdc REAL NOT NULL,
   stellar_tx_hash TEXT,
-  finding_detected INTEGER DEFAULT 0,
+  finding_detected BOOLEAN DEFAULT false,
   finding_id TEXT,
   agent_reasoning TEXT,
-  checked_at TEXT DEFAULT (datetime('now'))
+  checked_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Findings table
@@ -68,9 +68,9 @@ CREATE TABLE IF NOT EXISTS findings (
   action_url TEXT,
   cost_usdc REAL NOT NULL,
   stellar_tx_hash TEXT,
-  read INTEGER DEFAULT 0,
-  notified INTEGER DEFAULT 0,
-  found_at TEXT DEFAULT (datetime('now'))
+  read BOOLEAN DEFAULT false,
+  notified BOOLEAN DEFAULT false,
+  found_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Briefings table
@@ -86,8 +86,8 @@ CREATE TABLE IF NOT EXISTS briefings (
   findings_json TEXT, -- JSON array of IDs
   watcher_summaries_json TEXT, -- JSON
   generated_summary TEXT,
-  read INTEGER DEFAULT 0,
-  generated_at TEXT DEFAULT (datetime('now'))
+  read BOOLEAN DEFAULT false,
+  generated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Transactions table
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   amount_usdc REAL NOT NULL,
   service_name TEXT NOT NULL,
   stellar_tx_hash TEXT NOT NULL,
-  timestamp TEXT DEFAULT (datetime('now'))
+  timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Optimization Indexes

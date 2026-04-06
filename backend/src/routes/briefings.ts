@@ -9,13 +9,13 @@ const router = Router();
  * GET /api/briefings
  * List recent briefings for a user.
  */
-router.get('/', (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
     try {
         const userId = req.query.user_id as string;
         const limit = parseInt(req.query.limit as string) || 7;
         if (!userId) return res.status(400).json({ error: 'user_id is required' });
         
-        const briefings = queries.getBriefingsByUserId(userId, limit);
+        const briefings = await queries.getBriefingsByUserId(userId, limit);
         res.json(briefings);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -26,12 +26,12 @@ router.get('/', (req: Request, res: Response) => {
  * GET /api/briefings/today
  * Fetch today's briefing.
  */
-router.get('/today', (req: Request, res: Response) => {
+router.get('/today', async (req: Request, res: Response) => {
     try {
         const userId = req.query.user_id as string;
         if (!userId) return res.status(400).json({ error: 'user_id is required' });
 
-        const briefing = queries.getTodayBriefing(userId);
+        const briefing = await queries.getTodayBriefing(userId);
         res.json(briefing || null);
     } catch (error: any) {
         res.status(500).json({ error: error.message });

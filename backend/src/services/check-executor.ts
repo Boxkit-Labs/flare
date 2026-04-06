@@ -25,7 +25,7 @@ export class CheckExecutor {
 
     // 1. Load watcher from database
     try {
-        watcher = getWatcherById(watcherId);
+        watcher = await getWatcherById(watcherId);
         if (!watcher) {
             console.error(`CheckExecutor: Watcher ${watcherId} not found.`);
             return;
@@ -45,13 +45,13 @@ export class CheckExecutor {
       // 3. Check budget limits
       if (watcher.spent_this_week_usdc >= watcher.weekly_budget_usdc) {
         console.warn(`CheckExecutor: Watcher ${watcherId} exceeded weekly budget. Pausing.`);
-        updateWatcher(watcherId, { status: 'paused_budget' });
+        await updateWatcher(watcherId, { status: 'paused_budget' });
         await notificationService.sendBudgetExhausted(watcher.user_id, watcher);
         return;
       }
 
       // 4 & 5. Load user and decrypt secret
-      const user = getUserById(watcher.user_id) as any;
+      const user = await getUserById(watcher.user_id) as any;
       if (!user) {
          throw new Error(`User ${watcher.user_id} not found for watcher ${watcherId}`);
       }
@@ -88,7 +88,7 @@ export class CheckExecutor {
       }
 
       // 6. Retrieve previous check for comparison logic
-      const checks = getChecksByWatcherId(watcherId, 1, 0);
+      const checks = await getChecksByWatcherId(watcherId, 1, 0);
       const previousCheckData = checks.length > 0 ? checks[0].response_data : null;
 
       // 7. Execute X402 Payment
@@ -113,7 +113,7 @@ export class CheckExecutor {
           const errorMsg = payError instanceof Error ? payError.message : 'Unknown payment error';
           console.error(`CheckExecutor Payment Error (Watcher ${watcherId}):`, errorMsg);
           
-          createCheck({
+          await createCheck({
              checkId: checkId,
              watcherId: watcherId,
              userId: watcher.user_id,
@@ -133,10 +133,10 @@ export class CheckExecutor {
                                  errorMsg.toLowerCase().includes('tx_insufficient_balance');
           
           if (isBalanceIssue) {
-              updateWatcher(watcherId, { status: 'paused_wallet', error_message: 'Insufficient USDC Balance' });
+              await updateWatcher(watcherId, { status: 'paused_wallet', error_message: 'Insufficient USDC Balance' });
               await notificationService.sendLowBalance(watcher.user_id, '0.00');
           } else {
-              updateWatcher(watcherId, { status: 'error', error_message: errorMsg });
+              await updateWatcher(watcherId, { status: 'error', error_message: errorMsg });
           }
           return;
       }
@@ -145,7 +145,7 @@ export class CheckExecutor {
       const costUsdc = costPaid / 10000000;
 
       // 10. Transaction Record
-      createTransaction({
+      await createTransaction({
         txId: uuidv4(),
         userId: watcher.user_id,
         watcherId: watcherId,
@@ -166,7 +166,7 @@ export class CheckExecutor {
       if (finding) {
           // 13. If Finding Detected
           finding.check_id = checkId;
-          createFinding(finding);
+          await createFinding(finding);
           findingDetected = true;
           findingId = finding.finding_id;
           agentReasoning = finding.agent_reasoning || 'Finding matched conditions.';
@@ -179,7 +179,7 @@ export class CheckExecutor {
           console.log(`No finding: ${agentReasoning}`);
       }
 
-      createCheck({
+      await createCheck({
         checkId: checkId,
         watcherId: watcherId,
         userId: watcher.user_id,
@@ -221,13 +221,13 @@ export class CheckExecutor {
           updates.next_check_at = nextDate.toISOString();
       }
 
-      updateWatcher(watcherId, updates);
+      await updateWatcher(watcherId, updates);
 
     } catch (e: any) {
       // Unhandled generic system errors
       const errorMsg = e instanceof Error ? e.message : 'Unknown system error during execution';
       console.error(`CheckExecutor Critical Error (Watcher ${watcherId}):`, errorMsg);
-      updateWatcher(watcherId, { status: 'error', error_message: errorMsg });
+      await updateWatcher(watcherId, { status: 'error', error_message: errorMsg });
     }
 
   }
