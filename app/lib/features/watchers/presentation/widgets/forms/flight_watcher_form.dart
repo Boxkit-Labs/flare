@@ -85,13 +85,8 @@ class _FlightWatcherFormState extends State<FlightWatcherForm> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (context, child) {
         return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppTheme.primary,
-              onPrimary: Colors.white,
-              surface: AppTheme.surface,
-              onSurface: Colors.white,
-            ),
+          data: AppTheme.lightTheme.copyWith(
+            colorScheme: const ColorScheme.light(primary: AppTheme.primary),
           ),
           child: child!,
         );
@@ -118,11 +113,8 @@ class _FlightWatcherFormState extends State<FlightWatcherForm> {
         const SizedBox(height: 8),
         TextField(
           controller: _nameController,
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             hintText: 'e.g. Summer Trip to Tokyo',
-            filled: true,
-            fillColor: AppTheme.surface,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           ),
         ),
         const SizedBox(height: 20),
@@ -136,11 +128,8 @@ class _FlightWatcherFormState extends State<FlightWatcherForm> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _originController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'JFK, LAX...',
-                      filled: true,
-                      fillColor: AppTheme.surface,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
                   ),
                 ],
@@ -155,11 +144,8 @@ class _FlightWatcherFormState extends State<FlightWatcherForm> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _destinationController,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: 'SFO, NRT...',
-                      filled: true,
-                      fillColor: AppTheme.surface,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
                   ),
                 ],
@@ -179,7 +165,7 @@ class _FlightWatcherFormState extends State<FlightWatcherForm> {
                 label: Text(_departureDate == null ? 'Departure' : DateFormat('MMM d').format(_departureDate!)),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), // match input border
                 ),
               ),
             ),
@@ -191,7 +177,7 @@ class _FlightWatcherFormState extends State<FlightWatcherForm> {
                 label: Text(_returnDate == null ? 'Return' : DateFormat('MMM d').format(_returnDate!)),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
               ),
             ),
@@ -203,12 +189,9 @@ class _FlightWatcherFormState extends State<FlightWatcherForm> {
         TextField(
           controller: _priceController,
           keyboardType: TextInputType.number,
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             prefixText: '\$ ',
             hintText: 'Notify when price drops below',
-            filled: true,
-            fillColor: AppTheme.surface,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           ),
         ),
       ],

@@ -329,8 +329,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       initialTime: initialTime,
       builder: (context, child) => Theme(
-        data: AppTheme.darkTheme.copyWith(
-          colorScheme: const ColorScheme.dark(primary: AppTheme.primary),
+        data: AppTheme.lightTheme.copyWith(
+          colorScheme: const ColorScheme.light(primary: AppTheme.primary),
         ),
         child: child!,
       ),

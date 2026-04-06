@@ -24,15 +24,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _nextPage() {
     _pageController.nextPage(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeOutQuart,
     );
   }
 
   void _previousPage() {
     _pageController.previousPage(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeOutQuart,
     );
   }
 
@@ -47,6 +47,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           }
         },
         child: Scaffold(
+          backgroundColor: AppTheme.background,
           body: Stack(
             children: [
               PageView(
@@ -60,37 +61,58 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                    NotificationsPage(onBack: _previousPage),
                 ],
               ),
+              
+              // Top Progress Line
               Positioned(
-                top: MediaQuery.of(context).padding.top + 20,
+                top: MediaQuery.of(context).padding.top + 16,
                 left: 20,
                 right: 20,
-                child: LinearProgressIndicator(
-                  value: (_currentPage + 1) / 4,
-                  backgroundColor: AppTheme.surface,
-                  valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
-                  borderRadius: BorderRadius.circular(10),
-                  minHeight: 6,
+                child: Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                     color: Colors.black.withValues(alpha: 0.05),
+                     borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Stack(
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 600),
+                        curve: Curves.easeOutQuart,
+                        width: (MediaQuery.of(context).size.width - 40) * ((_currentPage + 1) / 4),
+                        decoration: BoxDecoration(
+                           gradient: AppTheme.primaryGradient,
+                           borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
+
+              // Bottom Indicators
               Positioned(
-                bottom: 40,
+                bottom: 60,
                 left: 0,
                 right: 0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
                     4,
-                    (index) => Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _currentPage == index
-                            ? AppTheme.primary
-                            : AppTheme.surface,
-                      ),
-                    ),
+                    (index) {
+                      final isActive = _currentPage == index;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: isActive ? 24 : 8,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(3),
+                          color: isActive
+                              ? AppTheme.primary
+                              : Colors.black.withValues(alpha: 0.1),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -101,3 +123,4 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 }
+

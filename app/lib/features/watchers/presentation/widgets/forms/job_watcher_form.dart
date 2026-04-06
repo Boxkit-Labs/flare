@@ -82,11 +82,7 @@ class _JobWatcherFormState extends State<JobWatcherForm> {
         const SizedBox(height: 8),
         TextField(
           controller: _nameController,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AppTheme.surface,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
+          decoration: const InputDecoration(),
         ),
         const SizedBox(height: 20),
         const Text('Search Keywords', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -96,9 +92,6 @@ class _JobWatcherFormState extends State<JobWatcherForm> {
           onSubmitted: _addKeyword,
           decoration: InputDecoration(
             hintText: 'e.g. Flutter Developer, Designer',
-            filled: true,
-            fillColor: AppTheme.surface,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             suffixIcon: IconButton(
               icon: const Icon(Icons.add),
               onPressed: () => _addKeyword(_keywordController.text),
@@ -141,11 +134,8 @@ class _JobWatcherFormState extends State<JobWatcherForm> {
           const SizedBox(height: 8),
           TextField(
             controller: _locationController,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               hintText: 'e.g. San Francisco',
-              filled: true,
-              fillColor: AppTheme.surface,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             ),
           ),
           const SizedBox(height: 20),
@@ -155,12 +145,9 @@ class _JobWatcherFormState extends State<JobWatcherForm> {
         TextField(
           controller: _salaryController,
           keyboardType: TextInputType.number,
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             prefixText: '\$ ',
             hintText: 'Notify above salary',
-            filled: true,
-            fillColor: AppTheme.surface,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           ),
         ),
       ],

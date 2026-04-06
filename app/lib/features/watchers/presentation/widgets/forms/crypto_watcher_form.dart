@@ -75,11 +75,7 @@ class _CryptoWatcherFormState extends State<CryptoWatcherForm> {
         const SizedBox(height: 8),
         TextField(
           controller: _nameController,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: AppTheme.surface,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          ),
+          decoration: const InputDecoration(),
         ),
         const SizedBox(height: 20),
         const Text('Target Coins', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -118,17 +114,14 @@ class _CryptoWatcherFormState extends State<CryptoWatcherForm> {
         TextField(
           controller: _changeController,
           keyboardType: TextInputType.number,
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             suffixText: '%',
             hintText: 'Notify if 24h change exceeds',
-            filled: true,
-            fillColor: AppTheme.surface,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           ),
         ),
         const SizedBox(height: 20),
         Theme(
-           data: ThemeData.dark().copyWith(
+           data: Theme.of(context).copyWith(
              dividerColor: Colors.transparent,
            ),
            child: ExpansionTile(
@@ -148,13 +141,9 @@ class _CryptoWatcherFormState extends State<CryptoWatcherForm> {
                           child: TextField(
                             controller: _aboveControllers[coin],
                             keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                               prefixText: '> ',
                               hintText: 'Above \$',
-                              filled: true,
-                              fillColor: AppTheme.surface,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                             ),
                           ),
                         ),
@@ -163,13 +152,9 @@ class _CryptoWatcherFormState extends State<CryptoWatcherForm> {
                           child: TextField(
                             controller: _belowControllers[coin],
                             keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
+                            decoration: const InputDecoration(
                               prefixText: '< ',
                               hintText: 'Below \$',
-                              filled: true,
-                              fillColor: AppTheme.surface,
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                             ),
                           ),
                         ),

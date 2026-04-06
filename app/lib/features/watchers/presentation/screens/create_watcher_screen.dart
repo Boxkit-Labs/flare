@@ -24,62 +24,27 @@ class CreateWatcherScreen extends StatefulWidget {
 }
 
 class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
-  int _currentStep = 0;
-  String? _selectedType;
+  String _selectedType = 'flight'; // Default type
   Map<String, dynamic> _formData = {};
   
-  // Step 3 settings
-  int _intervalMinutes = 720; // 12 hours default
+  // Settings with defaults
+  int _intervalMinutes = 360; 
   double _weeklyBudget = 0.50;
   String _priority = 'medium';
 
   final List<Map<String, dynamic>> _types = [
-    {
-      'id': 'flight',
-      'name': 'Flights',
-      'emoji': '✈️',
-      'desc': 'Track flight prices',
-      'cost': '~\$0.50/week',
-      'rec_interval': 360, // 6h
-    },
-    {
-      'id': 'crypto',
-      'name': 'Crypto',
-      'emoji': '💰',
-      'desc': 'Monitor coin prices',
-      'cost': '~\$0.30/week',
-      'rec_interval': 60, // 1h
-    },
-    {
-      'id': 'news',
-      'name': 'News',
-      'emoji': '📰',
-      'desc': 'Watch for articles',
-      'cost': '~\$0.25/week',
-      'rec_interval': 720, // 12h
-    },
-    {
-      'id': 'product',
-      'name': 'Products',
-      'emoji': '🛍️',
-      'desc': 'Track product prices',
-      'cost': '~\$0.20/week',
-      'rec_interval': 720, // 12h
-    },
-    {
-      'id': 'job',
-      'name': 'Jobs',
-      'emoji': '💼',
-      'desc': 'Find new opportunities',
-      'cost': '~\$0.15/week',
-      'rec_interval': 1440, // 24h
-    },
+    {'id': 'flight', 'name': 'Flights', 'emoji': '✈️', 'rec_interval': 360},
+    {'id': 'crypto', 'name': 'Crypto', 'emoji': '💰', 'rec_interval': 60},
+    {'id': 'news', 'name': 'News', 'emoji': '📰', 'rec_interval': 720},
+    {'id': 'product', 'name': 'Products', 'emoji': '🛍️', 'rec_interval': 720},
+    {'id': 'job', 'name': 'Jobs', 'emoji': '💼', 'rec_interval': 1440},
   ];
 
-  void _onStep1Select(String typeId) {
+  void _onTypeSelect(String typeId) {
+    if (_selectedType == typeId) return;
     setState(() {
       _selectedType = typeId;
-      _currentStep = 1;
+      _formData = {}; // reset form on switch
       _intervalMinutes = _types.firstWhere((t) => t['id'] == typeId)['rec_interval'];
     });
   }
@@ -89,6 +54,12 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
   }
 
   void _launchWatcher() {
+    // validation
+    if (_formData.isEmpty || _formData['name'] == null || _formData['name'].toString().trim().isEmpty) {
+      TopSnackbar.showError(context, 'Please fill out the required watcher details.');
+      return;
+    }
+
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return;
     final userId = authState.user.userId;
@@ -114,7 +85,7 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
           SuccessOverlay.show(
             context, 
             message: 'Deployed! 🚀', 
-            subMessage: 'Your ${_selectedType?.toUpperCase()} agent is now hunting.'
+            subMessage: 'Your ${_selectedType.toUpperCase()} agent is now hunting.'
           );
           Future.delayed(const Duration(milliseconds: 2000), () {
             if (context.mounted) {
@@ -126,228 +97,201 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
         }
       },
       child: Scaffold(
+        backgroundColor: AppTheme.background,
         appBar: AppBar(
           title: const Text('Create Watcher'),
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: () => context.pop(),
           ),
-        ),
-        body: Column(
-          children: [
-            _buildStepIndicator(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: _buildCurrentStep(),
-              ),
-            ),
-            _buildBottomBar(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStepIndicator() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(3, (index) {
-          final isActive = index <= _currentStep;
-          return Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: isActive ? AppTheme.primary : AppTheme.surface,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: isActive ? AppTheme.primary : Colors.grey[700]!),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '${index + 1}',
-                  style: TextStyle(
-                    color: isActive ? Colors.white : Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              if (index < 2)
-                Container(
-                  width: 40,
-                  height: 2,
-                  color: index < _currentStep ? AppTheme.primary : Colors.grey[800],
-                ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildCurrentStep() {
-    switch (_currentStep) {
-      case 0:
-        return _buildTypeSelection();
-      case 1:
-        return _buildConfiguration();
-      case 2:
-        return _buildScheduleAndReview();
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-
-  Widget _buildTypeSelection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'What should we watch?',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Select the type of information agent you want to deploy.',
-          style: TextStyle(color: AppTheme.textSecondary),
-        ),
-        const SizedBox(height: 24),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.85,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(color: AppTheme.background),
           ),
-          itemCount: _types.length,
-          itemBuilder: (context, index) {
-            final type = _types[index];
-            final isSelected = _selectedType == type['id'];
-            return InkWell(
-              onTap: () => _onStep1Select(type['id']),
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isSelected ? AppTheme.primary : Colors.transparent,
-                    width: 2,
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Agent Type',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTypeSelector(),
+                      
+                      const SizedBox(height: 32),
+                      const Text(
+                        'Configuration',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildConfigurationForm(),
+
+                      const SizedBox(height: 24),
+                      _buildAdvancedSettings(),
+                      const SizedBox(height: 60),
+                    ],
                   ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              ),
+              _buildBottomAction(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTypeSelector() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      clipBehavior: Clip.none,
+      child: Row(
+        children: _types.map((type) {
+          final isSelected = _selectedType == type['id'];
+          return Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: InkWell(
+              onTap: () => _onTypeSelect(type['id']),
+              borderRadius: BorderRadius.circular(24),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppTheme.primary : AppTheme.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    if (!isSelected)
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 2))
+                  ],
+                ),
+                child: Row(
                   children: [
-                    Text(type['emoji'], style: const TextStyle(fontSize: 40)),
-                    const SizedBox(height: 12),
+                    Text(type['emoji'], style: const TextStyle(fontSize: 18)),
+                    const SizedBox(width: 8),
                     Text(
                       type['name'],
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      type['desc'],
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary),
-                    ),
-                    const Spacer(),
-                    Container(
-                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                       decoration: BoxDecoration(
-                         color: Colors.black.withValues(alpha: 0.3),
-                         borderRadius: BorderRadius.circular(8),
-                       ),
-                       child: Text(
-                        type['cost'],
-                        style: const TextStyle(fontSize: 10, color: AppTheme.secondary),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold, 
+                        color: isSelected ? Colors.white : AppTheme.textPrimary,
+                        fontSize: 15,
                       ),
                     ),
                   ],
                 ),
               ),
-            );
-          },
-        ),
-      ],
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 
-  Widget _buildConfiguration() {
-    switch (_selectedType) {
-      case 'flight':
-        return FlightWatcherForm(onChanged: _onFormChanged);
-      case 'crypto':
-        return CryptoWatcherForm(onChanged: _onFormChanged);
-      case 'news':
-        return NewsWatcherForm(onChanged: _onFormChanged);
-      case 'product':
-        return ProductWatcherForm(onChanged: _onFormChanged);
-      case 'job':
-        return JobWatcherForm(onChanged: _onFormChanged);
-      default:
-        return const Center(child: Text('Select a type first'));
-    }
+  Widget _buildConfigurationForm() {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: Container(
+        key: ValueKey(_selectedType),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))
+          ],
+        ),
+        child: () {
+          switch (_selectedType) {
+            case 'flight':
+              return FlightWatcherForm(onChanged: _onFormChanged, key: const ValueKey('flight_form'));
+            case 'crypto':
+              return CryptoWatcherForm(onChanged: _onFormChanged, key: const ValueKey('crypto_form'));
+            case 'news':
+              return NewsWatcherForm(onChanged: _onFormChanged, key: const ValueKey('news_form'));
+            case 'product':
+              return ProductWatcherForm(onChanged: _onFormChanged, key: const ValueKey('product_form'));
+            case 'job':
+              return JobWatcherForm(onChanged: _onFormChanged, key: const ValueKey('job_form'));
+            default:
+              return const SizedBox.shrink();
+          }
+        }(),
+      ),
+    );
   }
 
-  Widget _buildScheduleAndReview() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Schedule', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        const SizedBox(height: 16),
-        const Text('Check Frequency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        const SizedBox(height: 8),
-        _buildFrequencyDropdown(),
-        const SizedBox(height: 24),
-        
-        const Text('Weekly Budget', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('\$${_weeklyBudget.toStringAsFixed(2)} USDC', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.secondary)),
-            Text('~${(168 * 60 / _intervalMinutes).floor()} checks/week', style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-          ],
-        ),
-        Slider(
-          value: _weeklyBudget,
-          min: 0.10,
-          max: 2.00,
-          divisions: 38,
-          label: '\$${_weeklyBudget.toStringAsFixed(2)}',
-          activeColor: AppTheme.secondary,
-          onChanged: (val) => setState(() => _weeklyBudget = val),
-        ),
-        
-        const SizedBox(height: 24),
-        const Text('Priority', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        const SizedBox(height: 8),
-        SegmentedButton<String>(
-          segments: const [
-             ButtonSegment(value: 'low', label: Text('Low')),
-             ButtonSegment(value: 'medium', label: Text('Medium')),
-             ButtonSegment(value: 'high', label: Text('High')),
-          ],
-          selected: {_priority},
-          onSelectionChanged: (val) => setState(() => _priority = val.first),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'High priority alerts bypass Do Not Disturb settings.',
-          style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontStyle: FontStyle.italic),
-        ),
-
-        const SizedBox(height: 32),
-        const Divider(),
-        const SizedBox(height: 16),
-        _buildReviewSummary(),
-      ],
+  Widget _buildAdvancedSettings() {
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        title: const Text('Advanced Schedule & Budget', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+        subtitle: const Text('Frequency and max spending limits', style: TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
+        tilePadding: EdgeInsets.zero,
+        iconColor: AppTheme.primary,
+        collapsedIconColor: AppTheme.textSecondary,
+        childrenPadding: const EdgeInsets.only(top: 16, bottom: 24),
+        children: [
+           Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                 BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))
+              ]
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Check Frequency', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 12),
+                _buildFrequencyDropdown(),
+                const SizedBox(height: 24),
+                
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Weekly Budget', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    Text('\$${_weeklyBudget.toStringAsFixed(2)} USDC', style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.primary)),
+                  ],
+                ),
+                Slider(
+                  value: _weeklyBudget,
+                  min: 0.10,
+                  max: 2.00,
+                  divisions: 38,
+                  activeColor: AppTheme.primary,
+                  inactiveColor: AppTheme.primaryLight.withValues(alpha: 0.2),
+                  onChanged: (val) => setState(() => _weeklyBudget = val),
+                ),
+                
+                const SizedBox(height: 16),
+                const Text('Priority', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const SizedBox(height: 12),
+                SegmentedButton<String>(
+                  style: SegmentedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    selectedBackgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                    selectedForegroundColor: AppTheme.primary,
+                  ),
+                  segments: const [
+                     ButtonSegment(value: 'low', label: Text('Low')),
+                     ButtonSegment(value: 'medium', label: Text('Medium')),
+                     ButtonSegment(value: 'high', label: Text('High')),
+                  ],
+                  selected: {_priority},
+                  onSelectionChanged: (val) => setState(() => _priority = val.first),
+                ),
+              ],
+            ),
+           ),
+        ],
+      ),
     );
   }
 
@@ -362,17 +306,23 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
 
     final options = intervals[_selectedType] ?? intervals['news']!;
     
+    if (!options.any((opt) => opt['v'] == _intervalMinutes)) {
+       _intervalMinutes = options.first['v'];
+    }
+    
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        color: AppTheme.surfaceLight,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
           value: _intervalMinutes,
           isExpanded: true,
-          dropdownColor: AppTheme.surface,
+          icon: const Icon(Icons.expand_more, color: AppTheme.primary),
+          borderRadius: BorderRadius.circular(16),
+          style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.textPrimary, fontSize: 15),
           items: options.map((opt) {
             return DropdownMenuItem<int>(
               value: opt['v'],
@@ -387,82 +337,51 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
     );
   }
 
-  Widget _buildReviewSummary() {
+  Widget _buildBottomAction() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       decoration: BoxDecoration(
-        color: AppTheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Ready to deploy', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 12),
-          _buildReviewRow('Name', _formData['name'] ?? 'Untitled'),
-          _buildReviewRow('Type', _selectedType?.toUpperCase() ?? 'None'),
-          _buildReviewRow('Check Rate', 'Every ${_intervalMinutes < 60 ? '$_intervalMinutes min' : '${(_intervalMinutes / 60).floor()}h'}'),
-          _buildReviewRow('Budget', '\$${_weeklyBudget.toStringAsFixed(2)} USDC / week'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReviewRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary)),
-          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomBar() {
-    if (_currentStep == 0) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppTheme.background,
-        border: Border(top: BorderSide(color: Colors.grey[900]!)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-               onPressed: () => setState(() => _currentStep--),
-               style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
-               child: const Text('Back'),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: BlocBuilder<WatchersBloc, WatchersState>(
-              builder: (context, state) {
-                final isLoading = state is WatchersLoading;
-                return ElevatedButton(
-                  onPressed: _currentStep == 2 
-                      ? (isLoading ? null : _launchWatcher)
-                      : () => setState(() => _currentStep++),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _currentStep == 2 ? AppTheme.primary : AppTheme.surface,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: isLoading 
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : Text(_currentStep == 2 ? 'Launch Watcher 🚀' : 'Continue'),
-                );
-              },
-            ),
+        color: AppTheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            offset: const Offset(0, -4),
+            blurRadius: 16,
           ),
         ],
+      ),
+      child: BlocBuilder<WatchersBloc, WatchersState>(
+        builder: (context, state) {
+          final isLoading = state is WatchersLoading;
+          return Container(
+             width: double.infinity,
+             height: 56,
+             decoration: BoxDecoration(
+               borderRadius: BorderRadius.circular(30),
+               gradient: AppTheme.primaryGradient,
+               boxShadow: [
+                 BoxShadow(
+                   color: AppTheme.primary.withValues(alpha: 0.3),
+                   blurRadius: 12,
+                   offset: const Offset(0, 4),
+                 ),
+               ],
+             ),
+             child: ElevatedButton(
+               onPressed: isLoading ? null : _launchWatcher,
+               style: ElevatedButton.styleFrom(
+                 backgroundColor: Colors.transparent,
+                 shadowColor: Colors.transparent,
+                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+               ),
+               child: isLoading 
+                   ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                   : const Text('Deploy Watcher', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+             ),
+          );
+        },
       ),
     );
   }
 }
+

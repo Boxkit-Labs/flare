@@ -29,76 +29,127 @@ class _WalletSetupPageState extends State<WalletSetupPage> {
     }
   }
 
+  String? _publicKey;
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<OnboardingBloc, OnboardingState>(
       listener: (context, state) {
         if (state is OnboardingWalletCreated) {
+           _publicKey = state.user.stellarPublicKey;
           // Fund immediately after creation
           context.read<OnboardingBloc>().add(FundWallet(state.user.userId));
+        }
+        if (state is OnboardingSuccess) {
+           _publicKey = state.user.stellarPublicKey;
         }
       },
       builder: (context, state) {
         final isFunded = state is OnboardingWalletFunded || state is OnboardingWatcherCreated || state is OnboardingSuccess;
-        final isLoading = state is OnboardingGeneratingWallet || state is OnboardingFundingWallet;
+        final isLoading = state is OnboardingGeneratingWallet || state is OnboardingFundingWallet || state is OnboardingInitial;
 
         // Extract user from state if possible to show public key
-        String? publicKey;
-        if (state is OnboardingWalletCreated) publicKey = state.user.stellarPublicKey;
-        if (state is OnboardingSuccess) publicKey = state.user.stellarPublicKey;
+        if (state is OnboardingWalletCreated) _publicKey = state.user.stellarPublicKey;
+        if (state is OnboardingSuccess) _publicKey = state.user.stellarPublicKey;
         
         return Container(
+          color: AppTheme.background,
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
+              const Text(
                 'Wallet Setup',
-                style: Theme.of(context).textTheme.displaySmall,
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.0,
+                ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                'Setting up your agent\'s wallet on Stellar',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
+              const SizedBox(height: 12),
+              const Text(
+                'Initializing your agent\'s decentralized wallet',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-              const SizedBox(height: 40),
-              _buildStep('Creating Stellar wallet...', 
-                state is! OnboardingInitial && state is! OnboardingGeneratingWallet),
-              const SizedBox(height: 12),
-              _buildStep('Funding with testnet XLM...', 
-                isFunded || (state is OnboardingFundingWallet && false /* for animation */)), // Simple logic
-              const SizedBox(height: 12),
-              _buildStep('Adding USDC...', isFunded),
-              const SizedBox(height: 12),
-              _buildStep('Loading test funds...', isFunded),
+              const SizedBox(height: 48),
+              
+              _buildStepItem(
+                'Generating Stellar Keys', 
+                state is! OnboardingInitial && state is! OnboardingGeneratingWallet,
+                isCurrent: state is OnboardingGeneratingWallet,
+              ),
+              _buildStepItem(
+                'Provisioning Testnet XLM', 
+                isFunded,
+                isCurrent: state is OnboardingFundingWallet,
+              ),
+              _buildStepItem(
+                'Loading USDC Balance', 
+                isFunded,
+                isCurrent: state is OnboardingFundingWallet,
+              ),
+              _buildStepItem(
+                'Syncing with Network', 
+                isFunded,
+                isCurrent: isFunded && state is! OnboardingSuccess,
+              ),
               
               if (isFunded) ...[
-                const SizedBox(height: 40),
-                Card(
-                  child: ListTile(
-                    title: const Text('Public Key',
-                        style: TextStyle(
-                            fontSize: 12, color: AppTheme.textSecondary)),
-                    subtitle: Text(publicKey ?? 'GXXXXXXXXXXXXXXXXXXXXXXXXX',
-                        overflow: TextOverflow.ellipsis),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.copy, size: 18),
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: publicKey ?? ''));
-                        TopSnackbar.showSuccess(context, 'Address copied');
-                      },
-                    ),
+                const SizedBox(height: 48),
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+                    boxShadow: [
+                       BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 20, offset: const Offset(0, 8)),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  '${(state is OnboardingWalletFunded ? state.balance : 10.0).toStringAsFixed(2)} USDC ready to go',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: AppTheme.secondary,
-                        fontWeight: FontWeight.bold,
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('PUBLIC KEY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppTheme.textSecondary, letterSpacing: 1.0)),
+                          InkWell(
+                            onTap: () {
+                              Clipboard.setData(ClipboardData(text: _publicKey ?? ''));
+                              TopSnackbar.showSuccess(context, 'Address copied!');
+                            },
+                            child: const Icon(Icons.copy_rounded, size: 16, color: AppTheme.primary),
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _publicKey ?? 'GXXXXXXXXXXXXXXXXXXXXXXXXX',
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontFamily: 'monospace', fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      const Divider(height: 32, color: AppTheme.background),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20),
+                          const SizedBox(width: 12),
+                          Text(
+                            '${(state is OnboardingWalletFunded ? state.balance : 10.0).toStringAsFixed(2)} USDC AVAILABLE',
+                            style: const TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
               
@@ -108,14 +159,33 @@ class _WalletSetupPageState extends State<WalletSetupPage> {
                 children: [
                   TextButton(
                     onPressed: isLoading ? null : widget.onBack,
-                    child: const Text('Back',
-                        style: TextStyle(color: AppTheme.textSecondary)),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.textSecondary,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    ),
+                    child: const Text('Back', style: TextStyle(fontWeight: FontWeight.w900)),
                   ),
-                  ElevatedButton(
-                    onPressed: isFunded ? widget.onNext : null,
-                    child: isLoading 
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Next'),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: isFunded ? AppTheme.primaryGradient : null,
+                      color: isFunded ? null : AppTheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: isFunded ? [
+                        BoxShadow(color: AppTheme.primary.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4)),
+                      ] : null,
+                    ),
+                    child: ElevatedButton(
+                      onPressed: isFunded ? widget.onNext : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      child: isLoading 
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary))
+                        : Text('Next', style: TextStyle(fontWeight: FontWeight.w900, color: isFunded ? Colors.white : AppTheme.textSecondary)),
+                    ),
                   ),
                 ],
               ),
@@ -126,22 +196,39 @@ class _WalletSetupPageState extends State<WalletSetupPage> {
     );
   }
 
-  Widget _buildStep(String label, bool isDone) {
-    return Row(
-      children: [
-        Icon(
-          isDone ? Icons.check_circle : Icons.circle_outlined,
-          color: isDone ? AppTheme.secondary : AppTheme.surface,
-          size: 20,
-        ),
-        const SizedBox(width: 12),
-        Text(
-          label,
-          style: TextStyle(
-            color: isDone ? AppTheme.textPrimary : AppTheme.textSecondary,
+  Widget _buildStepItem(String label, bool isDone, {bool isCurrent = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: isDone ? Colors.green.withValues(alpha: 0.1) : (isCurrent ? AppTheme.primary.withValues(alpha: 0.1) : AppTheme.surface),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: isDone 
+                ? const Icon(Icons.check_rounded, color: Colors.green, size: 14) 
+                : (isCurrent 
+                   ? const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary))
+                   : Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppTheme.background, shape: BoxShape.circle))),
+            ),
           ),
-        ),
-      ],
+          const SizedBox(width: 16),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: isCurrent || isDone ? FontWeight.w900 : FontWeight.w500,
+              color: isDone ? AppTheme.textPrimary : (isCurrent ? AppTheme.primary : AppTheme.textSecondary),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
+
