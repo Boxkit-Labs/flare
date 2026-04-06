@@ -11,6 +11,9 @@ class FindingModel {
   final double costUsdc;
   final String stellarTxHash;
   final bool read;
+  final bool verified;
+  final String? verificationTxHash;
+  final String? verificationCheckId;
   final DateTime foundAt;
 
   const FindingModel({
@@ -26,6 +29,9 @@ class FindingModel {
     required this.costUsdc,
     required this.stellarTxHash,
     this.read = false,
+    this.verified = false,
+    this.verificationTxHash,
+    this.verificationCheckId,
     required this.foundAt,
   });
 
@@ -43,6 +49,9 @@ class FindingModel {
       costUsdc: (json['costUsdc'] as num? ?? 0.0).toDouble(),
       stellarTxHash: json['stellarTxHash'] as String? ?? "",
       read: json['read'] as bool? ?? false,
+      verified: json['verified'] as bool? ?? false,
+      verificationTxHash: json['verificationTxHash'] as String?,
+      verificationCheckId: json['verificationCheckId'] as String?,
       foundAt: json['foundAt'] != null
           ? DateTime.parse(json['foundAt'] as String)
           : DateTime.now(),
@@ -63,6 +72,9 @@ class FindingModel {
       'costUsdc': costUsdc,
       'stellarTxHash': stellarTxHash,
       'read': read,
+      'verified': verified,
+      'verificationTxHash': verificationTxHash,
+      'verificationCheckId': verificationCheckId,
       'foundAt': foundAt.toIso8601String(),
     };
   }

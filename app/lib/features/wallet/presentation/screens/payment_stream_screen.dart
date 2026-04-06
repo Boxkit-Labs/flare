@@ -1,0 +1,263 @@
+import 'dart:async';
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
+
+class PaymentStreamScreen extends StatefulWidget {
+  const PaymentStreamScreen({super.key});
+
+  @override
+  State<PaymentStreamScreen> createState() => _PaymentStreamScreenState();
+}
+
+class _PaymentStreamScreenState extends State<PaymentStreamScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  final List<StreamParticle> _particles = [];
+  final Random _random = Random();
+  Timer? _spawnTimer;
+  int _txCount = 142;
+  double _totalStreamed = 2.481;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat();
+
+    _startSpawning();
+  }
+
+  void _startSpawning() {
+    _spawnTimer = Timer.periodic(const Duration(milliseconds: 600), (timer) {
+      if (mounted) {
+        setState(() {
+          _particles.add(StreamParticle(
+            id: _txCount++,
+            x: 0.1 + _random.nextDouble() * 0.8,
+            y: 0.0,
+            speed: 0.002 + _random.nextDouble() * 0.005,
+            amount: 0.001 + _random.nextDouble() * 0.008,
+            color: _random.nextBool() ? AppTheme.primary : Colors.blueAccent,
+          ));
+          _totalStreamed += 0.008;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _spawnTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Background Animation
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                _updateParticles();
+                return CustomPaint(
+                  painter: StreamPainter(particles: _particles),
+                );
+              },
+            ),
+          ),
+
+          // Header
+          Positioned(
+            top: 60,
+            left: 24,
+            right: 24,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'LIVE AGENT STREAM',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.5),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          width: 8, height: 8,
+                          decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'CONNECTED TO STELLAR',
+                          style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white54),
+                  onPressed: () => context.pop(),
+                ),
+              ],
+            ),
+          ),
+
+          // Main Stats
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'TOTAL VALUE STREAMED',
+                  style: TextStyle(color: Colors.white30, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 2.0),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '\$${_totalStreamed.toStringAsFixed(4)}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 64,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -3.0,
+                  ),
+                ),
+                const Text(
+                  'USDC',
+                  style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w900, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+
+          // Footer Info
+          Positioned(
+            bottom: 60,
+            left: 24,
+            right: 24,
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildFooterStat('ACTIVE AGENTS', '8'),
+                  _buildFooterStat('TX CONFIRMED', '$_txCount'),
+                  _buildFooterStat('NEXT BATCH', '42s'),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooterStat(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+      ],
+    );
+  }
+
+  void _updateParticles() {
+    for (int i = _particles.length - 1; i >= 0; i--) {
+      _particles[i].y += _particles[i].speed;
+      if (_particles[i].y > 1.2) {
+        _particles.removeAt(i);
+      }
+    }
+  }
+}
+
+class StreamParticle {
+  final int id;
+  final double x;
+  double y;
+  final double speed;
+  final double amount;
+  final Color color;
+
+  StreamParticle({
+    required this.id,
+    required this.x,
+    required this.y,
+    required this.speed,
+    required this.amount,
+    required this.color,
+  });
+}
+
+class StreamPainter extends CustomPainter {
+  final List<StreamParticle> particles;
+
+  StreamPainter({required this.particles});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..strokeCap = StrokeCap.round;
+
+    for (var p in particles) {
+      final pos = Offset(p.x * size.width, p.y * size.height);
+      
+      // Draw tail
+      final tailPaint = Paint()
+        ..shader = LinearGradient(
+          colors: [p.color.withValues(alpha: 0.0), p.color.withValues(alpha: 0.3)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ).createShader(Rect.fromLTWH(pos.dx, pos.dy - 60, 2, 60))
+        ..strokeWidth = 2.0;
+      
+      canvas.drawLine(Offset(pos.dx, pos.dy - 60), pos, tailPaint);
+
+      // Draw head
+      paint.color = p.color;
+      canvas.drawCircle(pos, 3, paint);
+      
+      // Draw Glow
+      paint.color = p.color.withValues(alpha: 0.2);
+      canvas.drawCircle(pos, 8, paint);
+
+      // Draw Text (TX id)
+      if (p.y > 0.2 && p.y < 0.8) {
+         TextPainter(
+           text: TextSpan(
+             text: 'TX-${p.id}',
+             style: TextStyle(color: Colors.white.withValues(alpha: 0.1), fontSize: 8, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+           ),
+           textDirection: TextDirection.ltr,
+         )..layout()..paint(canvas, Offset(pos.dx + 12, pos.dy - 4));
+      }
+    }
+
+    // Draw Grid Nodes
+    final nodePaint = Paint()..color = Colors.white.withValues(alpha: 0.02);
+    for (int i = 0; i < 10; i++) {
+      for (int j = 0; j < 20; j++) {
+        canvas.drawCircle(Offset(i * size.width / 9, j * size.height / 19), 1, nodePaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant StreamPainter oldDelegate) => true;
+}

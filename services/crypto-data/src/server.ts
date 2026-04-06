@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { stellarPaywall } from '../../../backend/src/middleware/stellar-paywall.js';
-import { getCryptoData } from './mock-data.js';
+import { getPriceStats, getPortfolioStats, getPairStats, getMarketOverview } from './mock-data.js';
 
 dotenv.config();
 
@@ -27,34 +27,34 @@ app.post('/api/crypto', stellarPaywall({
   usdcContractId: USDC_CONTRACT,
   rpcUrl: SOROBAN_RPC_URL
 }), (req: Request, res: Response) => {
-  const { symbols } = req.body;
-  if (!symbols || !Array.isArray(symbols)) {
-    res.status(400).json({ error: "Missing symbols array" });
-    return;
-  }
+  const { mode = 'price', symbols, holdings, base, quote } = req.body;
 
-  const allData = getCryptoData();
-  
-  // Filter by requested symbols
-  const filteredPrices: Record<string, number> = {};
-  const filteredChanges: Record<string, number> = {};
-  const filteredVolumes: Record<string, string> = {};
-
-  symbols.forEach(sym => {
-    const s = sym.toUpperCase();
-    if (allData.prices[s]) {
-      filteredPrices[s] = allData.prices[s];
-      filteredChanges[s] = allData.changes_24h[s];
-      filteredVolumes[s] = allData.volumes[s];
+  try {
+    switch (mode) {
+      case 'portfolio':
+        if (!holdings) return res.status(400).json({ error: "Missing holdings for portfolio mode" });
+        return res.json(getPortfolioStats(holdings));
+      
+      case 'pair':
+        if (!base || !quote) return res.status(400).json({ error: "Missing base/quote for pair mode" });
+        return res.json(getPairStats(base.toUpperCase(), quote.toUpperCase()));
+      
+      case 'market':
+        return res.json(getMarketOverview());
+      
+      case 'price':
+      default:
+        if (!symbols || !Array.isArray(symbols)) {
+          return res.status(400).json({ error: "Missing symbols array" });
+        }
+        return res.json({
+          prices: getPriceStats(symbols.map(s => s.toUpperCase())),
+          checked_at: new Date().toISOString()
+        });
     }
-  });
-
-  res.json({
-    prices: filteredPrices,
-    changes_24h: filteredChanges,
-    volumes: filteredVolumes,
-    checked_at: allData.checked_at
-  });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 /**

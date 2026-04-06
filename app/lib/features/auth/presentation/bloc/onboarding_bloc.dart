@@ -52,6 +52,17 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
       }
     });
 
+    on<UpdateBriefingTime>((event, emit) async {
+      try {
+        await apiService.updateSettings(event.userId, {
+          'briefing_time': event.briefingTime,
+        });
+      } catch (e) {
+        // Non-critical during onboarding, don't emit failure to avoid breaking flow
+        print('Failed to update briefing time: $e');
+      }
+    });
+
     on<CompleteOnboarding>((event, emit) async {
       emit(OnboardingCompleting());
       try {

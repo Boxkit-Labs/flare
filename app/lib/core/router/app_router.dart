@@ -13,7 +13,10 @@ import 'package:flare_app/features/findings/presentation/screens/finding_detail_
 import 'package:flare_app/features/briefing/presentation/screens/briefing_screen.dart';
 import 'package:flare_app/features/wallet/presentation/screens/wallet_screen.dart';
 import 'package:flare_app/features/settings/presentation/screens/settings_screen.dart';
+import 'package:flare_app/features/watchers/presentation/screens/watcher_templates_screen.dart';
+import 'package:flare_app/features/wallet/presentation/screens/payment_stream_screen.dart';
 import 'package:flare_app/features/home/presentation/screens/shell_screen.dart';
+import 'package:flare_app/features/wallet/presentation/screens/stellar_proof_screen.dart';
 
 class AppRouter {
   AppRouter._();
@@ -63,7 +66,7 @@ class AppRouter {
           name: 'createWatcher',
           pageBuilder: (context, state) => CustomTransitionPage(
             key: state.pageKey,
-            child: const CreateWatcherScreen(),
+            child: CreateWatcherScreen(templateData: state.extra as Map<String, dynamic>?),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return SlideTransition(
                 position: Tween<Offset>(
@@ -74,6 +77,11 @@ class AppRouter {
               );
             },
           ),
+        ),
+        GoRoute(
+          path: '/watchers/templates',
+          name: 'watcherTemplates',
+          builder: (context, state) => const WatcherTemplatesScreen(),
         ),
         GoRoute(
           path: '/watchers/:id',
@@ -100,16 +108,35 @@ class AppRouter {
         GoRoute(
           path: '/findings/:id',
           name: 'findingDetail',
-          pageBuilder: (context, state) {
-            final id = state.pathParameters['id']!;
-            return CustomTransitionPage(
-              key: state.pageKey,
-              child: FindingDetailScreen(findingId: id),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-            );
-          },
+          builder: (context, state) => FindingDetailScreen(findingId: state.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/payment-stream',
+          name: 'paymentStream',
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const PaymentStreamScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
+        ),
+        GoRoute(
+          path: '/wallet/proof',
+          name: 'stellarProof',
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const StellarProofScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(1, 0),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOut)),
+                child: child,
+              );
+            },
+          ),
         ),
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) => ShellScreen(navigationShell: navigationShell),

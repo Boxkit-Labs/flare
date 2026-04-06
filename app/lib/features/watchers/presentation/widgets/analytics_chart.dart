@@ -14,34 +14,75 @@ class AnalyticsChart extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-         const Text('Metric Trend', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+         Row(
+           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+           children: [
+             Text(_getChartTitle(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+             _buildTypeBadge(),
+           ],
+         ),
          const SizedBox(height: 16),
          AspectRatio(
             aspectRatio: 1.7,
-            child: LineChart(
-               _buildLineData(),
-            ),
+            child: _buildMainChart(),
          ),
          const SizedBox(height: 32),
-         const Text('Daily Consumption', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+         const Text('Ghost Consumption (USDC)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
          const SizedBox(height: 16),
          AspectRatio(
-            aspectRatio: 1.7,
+            aspectRatio: 2.2,
             child: BarChart(
-               _buildBarData(),
+               _buildConsumptionData(),
             ),
          ),
       ],
     );
   }
 
-  LineChartData _buildLineData() {
+  String _getChartTitle() {
+    switch (watcher.type.toLowerCase()) {
+      case 'flight': return 'Price Floor History';
+      case 'crypto': return 'Price Volatility';
+      case 'news': return 'Article Density';
+      case 'product': return 'Market Variations';
+      case 'stock': return 'Candlestick Trend';
+      default: return 'Agent Activity';
+    }
+  }
+
+  Widget _buildTypeBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        watcher.type.toUpperCase(),
+        style: const TextStyle(color: AppTheme.primary, fontSize: 10, fontWeight: FontWeight.w900),
+      ),
+    );
+  }
+
+  Widget _buildMainChart() {
+    final type = watcher.type.toLowerCase();
+    if (type == 'news' || type == 'job') {
+      return BarChart(_buildVolumeData());
+    }
+    return LineChart(_buildMetricData());
+  }
+
+  LineChartData _buildMetricData() {
     final List<CheckModel> checks = watcher.recentChecks ?? [];
     if (checks.isEmpty) return LineChartData();
 
     final List<FlSpot> spots = [];
     for (int i = 0; i < checks.length; i++) {
-       final val = (checks[i].responseData?['price'] ?? checks[i].responseData?['count'] ?? 0).toDouble();
+       final data = checks[i].responseData;
+       double val = 0;
+       if (data != null) {
+          val = (data['price'] ?? data['priceUsd'] ?? data['price_usd'] ?? 0).toDouble();
+       }
        spots.add(FlSpot(i.toDouble(), val));
     }
 
@@ -54,7 +95,7 @@ class AnalyticsChart extends StatelessWidget {
           spots: spots,
           isCurved: true,
           color: AppTheme.primary,
-          barWidth: 3,
+          barWidth: 4,
           isStrokeCapRound: true,
           dotData: FlDotData(
             show: true,
@@ -63,15 +104,15 @@ class AnalyticsChart extends StatelessWidget {
                return FlDotCirclePainter(
                  radius: check.findingDetected ? 6 : 0,
                  color: Colors.orange,
-                 strokeWidth: 2,
-                 strokeColor: AppTheme.surface,
+                 strokeWidth: 3,
+                 strokeColor: Colors.white,
                );
             },
           ),
           belowBarData: BarAreaData(
             show: true,
             gradient: LinearGradient(
-              colors: [AppTheme.primary.withValues(alpha: 0.3), AppTheme.primary.withValues(alpha: 0)],
+              colors: [AppTheme.primary.withValues(alpha: 0.2), AppTheme.primary.withValues(alpha: 0)],
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
             ),
@@ -81,8 +122,40 @@ class AnalyticsChart extends StatelessWidget {
     );
   }
 
-  BarChartData _buildBarData() {
-    // Generate dummy data if real history is sparse
+  BarChartData _buildVolumeData() {
+    final List<CheckModel> checks = watcher.recentChecks ?? [];
+    final List<BarChartGroupData> groups = [];
+
+    for (int i = 0; i < checks.length; i++) {
+        final data = checks[i].responseData;
+        double val = 0;
+        if (data != null) {
+           val = (data['articles']?.length ?? data['jobs']?.length ?? data['count'] ?? 5).toDouble();
+        }
+        groups.add(
+          BarChartGroupData(
+            x: i,
+            barRods: [
+              BarChartRodData(
+                toY: val,
+                color: checks[i].findingDetected ? Colors.amber : AppTheme.secondary,
+                width: 12,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ],
+          ),
+        );
+    }
+
+    return BarChartData(
+      gridData: const FlGridData(show: false),
+      titlesData: const FlTitlesData(show: false),
+      borderData: FlBorderData(show: false),
+      barGroups: groups,
+    );
+  }
+
+  BarChartData _buildConsumptionData() {
     final List<BarChartGroupData> groups = [];
     for (int i = 0; i < 7; i++) {
         groups.add(
@@ -90,9 +163,9 @@ class AnalyticsChart extends StatelessWidget {
             x: i,
             barRods: [
               BarChartRodData(
-                toY: (i + 1) * 0.05, // Dummy consumption
-                color: AppTheme.secondary,
-                width: 16,
+                toY: 0.008 * (i + 1), // Simulated cost per day
+                color: Colors.black12,
+                width: 20,
                 borderRadius: BorderRadius.circular(4),
               ),
             ],
@@ -113,7 +186,7 @@ class AnalyticsChart extends StatelessWidget {
                final date = DateTime.now().subtract(Duration(days: 6 - val.toInt()));
                return Padding(
                  padding: const EdgeInsets.only(top: 8),
-                 child: Text(DateFormat('E').format(date), style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                 child: Text(DateFormat('E').format(date).toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey)),
                );
             },
           ),

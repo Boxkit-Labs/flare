@@ -29,26 +29,28 @@ class NotificationService {
 
   static const AndroidNotificationChannel findingsChannel =
       AndroidNotificationChannel(
-    'findings_channel',
-    'Findings',
+    'ghost_findings',
+    'Ghost Findings',
     description: 'Notifications for new watcher findings.',
-    importance: Importance.high,
+    importance: Importance.max,
+    playSound: true,
+    enableVibration: true,
   );
 
   static const AndroidNotificationChannel briefingsChannel =
       AndroidNotificationChannel(
-    'briefings_channel',
-    'Briefings',
+    'ghost_briefings',
+    'Ghost Briefings',
     description: 'Morning briefing notifications.',
-    importance: Importance.defaultImportance,
+    importance: Importance.high,
   );
 
   static const AndroidNotificationChannel budgetChannel =
       AndroidNotificationChannel(
-    'budget_channel',
-    'Budget Alerts',
+    'ghost_budget',
+    'Ghost Budget',
     description: 'Budget warning and exhaustion alerts.',
-    importance: Importance.low,
+    importance: Importance.defaultImportance,
   );
 
   // ─── INITIALIZATION ────────────────────────────────────────

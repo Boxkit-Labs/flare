@@ -2,7 +2,7 @@ export interface WatcherRow {
   watcher_id: string;
   user_id: string;
   name: string;
-  type: 'flight' | 'crypto' | 'news' | 'product' | 'job' | 'custom';
+  type: 'flight' | 'crypto' | 'news' | 'product' | 'job' | 'custom' | 'stock' | 'realestate' | 'sports';
   parameters: any;
   alert_conditions: any;
   check_interval_minutes: number;
@@ -28,4 +28,10 @@ export interface Finding {
   cost_usdc: number;
   stellar_tx_hash?: string;
   agent_reasoning?: string;
+  verified?: boolean;
+  verification_tx_hash?: string;
+  verification_check_id?: string;
+  collaboration_result?: any;
+  confidence_score?: number;
+  confidence_tier?: string;
 }

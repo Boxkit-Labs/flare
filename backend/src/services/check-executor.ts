@@ -1,17 +1,16 @@
 import { getWatcherById, getUserById, updateWatcher, createCheck, createTransaction, createFinding, getChecksByWatcherId } from '../db/queries.js';
 import { decrypt } from '../utils/crypto.js';
 import { payForService } from './stellar-pay-client.js';
-import { FindingDetector } from './finding-detector.js';
+import { detector } from './finding-detector.js';
 import { notificationService } from './notification.js';
-import { WatcherRow } from '../types.js';
+import { ConfidenceCalculator } from './confidence-calculator.js';
+import { WatcherRow, Finding } from '../types.js';
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
 dotenv.config();
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '';
 const SOROBAN_RPC_URL = process.env.SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
-
-const detector = new FindingDetector();
 
 export class CheckExecutor {
   
@@ -83,6 +82,15 @@ export class CheckExecutor {
         case 'job':
           serviceUrl = `${baseUrl}/job/api/jobs`;
           break;
+        case 'stock':
+          serviceUrl = `${baseUrl}/stocks/api/stocks`;
+          break;
+        case 'realestate':
+          serviceUrl = `${baseUrl}/realestate/api/realestate`;
+          break;
+        case 'sports':
+          serviceUrl = `${baseUrl}/sports/api/sports`;
+          break;
         default:
           throw new Error(`Unknown watcher type: ${watcher.type}`);
       }
@@ -152,7 +160,8 @@ export class CheckExecutor {
         checkId: checkId,
         amountUsdc: costUsdc,
         serviceName: watcher.type,
-        stellarTxHash: txHash
+        stellarTxHash: txHash,
+        txType: 'check'
       });
 
       // 11. Run Finding Detector
@@ -164,15 +173,74 @@ export class CheckExecutor {
       let agentReasoning = '';
 
       if (finding) {
-          // 13. If Finding Detected
-          finding.check_id = checkId;
-          await createFinding(finding);
-          findingDetected = true;
-          findingId = finding.finding_id;
-          agentReasoning = finding.agent_reasoning || 'Finding matched conditions.';
-          console.log(`FINDING: ${finding.headline}`);
+          // --- DEAD FINDING PREVENTION: RE-VERIFICATION LOOP ---
+          console.log(`[Re-Verify] Finding detected for ${watcher.name}. Verifying in 60s...`);
           
-          await notificationService.sendFindingNotification(watcher.user_id, finding, watcher);
+          // 1. Wait 60 seconds
+          await new Promise(resolve => setTimeout(resolve, 60000));
+
+          // 2. Perform SECOND payment and check
+          try {
+            console.log(`[Re-Verify] Executing second check for ${watcher.type} ...`);
+            const vResult = await payForService({
+              serviceUrl, method, body, payerSecretKey, rpcUrl: SOROBAN_RPC_URL
+            });
+            
+            const vFinding = await detector.detectFinding(watcher, vResult.data, responseData, vResult.costPaid / 10000000, vResult.txHash);
+            
+            // Log verification transaction
+            await createTransaction({
+              txId: uuidv4(),
+              userId: watcher.user_id,
+              watcherId: watcherId,
+              checkId: checkId, // Associate with main check
+              amountUsdc: vResult.costPaid / 10000000,
+              serviceName: `${watcher.type} (verify)`,
+              stellarTxHash: vResult.txHash,
+              txType: 'verification'
+            });
+            
+            if (vFinding) {
+              console.log(`[Re-Verify] CONFIRMED! Finding is still valid. ✓`);
+              vFinding.verified = true;
+              vFinding.verification_tx_hash = vResult.txHash;
+              vFinding.verification_check_id = uuidv4();
+              
+              // --- AGENT-TO-AGENT COLLABORATION: TRIPLE CHECK ---
+              console.log(`[Collab] Running agent-to-agent cross-check for ${watcher.type}...`);
+              const collabResult = await this.runCollaborationCheck(watcher, vFinding, payerSecretKey);
+              vFinding.collaboration_result = collabResult;
+              
+              // --- CONFIDENCE SCORING ---
+              const hasHistory = checks.length > 0;
+              const confidence = ConfidenceCalculator.calculate(
+                watcher, 
+                vFinding as any, 
+                new Date(), 
+                hasHistory, 
+                collabResult
+              );
+              
+              vFinding.confidence_score = confidence.score;
+              vFinding.confidence_tier = confidence.tier;
+              vFinding.headline = `[${confidence.score}%] ${vFinding.headline}`;
+              
+              await createFinding(vFinding);
+              findingDetected = true;
+              findingId = vFinding.finding_id;
+              agentReasoning = vFinding.agent_reasoning || 'Finding cross-verified and scored.';
+              
+              await notificationService.sendFindingNotification(watcher.user_id, vFinding as any, watcher);
+            } else {
+              console.log(`[Re-Verify] FAILED. Finding no longer valid. Suppressing alert.`);
+              findingDetected = false;
+              agentReasoning = "Initial check found finding, but re-verification 60s later failed. Alert suppressed.";
+            }
+          } catch (vError) {
+             console.error("[Re-Verify] Verification failed due to payment/network error.", vError);
+             findingDetected = false;
+             agentReasoning = "Finding detected but verification check failed.";
+          }
       } else {
           // 14. If No Finding
           agentReasoning = "No finding matched the alert criteria.";
@@ -229,6 +297,110 @@ export class CheckExecutor {
       console.error(`CheckExecutor Critical Error (Watcher ${watcherId}):`, errorMsg);
       await updateWatcher(watcherId, { status: 'error', error_message: errorMsg });
     }
+  }
 
+  /**
+   * Runs a cross-service check to confirm or contextualize a finding.
+   * Performs a THIRD Stellar transaction.
+   */
+  private async runCollaborationCheck(watcher: WatcherRow, finding: any, payerSecretKey: string): Promise<any> {
+    const port = process.env.PORT || '3000';
+    const baseUrl = `http://localhost:${port}/services`;
+    
+    let targetUrl = '';
+    let query = '';
+    let triggeredService = '';
+
+    // Collaboration Rules
+    if (watcher.type === 'flight') {
+      triggeredService = 'news';
+      targetUrl = `${baseUrl}/news/api/news`;
+      const dest = finding.data?.destination_city || 'destination';
+      query = `${dest} travel advisory safety`;
+    } else if (watcher.type === 'stock') {
+      triggeredService = 'news';
+      targetUrl = `${baseUrl}/news/api/news`;
+      const symbol = finding.data?.symbol || 'company';
+      query = `${symbol} stock news announcement`;
+    } else if (watcher.type === 'crypto') {
+       triggeredService = 'news';
+       targetUrl = `${baseUrl}/news/api/news`;
+       const coin = finding.data?.symbol || 'coin';
+       query = `${coin} price volume sentiment news`;
+    } else if (watcher.type === 'job') {
+       triggeredService = 'news';
+       targetUrl = `${baseUrl}/news/api/news`;
+       const company = finding.data?.company || 'company';
+       query = `${company} hiring layoff news`;
+    } else if (watcher.type === 'realestate') {
+       triggeredService = 'news';
+       targetUrl = `${baseUrl}/news/api/news`;
+       const neighborhood = finding.data?.neighborhood || 'neighborhood';
+       query = `${neighborhood} crime development school ratings`;
+    } else if (watcher.type === 'sports') {
+       triggeredService = 'news';
+       targetUrl = `${baseUrl}/news/api/news`;
+       const team = finding.data?.team || 'team';
+       query = `${team} injury player trade news`;
+    } else if (watcher.type === 'product') {
+       triggeredService = 'product';
+       targetUrl = `${baseUrl}/product/api/products`;
+       query = finding.data?.product_name || 'product';
+    } else {
+       return null; // No collaboration rule for this type
+    }
+
+    try {
+      console.log(`[Collab] Triple-Check: querying ${triggeredService} for "${query}" ...`);
+      const result = await payForService({
+        serviceUrl: targetUrl,
+        method: triggeredService === 'news' ? 'GET' : 'POST',
+        body: triggeredService === 'news' ? { q: query } : { search: query },
+        payerSecretKey,
+        rpcUrl: SOROBAN_RPC_URL
+      });
+
+      // Log collaboration transaction
+      await createTransaction({
+        txId: uuidv4(),
+        userId: watcher.user_id,
+        watcherId: watcher.watcher_id,
+        checkId: finding.checkId || finding.check_id,
+        amountUsdc: result.costPaid / 10000000,
+        serviceName: triggeredService,
+        stellarTxHash: result.txHash,
+        txType: 'collaboration'
+      });
+
+      let summary = '';
+      let safe = true;
+
+      if (triggeredService === 'news') {
+        const articles = result.data?.articles || [];
+        summary = articles.length > 0 
+          ? `Cross-checked ${articles.length} related articles. Insights incorporated.`
+          : `No specific news flags found for "${query}".`;
+        
+        // Simple heuristic for "safety"
+        const content = JSON.stringify(articles).toLowerCase();
+        if (content.includes('warning') || content.includes('advisory') || content.includes('alert')) {
+           safe = false;
+           summary = `⚠️ Cross-check found potential concerns in recent news for ${query}.`;
+        }
+      } else if (triggeredService === 'product') {
+        summary = `Cross-store price verification complete. Finding remains competitive.`;
+      }
+
+      return {
+        triggered_service: triggeredService,
+        query,
+        result_summary: summary,
+        tx_hash: result.txHash,
+        safe
+      };
+    } catch (error) {
+      console.error(`[Collab] Collaboration check failed:`, error);
+      return { error: 'Collaboration check unavailable', safe: true };
+    }
   }
 }

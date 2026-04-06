@@ -10,6 +10,8 @@ import 'pages/welcome_page.dart';
 import 'pages/how_it_works_page.dart';
 import 'pages/wallet_setup_page.dart';
 import 'pages/notifications_page.dart';
+import 'pages/template_selection_page.dart';
+import 'pages/voice_teaser_page.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -21,6 +23,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  final int _totalPages = 6;
 
   void _nextPage() {
     _pageController.nextPage(
@@ -58,7 +61,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                    WelcomePage(onNext: _nextPage),
                    HowItWorksPage(onNext: _nextPage, onBack: _previousPage),
                    WalletSetupPage(onNext: _nextPage, onBack: _previousPage),
-                   NotificationsPage(onBack: _previousPage),
+                   NotificationsPage(onNext: _nextPage, onBack: _previousPage),
+                   TemplateSelectionPage(onNext: _nextPage, onBack: _previousPage),
+                   VoiceTeaserPage(onBack: _previousPage),
                 ],
               ),
               
@@ -78,7 +83,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 600),
                         curve: Curves.easeOutQuart,
-                        width: (MediaQuery.of(context).size.width - 40) * ((_currentPage + 1) / 4),
+                        width: (MediaQuery.of(context).size.width - 40) * ((_currentPage + 1) / _totalPages),
                         decoration: BoxDecoration(
                            gradient: AppTheme.primaryGradient,
                            borderRadius: BorderRadius.circular(10),
@@ -97,7 +102,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
-                    4,
+                    _totalPages,
                     (index) {
                       final isActive = _currentPage == index;
                       return AnimatedContainer(

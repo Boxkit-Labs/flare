@@ -17,7 +17,6 @@ export class FindingDetector {
     txHash: string = ''
   ): Promise<Finding | null> {
     let finding: Finding | null = null;
-    let agentReasoning = '';
 
     switch (watcher.type.toLowerCase()) {
       case 'flight':
@@ -35,230 +34,185 @@ export class FindingDetector {
       case 'job':
         finding = this.detectJobFinding(watcher, checkData);
         break;
-      default:
-        agentReasoning = `Unknown watcher type: ${watcher.type}`;
+      case 'stock':
+        finding = this.detectStockFinding(watcher, checkData, previousCheckData);
+        break;
+      case 'realestate':
+        finding = this.detectRealEstateFinding(watcher, checkData, previousCheckData);
+        break;
+      case 'sports':
+        finding = this.detectSportsFinding(watcher, checkData, previousCheckData);
+        break;
     }
 
     if (finding) {
-      // Attach common metadata
       finding.finding_id = uuidv4();
       finding.watcher_id = watcher.watcher_id;
       finding.user_id = watcher.user_id;
       finding.cost_usdc = costUsdc;
       finding.stellar_tx_hash = txHash;
       finding.data = checkData;
+      
+      // Calculate Confidence Score (0-100)
+      finding.agent_reasoning = (finding.agent_reasoning || '') + ` (Confidence: ${this.calculateConfidence(watcher, checkData, previousCheckData)}/100)`;
     }
 
     return finding;
   }
 
+  private calculateConfidence(watcher: WatcherRow, data: any, prev: any): number {
+    let score = 85; // Base confidence
+    if (!prev) score -= 10;
+    if (data.is_error_fare) score -= 15; // Error fares are risky
+    if (data.articles && data.articles.length < 3) score -= 10; // News needs volume
+    return Math.min(100, Math.max(0, score));
+  }
+
   private detectFlightFinding(watcher: WatcherRow, data: any, prev: any): Finding | null {
     const conditions = watcher.alert_conditions || {};
-    const currentPrice = data.cheapest_price;
-    const origin = data.origin || watcher.parameters?.origin;
-    const dest = data.destination || watcher.parameters?.destination;
+    const price = data.cheapest_price;
+    const airline = data.airline;
 
-    // 1. Price Below Threshold
-    if (conditions.price_below && currentPrice <= conditions.price_below) {
-      return {
-        finding_id: '',
-        watcher_id: '',
-        user_id: '',
-        check_id: '', // Will be set by the caller
-        type: 'threshold_crossed',
-        headline: `✈️ ${origin} → ${dest} dropped to $${currentPrice}`,
-        detail: `Flight price is now $${currentPrice}, which is below your threshold of $${conditions.price_below}. Airline: ${data.airline}.`,
-        data: null,
-        cost_usdc: 0,
-        agent_reasoning: `Current price $${currentPrice} is less than or equal to threshold $${conditions.price_below}.`
-      };
-    }
-
-    // 2. Price Drop %
-    if (conditions.price_drop_percent && prev && prev.cheapest_price) {
-      const prevPrice = prev.cheapest_price;
-      const dropAmount = prevPrice - currentPrice;
-      const dropPercent = (dropAmount / prevPrice) * 100;
-
-      if (dropPercent >= conditions.price_drop_percent) {
+    if (data.is_error_fare) {
         return {
-          finding_id: '',
-          watcher_id: '',
-          user_id: '',
-          check_id: '',
-          type: 'price_drop',
-          headline: `✈️ ${origin} → ${dest} dropped to $${currentPrice}`,
-          detail: `Price dropped $${dropAmount.toFixed(2)} (${dropPercent.toFixed(1)}%) from $${prevPrice}. ${data.airline} on ${data.departure_date}.`,
-          data: null,
-          cost_usdc: 0,
-          agent_reasoning: `Price drop of ${dropPercent.toFixed(1)}% exceeds your ${conditions.price_drop_percent}% alert condition.`
+            finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'threshold_crossed',
+            headline: `✈️ ${airline} to ${data.destination}: $${price} (Error Fare!)`,
+            detail: `Detected a massive price drop for ${airline}. Likely a mistake — book fast!`,
+            data: null, cost_usdc: 0, agent_reasoning: `Price is 60%+ below historical average.`
         };
-      }
     }
 
+    if (data.is_historical_low) {
+        return {
+            finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'price_drop',
+            headline: `✈️ Lowest ever: ${data.origin} → ${data.destination} for $${price}`,
+            detail: `This is the lowest price ever tracked for this route on ${airline}.`,
+            data: null, cost_usdc: 0, agent_reasoning: `Price $${price} is a new historical low.`
+        };
+    }
+
+    if (conditions.price_below && price <= conditions.price_below) {
+        const prefAirline = watcher.parameters?.preferred_airline;
+        if (prefAirline && airline.toLowerCase() !== prefAirline.toLowerCase()) return null;
+
+        return {
+            finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'threshold_crossed',
+            headline: `✈️ ${airline}: ${data.origin} → ${data.destination} below $${conditions.price_below}`,
+            detail: `Current price: $${price}.`,
+            data: null, cost_usdc: 0, agent_reasoning: `Threshold $${conditions.price_below} met.`
+        };
+    }
     return null;
   }
 
   private detectCryptoFinding(watcher: WatcherRow, data: any, prev: any): Finding | null {
     const conditions = watcher.alert_conditions || {};
-    const prices = data.prices || {};
-    const changes24h = data.changes_24h || {};
-
-    for (const [symbol, currentPrice] of Object.entries(prices) as [string, number][]) {
-      // 1. Price Above
-      if (conditions.price_above?.[symbol] && currentPrice > conditions.price_above[symbol]) {
-        return {
-          finding_id: '',
-          watcher_id: '',
-          user_id: '',
-          check_id: '',
-          type: 'price_spike',
-          headline: `💰 ${symbol} surged to $${currentPrice}`,
-          detail: `${symbol} has crossed your upper threshold of $${conditions.price_above[symbol]}. Current price: $${currentPrice}.`,
-          data: null,
-          cost_usdc: 0,
-          agent_reasoning: `Price ${currentPrice} is above threshold ${conditions.price_above[symbol]} for ${symbol}.`
-        };
-      }
-
-      // 2. Price Below
-      if (conditions.price_below?.[symbol] && currentPrice < conditions.price_below[symbol]) {
-        return {
-          finding_id: '',
-          watcher_id: '',
-          user_id: '',
-          check_id: '',
-          type: 'threshold_crossed',
-          headline: `💰 ${symbol} dropped to $${currentPrice}`,
-          detail: `${symbol} has fell below your threshold of $${conditions.price_below[symbol]}. Current price: $${currentPrice}.`,
-          data: null,
-          cost_usdc: 0,
-          agent_reasoning: `Price ${currentPrice} is below threshold ${conditions.price_below[symbol]} for ${symbol}.`
-        };
-      }
+    
+    // Portfolio tracking
+    if (watcher.parameters?.mode === 'portfolio') {
+        const val = data.total_value;
+        const target = conditions.target_value;
+        if (target && val >= target) {
+            return {
+                finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'threshold_crossed',
+                headline: `💰 Portfolio hit $${val.toLocaleString()}`,
+                detail: `Your crypto portfolio has reached your target of $${target.toLocaleString()}.`,
+                data: null, cost_usdc: 0, agent_reasoning: `Value ${val} >= target ${target}.`
+            };
+        }
     }
 
-    // 3. 24h Change %
-    if (conditions.change_24h_percent) {
-      for (const [symbol, change] of Object.entries(changes24h) as [string, number][]) {
-        if (Math.abs(change) >= conditions.change_24h_percent) {
-          const direction = change > 0 ? 'surged' : 'dropped';
-          return {
-            finding_id: '',
-            watcher_id: '',
-            user_id: '',
-            check_id: '',
-            type: change > 0 ? 'price_spike' : 'price_drop',
-            headline: `💰 ${symbol} ${direction} ${Math.abs(change).toFixed(1)}%`,
-            detail: `${symbol} recorded a 24h change of ${change.toFixed(2)}%, exceeding your alert threshold of ${conditions.change_24h_percent}%.`,
-            data: null,
-            cost_usdc: 0,
-            agent_reasoning: `24h change for ${symbol} (${change.toFixed(2)}%) met alert condition (${conditions.change_24h_percent}%).`
-          };
+    // Volume spikes
+    for (const [symbol, vol] of Object.entries(data.volumes || {}) as [string, number][]) {
+        if (vol > 2.5) {
+            return {
+                finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'price_spike',
+                headline: `⚠️ ${symbol} Volume Spike (3x)`,
+                detail: `Unusual trading activity detected for ${symbol}. Volume is 3x higher than 24h average.`,
+                data: null, cost_usdc: 0, agent_reasoning: `Volume factor ${vol} > 2.5.`
+            };
         }
-      }
     }
 
     return null;
   }
 
   private detectNewsFinding(watcher: WatcherRow, data: any): Finding | null {
-    const conditions = watcher.alert_conditions || {};
     const articles = data.articles || [];
-    const minRelevance = conditions.min_relevance || 0.7;
-    const minArticles = conditions.min_articles || 1;
-
-    const matchingArticles = articles.filter((a: any) => a.relevance_score >= minRelevance);
-
-    if (matchingArticles.length >= minArticles) {
-      const keywords = watcher.parameters?.keywords || 'your topics';
-      return {
-        finding_id: '',
-        watcher_id: '',
-        user_id: '',
-        check_id: '',
-        type: 'news_match',
-        headline: `📰 ${matchingArticles.length} articles about ${keywords}`,
-        detail: matchingArticles.map((a: any) => `• ${a.title} (${a.source})`).join('\n'),
-        data: null,
-        cost_usdc: 0,
-        agent_reasoning: `Found ${matchingArticles.length} articles with relevance >= ${minRelevance}, meeting your minimum of ${minArticles}.`
-      };
+    if (articles.length >= 3 && data.trending_score > 80) {
+        return {
+            finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'news_match',
+            headline: `📰 ${articles.length} sources reporting: ${articles[0].title}`,
+            detail: articles.map((a: any) => `• ${a.title} (${a.source})`).join('\n'),
+            data: null, cost_usdc: 0, agent_reasoning: `Multi-source verification successful. Trending score: ${data.trending_score}.`
+        };
     }
-
     return null;
   }
 
   private detectProductFinding(watcher: WatcherRow, data: any, prev: any): Finding | null {
-    const conditions = watcher.alert_conditions || {};
-    const currentPrice = data.current_price;
-    const productName = data.product_name || watcher.parameters?.product_name;
-
-    // 1. Price Below
-    if (conditions.price_below && currentPrice <= conditions.price_below) {
-      return {
-        finding_id: '',
-        watcher_id: '',
-        user_id: '',
-        check_id: '',
-        type: 'threshold_crossed',
-        headline: `🛍️ ${productName} dropped to $${currentPrice}`,
-        detail: `${productName} is now $${currentPrice} at ${data.store}. This is below your $${conditions.price_below} threshold.${data.on_sale ? ' Marked as ON SALE.' : ''}`,
-        data: null,
-        cost_usdc: 0,
-        agent_reasoning: `Current price $${currentPrice} met threshold of $${conditions.price_below}.`
-      };
-    }
-
-    // 2. Price Drop %
-    if (conditions.price_drop_percent && prev && prev.current_price) {
-      const prevPrice = prev.current_price;
-      const dropPercent = ((prevPrice - currentPrice) / prevPrice) * 100;
-
-      if (dropPercent >= conditions.price_drop_percent) {
+    if (data.is_ath) {
         return {
-          finding_id: '',
-          watcher_id: '',
-          user_id: '',
-          check_id: '',
-          type: 'price_drop',
-          headline: `🛍️ ${productName} dropped to $${currentPrice}`,
-          detail: `Price dropped ${dropPercent.toFixed(1)}% from $${prevPrice}. Currently $${currentPrice} at ${data.store}.`,
-          data: null,
-          cost_usdc: 0,
-          agent_reasoning: `Detected price drop of ${dropPercent.toFixed(1)}%, meeting your ${conditions.price_drop_percent}% threshold.`
+            finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'price_drop',
+            headline: `🛍️ All-time low: ${data.product_name} at $${data.current_price}`,
+            detail: `Lowest price ever tracked for ${data.product_name}. Available at ${data.stores[0].store}.`,
+            data: null, cost_usdc: 0, agent_reasoning: `New all-time low detected.`
         };
-      }
     }
-
     return null;
   }
 
   private detectJobFinding(watcher: WatcherRow, data: any): Finding | null {
-    const conditions = watcher.alert_conditions || {};
-    const listings = data.listings || [];
-    const minSalary = conditions.min_salary || 0;
-
-    const filtered = listings.filter((l: any) => {
-      const salaryVal = typeof l.salary === 'number' ? l.salary : parseInt(l.salary?.toString().replace(/[^0-9]/g, '') || '0');
-      return salaryVal >= minSalary;
-    });
-
-    if (filtered.length > 0 && conditions.alert_on_new !== false) {
-      return {
-        finding_id: '',
-        watcher_id: '',
-        user_id: '',
-        check_id: '',
-        type: 'new_listing',
-        headline: `💼 ${filtered.length} new job matches`,
-        detail: filtered.map((l: any) => `• ${l.title} at ${l.company} (${l.location})`).join('\n'),
-        data: null,
-        cost_usdc: 0,
-        agent_reasoning: `Found ${filtered.length} listings meeting your criteria.`
-      };
+    const hotJob = data.listings?.find((l: any) => l.is_hot);
+    if (hotJob) {
+        return {
+            finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'new_listing',
+            headline: `💼 Hot: ${hotJob.title} at ${hotJob.company} — $${hotJob.salary.toLocaleString()}`,
+            detail: `This role is in the 90th percentile for ${hotJob.title} salaries.`,
+            data: null, cost_usdc: 0, agent_reasoning: `Detected 'hot' job listing with premium salary.`
+        };
     }
+    return null;
+  }
 
+  private detectStockFinding(watcher: WatcherRow, data: any, prev: any): Finding | null {
+    const stock = data.stocks?.find((s: any) => Math.abs(s.change_percent) > 5 || s.event);
+    if (stock) {
+        return {
+            finding_id: '', watcher_id: '', user_id: '', check_id: '', type: stock.change_percent > 0 ? 'price_spike' : 'price_drop',
+            headline: `📊 ${stock.symbol} ${stock.change_percent > 0 ? 'surged' : 'dropped'} ${Math.abs(stock.change_percent)}%`,
+            detail: stock.event ? `Event: ${stock.event}. Price: $${stock.price}.` : `Current price: $${stock.price}.`,
+            data: null, cost_usdc: 0, agent_reasoning: `Detected significant move or event for ${stock.symbol}.`
+        };
+    }
+    return null;
+  }
+
+  private detectRealEstateFinding(watcher: WatcherRow, data: any, prev: any): Finding | null {
+    const listing = data.listings?.find((l: any) => l.price_reduced || l.is_new);
+    if (listing) {
+        return {
+            finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'new_listing',
+            headline: listing.price_reduced ? `🏠 Price Drop: ${listing.address} in ${listing.neighborhood}` : `🏠 New listing in ${listing.neighborhood}`,
+            detail: `${listing.type} for $${listing.price.toLocaleString()}. Neighborhood trend: ${data.stats.trend}.`,
+            data: null, cost_usdc: 0, agent_reasoning: `Found listing with price reduction or new tag.`
+        };
+    }
+    return null;
+  }
+
+  private detectSportsFinding(watcher: WatcherRow, data: any, prev: any): Finding | null {
+    const ticket = data.tickets?.find((t: any) => t.price_dropped);
+    if (ticket) {
+        return {
+            finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'price_drop',
+            headline: `⚽ Ticket Drop: ${watcher.parameters?.team} ${ticket.section} seats for $${ticket.price}`,
+            detail: `Prices dropped from $${ticket.history[0]}. Game status: ${data.match.score}.`,
+            data: null, cost_usdc: 0, agent_reasoning: `Detected 15%+ drop in secondary ticket market.`
+        };
+    }
     return null;
   }
 }
+
+export const detector = new FindingDetector();

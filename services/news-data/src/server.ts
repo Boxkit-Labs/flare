@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { stellarPaywall } from '../../../backend/src/middleware/stellar-paywall.js';
-import { getArticlesForQuery } from './mock-data.js';
+import { getNewsResults } from './mock-data.js';
 
 dotenv.config();
 
@@ -27,15 +27,23 @@ app.post('/api/news', stellarPaywall({
   usdcContractId: USDC_CONTRACT,
   rpcUrl: SOROBAN_RPC_URL
 }), (req: Request, res: Response) => {
-  const { keywords, max_results } = req.body;
-  
-  if (!keywords || !Array.isArray(keywords)) {
-    res.status(400).json({ error: "Missing keywords array" });
-    return;
-  }
+  const { 
+    keywords, 
+    companies, 
+    people, 
+    exclude_keywords, 
+    max_results 
+  } = req.body;
 
-  const result = getArticlesForQuery(keywords, max_results || 10);
-  res.json(result);
+  const data = getNewsResults({
+    keywords,
+    companies,
+    people,
+    exclude_keywords,
+    max_results
+  });
+  
+  res.json(data);
 });
 
 /**

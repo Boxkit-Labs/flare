@@ -4,6 +4,9 @@ enum WatcherType {
   news,
   product,
   job,
+  stock,
+  realestate,
+  sports,
   custom;
 
   static WatcherType fromString(String value) {

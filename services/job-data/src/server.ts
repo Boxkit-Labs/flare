@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { stellarPaywall } from '../../../backend/src/middleware/stellar-paywall.js';
-import { searchJobs } from './mock-data.js';
+import { searchJobs, getCompanyJobs, getSalaryTrends, getFreelanceJobs } from './mock-data.js';
 
 dotenv.config();
 
@@ -27,18 +27,28 @@ app.post('/api/jobs', stellarPaywall({
   usdcContractId: USDC_CONTRACT,
   rpcUrl: SOROBAN_RPC_URL
 }), (req: Request, res: Response) => {
-  const { keywords, location, remote_ok, salary_min } = req.body;
-  
-  if (!keywords || !Array.isArray(keywords)) {
-    res.status(400).json({ error: "Missing or invalid keywords array" });
-    return;
-  }
+  const { mode = 'search', keywords, min_salary, skills_min, company_name, role_title } = req.body;
 
-  const result = searchJobs(keywords, location, remote_ok, salary_min);
-  res.json({
-      ...result,
-      query_params: { keywords, location, remote_ok, salary_min }
-  });
+  try {
+    switch (mode) {
+      case 'company':
+        if (!company_name) return res.status(400).json({ error: "Missing company_name" });
+        return res.json(getCompanyJobs(company_name));
+      
+      case 'trends':
+        if (!role_title) return res.status(400).json({ error: "Missing role_title" });
+        return res.json(getSalaryTrends(role_title));
+      
+      case 'freelance':
+        return res.json(getFreelanceJobs());
+      
+      case 'search':
+      default:
+        return res.json(searchJobs({ keywords, min_salary, skills_min }));
+    }
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 /**

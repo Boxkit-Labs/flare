@@ -238,6 +238,12 @@ class FindingModel {
   final String foundAt;
   final String? watcherName;
   final String? watcherType;
+  final bool verified;
+  final String? verificationTxHash;
+  final String? verificationCheckId;
+  final Map<String, dynamic>? collaborationResult;
+  final int confidenceScore;
+  final String? confidenceTier;
 
   const FindingModel({
     required this.findingId,
@@ -256,6 +262,12 @@ class FindingModel {
     required this.foundAt,
     this.watcherName,
     this.watcherType,
+    this.verified = false,
+    this.verificationTxHash,
+    this.verificationCheckId,
+    this.collaborationResult,
+    this.confidenceScore = 0,
+    this.confidenceTier,
   });
 
   factory FindingModel.fromJson(Map<String, dynamic> json) {
@@ -283,6 +295,16 @@ class FindingModel {
       foundAt: json['found_at'] ?? '',
       watcherName: json['watcher_name'],
       watcherType: json['watcher_type'],
+      verified: json['verified'] == 1 || json['verified'] == true,
+      verificationTxHash: json['verification_tx_hash'],
+      verificationCheckId: json['verification_check_id'],
+      collaborationResult: json['collaboration_result'] is Map 
+          ? Map<String, dynamic>.from(json['collaboration_result']) 
+          : (json['collaboration_result'] is String 
+              ? null // JSON parsing usually handled outside or would need jsonDecode
+              : null),
+      confidenceScore: json['confidence_score'] ?? 0,
+      confidenceTier: json['confidence_tier'],
     );
   }
 }
@@ -427,6 +449,7 @@ class TransactionModel {
   final double amountUsdc;
   final String serviceName;
   final String stellarTxHash;
+  final String txType; // 'check', 'verification', 'collaboration'
   final String timestamp;
   final String? watcherName;
   final bool? findingDetected;
@@ -439,6 +462,7 @@ class TransactionModel {
     required this.amountUsdc,
     required this.serviceName,
     required this.stellarTxHash,
+    this.txType = 'check',
     required this.timestamp,
     this.watcherName,
     this.findingDetected,
@@ -460,6 +484,7 @@ class TransactionModel {
       amountUsdc: parseDouble(json['amount_usdc'], 0),
       serviceName: json['service_name'] ?? '',
       stellarTxHash: json['stellar_tx_hash'] ?? '',
+      txType: json['tx_type'] ?? 'check',
       timestamp: json['timestamp'] ?? '',
       watcherName: json['watcher_name'],
       findingDetected:

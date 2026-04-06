@@ -21,6 +21,10 @@ class WatcherCard extends StatelessWidget {
       case 'products': return '🛍️';
       case 'job':
       case 'jobs': return '💼';
+      case 'stock':
+      case 'stocks': return '📊';
+      case 'realestate': return '🏠';
+      case 'sports': return '⚽';
       default: return '👻';
     }
   }

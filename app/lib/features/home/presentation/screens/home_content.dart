@@ -22,6 +22,8 @@ import 'package:flare_app/features/briefing/presentation/bloc/briefing_event.dar
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_event.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_state.dart';
+import 'package:flare_app/features/home/domain/services/ghost_score_service.dart';
+import 'package:flare_app/features/home/presentation/widgets/ghost_score_card.dart';
 
 class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
@@ -86,9 +88,16 @@ class HomeContent extends StatelessWidget {
                 ),
                 BlocBuilder<WalletBloc, WalletState>(
                   builder: (context, state) {
-                    return AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: _buildWalletCapsule(context, state),
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildLiveButton(context),
+                        const SizedBox(width: 8),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: _buildWalletCapsule(context, state),
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -104,6 +113,39 @@ class HomeContent extends StatelessWidget {
               return AnimatedSwitcher(
                 duration: const Duration(milliseconds: 400),
                 child: _buildBriefingBanner(context, state),
+              );
+            },
+          ),
+
+          // ─── GHOST SCORE ───
+          BlocBuilder<WatchersBloc, WatchersState>(
+            builder: (context, watchersState) {
+              return BlocBuilder<FindingsBloc, FindingsState>(
+                builder: (context, findingsState) {
+                  if (watchersState is WatchersLoaded && findingsState is FindingsLoaded) {
+                    final walletState = context.read<WalletBloc>().state;
+                    double totalSpent = 0;
+                    if (walletState is WalletLoaded) totalSpent = walletState.stats?.totalSpentAllTime ?? 0;
+
+                    final scoreData = GhostScoreService.calculate(
+                      findingsState.findings,
+                      watchersState.watchers,
+                      totalSpent,
+                      3, // Mock streak
+                    );
+
+                    final tier = scoreData['tier'];
+                    return GhostScoreCard(
+                      score: scoreData['score'],
+                      tier: tier['name'],
+                      color: _getTierColor(tier['color']),
+                      icon: tier['icon'],
+                      breakdown: Map<String, double>.from(scoreData['breakdown']),
+                      onTap: () => _showScoreBreakdown(context, scoreData),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
               );
             },
           ),
@@ -137,9 +179,68 @@ class HomeContent extends StatelessWidget {
           // ─── AGENT ACTIVITY INDICATOR ───
           const SizedBox(height: 60),
           const Center(child: AgentActivityIndicator()),
+
+          // ─── SAVINGS FOOTER ───
+          const SizedBox(height: 48),
+          _buildSavingsFooter(context),
           const SizedBox(height: 100), // Extra space for the floating-effect navbar
         ],
       ),
+    );
+  }
+
+  Widget _buildSavingsFooter(BuildContext context) {
+    return BlocBuilder<WalletBloc, WalletState>(
+      builder: (context, state) {
+        double totalSaved = 0;
+        double totalCost = 0;
+        if (state is WalletLoaded) {
+          totalCost = state.stats?.totalSpentAllTime ?? 0;
+          // Simplified ROI: $45 per finding (same as briefing)
+          final findingsState = context.read<FindingsBloc>().state;
+          if (findingsState is FindingsLoaded) {
+            totalSaved = findingsState.findings.length * 45.0;
+          }
+        }
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF10B981).withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.2)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48, height: 48,
+                decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
+                child: const Icon(Icons.show_chart_rounded, color: Colors.white),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('TOTAL SAVINGS (ROI)', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF065F46), letterSpacing: 1.0)),
+                    const SizedBox(height: 4),
+                    Text('\$${totalSaved.toStringAsFixed(0)}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF065F46))),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Text('GHOST COST', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF065F46), letterSpacing: 1.0)),
+                  const SizedBox(height: 4),
+                  Text('\$${totalCost.toStringAsFixed(3)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF065F46))),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -246,12 +347,15 @@ class HomeContent extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${briefing.totalFindings} findings · \$${briefing.totalCostUsdc.toStringAsFixed(2)} overnight',
-                            style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
+                            briefing.generatedSummary ?? '',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w500, height: 1.4),
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Icon(Icons.arrow_forward_ios_rounded, color: Colors.white.withValues(alpha: 0.5), size: 16),
                   ],
                 ),
@@ -280,7 +384,12 @@ class HomeContent extends StatelessWidget {
                 child: WatcherCard(watcher: watchers[index]),
               );
             }
-            return _buildAddButton(context);
+            return Row(
+              children: [
+                _buildAddButton(context),
+                _buildTemplatesButton(context),
+              ],
+            );
           },
         ),
       );
@@ -402,6 +511,181 @@ class HomeContent extends StatelessWidget {
               'Add Watcher',
               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.textSecondary),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTemplatesButton(BuildContext context) {
+    return InkWell(
+      onTap: () => context.push('/watchers/templates'),
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        width: 140,
+        margin: const EdgeInsets.only(right: 16),
+        decoration: BoxDecoration(
+          color: AppTheme.primary.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: AppTheme.primary.withValues(alpha: 0.1)),
+          boxShadow: [
+             BoxShadow(color: AppTheme.primary.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.auto_awesome_rounded, size: 24, color: AppTheme.primary),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Try Templates',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.primary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLiveButton(BuildContext context) {
+    return InkWell(
+      onTap: () => context.push('/payment-stream'),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+               width: 6,
+               height: 6,
+               decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+            const Text(
+              'LIVE',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.red, letterSpacing: 0.5),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getTierColor(String color) {
+    switch (color) {
+      case 'purple': return Colors.purpleAccent;
+      case 'gold': return Colors.amber;
+      case 'blue': return Colors.blueAccent;
+      case 'green': return Colors.greenAccent;
+      default: return Colors.grey;
+    }
+  }
+
+  void _showScoreBreakdown(BuildContext context, Map<String, dynamic> data) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+               child: Container(
+                 width: 40, height: 4,
+                 decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(2)),
+               ),
+            ),
+            const SizedBox(height: 32),
+            Row(
+              children: [
+                Text(data['tier']['icon'], style: const TextStyle(fontSize: 32)),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${data['score']}% Efficiency',
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -1.0),
+                    ),
+                    Text(
+                      'Rank: ${data['tier']['name']}',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: _getTierColor(data['tier']['color'])),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            ... (data['breakdown'] as Map<String, double>).entries.map((e) {
+               return Padding(
+                 padding: const EdgeInsets.only(bottom: 20),
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     Row(
+                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                       children: [
+                         Text(e.key, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                         Text('${(e.value * 100).round()}%', style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.textSecondary)),
+                       ],
+                     ),
+                     const SizedBox(height: 8),
+                     ClipRRect(
+                       borderRadius: BorderRadius.circular(4),
+                       child: LinearProgressIndicator(
+                         value: e.value,
+                         backgroundColor: AppTheme.background,
+                         color: _getTierColor(data['tier']['color']),
+                         minHeight: 6,
+                       ),
+                     ),
+                   ],
+                 ),
+               );
+            }),
+            const SizedBox(height: 12),
+            Container(
+               padding: const EdgeInsets.all(20),
+               decoration: BoxDecoration(
+                 color: AppTheme.background,
+                 borderRadius: BorderRadius.circular(24),
+               ),
+               child: Row(
+                 children: [
+                   const Icon(Icons.lightbulb_outline_rounded, color: Colors.orangeAccent),
+                   const SizedBox(width: 16),
+                   const Expanded(
+                     child: Text(
+                       'Tip: Add a Crypto watcher to improve your Coverage score',
+                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+                     ),
+                   ),
+                 ],
+               ),
+            ),
+            const SizedBox(height: 32),
           ],
         ),
       ),

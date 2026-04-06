@@ -39,3 +39,12 @@ class CompleteOnboarding extends OnboardingEvent {
   @override
   List<Object?> get props => [userId, briefingTime];
 }
+
+class UpdateBriefingTime extends OnboardingEvent {
+  final String userId;
+  final String briefingTime;
+  const UpdateBriefingTime(this.userId, this.briefingTime);
+
+  @override
+  List<Object?> get props => [userId, briefingTime];
+}
