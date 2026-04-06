@@ -20,10 +20,22 @@ Start-Process -NoNewWindow -FilePath "powershell.exe" -ArgumentList "-Command cd
 Write-Host "Starting Job Data Service (3005)..." -ForegroundColor Cyan
 Start-Process -NoNewWindow -FilePath "powershell.exe" -ArgumentList "-Command cd job-data; `$env:PORT=3005; npm run dev"
 
-Write-Host "All 5 Flare Data Services initiated." -ForegroundColor Green
+Write-Host "Starting Finance Data Service (3006)..." -ForegroundColor Cyan
+Start-Process -NoNewWindow -FilePath "powershell.exe" -ArgumentList "-Command cd finance-data; `$env:PORT=3006; npm run dev"
+
+Write-Host "Starting Real Estate Data Service (3007)..." -ForegroundColor Cyan
+Start-Process -NoNewWindow -FilePath "powershell.exe" -ArgumentList "-Command cd realestate-data; `$env:PORT=3007; npm run dev"
+
+Write-Host "Starting Sports & Events Data Service (3008)..." -ForegroundColor Cyan
+Start-Process -NoNewWindow -FilePath "powershell.exe" -ArgumentList "-Command cd sports-data; `$env:PORT=3008; npm run dev"
+
+Write-Host "All 8 Flare Data Services initiated." -ForegroundColor Green
 Write-Host "Health check URLs:"
 Write-Host "http://localhost:3001/health"
 Write-Host "http://localhost:3002/health"
 Write-Host "http://localhost:3003/health"
 Write-Host "http://localhost:3004/health"
 Write-Host "http://localhost:3005/health"
+Write-Host "http://localhost:3006/health"
+Write-Host "http://localhost:3007/health"
+Write-Host "http://localhost:3008/health"
