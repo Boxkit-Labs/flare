@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { stellarPaywall } from '../../../backend/src/middleware/stellar-paywall.js';
-import { getFlightPrice } from './mock-data.js';
+import { getFlightResults } from './mock-data.js';
 
 dotenv.config();
 
@@ -27,13 +27,31 @@ app.post('/api/flights', stellarPaywall({
   usdcContractId: USDC_CONTRACT,
   rpcUrl: SOROBAN_RPC_URL
 }), (req: Request, res: Response) => {
-  const { origin, destination } = req.body;
+  const { 
+    origin, 
+    destination, 
+    cabin, 
+    direct_only, 
+    trip_type, 
+    date_range, 
+    preferred_airlines 
+  } = req.body;
+
   if (!origin || !destination) {
     res.status(400).json({ error: "Missing origin or destination" });
     return;
   }
 
-  const flightData = getFlightPrice(origin.toUpperCase(), destination.toUpperCase());
+  const flightData = getFlightResults({
+    origin,
+    destination,
+    cabin,
+    direct_only,
+    trip_type,
+    date_range,
+    preferred_airlines
+  });
+  
   res.json(flightData);
 });
 
