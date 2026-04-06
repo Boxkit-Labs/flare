@@ -14,6 +14,7 @@ import 'package:flare_app/features/briefing/presentation/screens/briefing_screen
 import 'package:flare_app/features/wallet/presentation/screens/wallet_screen.dart';
 import 'package:flare_app/features/settings/presentation/screens/settings_screen.dart';
 import 'package:flare_app/features/watchers/presentation/screens/watcher_templates_screen.dart';
+import 'package:flare_app/features/wallet/presentation/screens/payment_stream_screen.dart';
 import 'package:flare_app/features/home/presentation/screens/shell_screen.dart';
 
 class AppRouter {
@@ -106,16 +107,18 @@ class AppRouter {
         GoRoute(
           path: '/findings/:id',
           name: 'findingDetail',
-          pageBuilder: (context, state) {
-            final id = state.pathParameters['id']!;
-            return CustomTransitionPage(
-              key: state.pageKey,
-              child: FindingDetailScreen(findingId: id),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-            );
-          },
+          builder: (context, state) => FindingDetailScreen(findingId: state.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/payment-stream',
+          name: 'paymentStream',
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: const PaymentStreamScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
         ),
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) => ShellScreen(navigationShell: navigationShell),

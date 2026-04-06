@@ -14,6 +14,10 @@ import 'package:flare_app/features/wallet/presentation/bloc/wallet_state.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flare_app/features/wallet/domain/services/savings_service.dart';
+import 'package:flare_app/features/wallet/presentation/widgets/spending_heatmap.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_bloc.dart';
+import 'package:flare_app/features/findings/presentation/bloc/findings_state.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});
@@ -97,8 +101,10 @@ class _WalletScreenState extends State<WalletScreen> {
             const SizedBox(height: 32),
             _buildWatcherBreakdown(state.stats),
             const SizedBox(height: 32),
-            _buildSavingsBanner(state.stats),
-            const SizedBox(height: 48),
+            _buildSavingsDashboard(context, state),
+            const SizedBox(height: 32),
+            _buildHeatmap(context, state),
+            const SizedBox(height: 32),
             _buildTransactionHistory(state.transactions),
             const SizedBox(height: 100),
           ],
@@ -449,88 +455,7 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  Widget _buildSavingsBanner(SpendingStatsModel? stats) {
-    final flareMonthly = 0.85; 
-    final totalSavings = 57.15;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-           BoxShadow(color: AppTheme.primary.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Efficiency Analysis',
-                style: TextStyle(
-                  color: Colors.white60,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.0,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(8)),
-                child: const Text(
-                  'UNLIMITED AGENTS',
-                  style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Operational Savings',
-            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Flare this month: \$$flareMonthly',
-            style: const TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.w600),
-          ),
-          Text(
-            "Traditional subscriptions: ~\$58.00/mo",
-            style: const TextStyle(color: Colors.white38, fontSize: 13, fontWeight: FontWeight.w500),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              const Icon(Icons.trending_up, color: Colors.greenAccent, size: 28),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '\$$totalSavings Saved',
-                    style: const TextStyle(
-                      color: Colors.greenAccent,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const Text(
-                    'Compared to single-purpose tools',
-                    style: TextStyle(color: Colors.white38, fontSize: 10, fontWeight: FontWeight.w600),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildTransactionHistory(List<TransactionModel>? transactions) {
     return Column(
@@ -734,6 +659,183 @@ class _WalletScreenState extends State<WalletScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildSavingsDashboard(BuildContext context, WalletLoaded state) {
+    return BlocBuilder<FindingsBloc, FindingsState>(
+      builder: (context, findingsState) {
+        if (findingsState is FindingsLoaded) {
+          final savings = SavingsService.calculateTotalSavings(findingsState.findings);
+          final totalS = savings['total'] ?? 0.0;
+          final totalSpent = state.stats?.totalSpentAllTime ?? 0.0;
+          final roi = SavingsService.calculateROI(totalS, totalSpent);
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Financial Performance',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF10B981), Color(0xFF059669)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(32),
+                  boxShadow: [
+                    BoxShadow(color: const Color(0xFF10B981).withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 10)),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('TOTAL SAVED BY GHOST', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
+                    const SizedBox(height: 12),
+                    Text(
+                      '\$${totalS.toStringAsFixed(2)}',
+                      style: const TextStyle(color: Colors.white, fontSize: 44, fontWeight: FontWeight.w900, letterSpacing: -2.0),
+                    ),
+                    const SizedBox(height: 24),
+                    const Divider(color: Colors.white24),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildRatioItem('Total Spent', '\$${totalSpent.toStringAsFixed(2)}'),
+                        _buildRatioItem('ROI', 'x${roi.round()}'),
+                        _buildRatioItem('Time Saved', '${(state.stats?.totalChecksToday ?? 0) * 2}min'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildCategorySavings(savings['byCategory']),
+            ],
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildRatioItem(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+      ],
+    );
+  }
+
+  Widget _buildCategorySavings(Map<String, double> categories) {
+    if (categories.isEmpty) return const SizedBox.shrink();
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: categories.entries.map((e) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_getCategoryEmoji(e.key), style: const TextStyle(fontSize: 14)),
+              const SizedBox(width: 8),
+              Text(
+                '\$${e.value.round()}',
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  String _getCategoryEmoji(String type) {
+    switch (type.toLowerCase()) {
+      case 'flights': return '✈️';
+      case 'products': return '🛍️';
+      case 'crypto': return '💰';
+      case 'sports': return '⚽';
+      default: return '✨';
+    }
+  }
+
+  Widget _buildHeatmap(BuildContext context, WalletLoaded state) {
+    return SpendingHeatmap(
+      dailySpending: state.stats?.dailySpending ?? [],
+      onDayTap: (day) => _showDayDetail(context, day),
+    );
+  }
+
+  void _showDayDetail(BuildContext context, Map<String, dynamic> day) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+               child: Container(
+                 width: 40, height: 4,
+                 decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(2)),
+               ),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              DateFormat('MMMM d, yyyy').format(DateTime.parse(day['date'])),
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: -0.8),
+            ),
+            const SizedBox(height: 32),
+            _buildDetailRowItem('TOTAL SPENT', '\$${(day['amount'] ?? 0.0).toStringAsFixed(3)} USDC'),
+            _buildDetailRowItem('FINDINGS DETECTED', '${day['findings'] ?? 0} FINDINGS', isHighlighted: (day['findings'] ?? 0) > 0),
+            _buildDetailRowItem('ACTIVITY LEVEL', (day['amount'] ?? 0) > 0.05 ? 'HIGH' : 'MODERATE'),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRowItem(String label, String value, {bool isHighlighted = false}) {
+     return Padding(
+       padding: const EdgeInsets.symmetric(vertical: 10),
+       child: Row(
+         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+         children: [
+           Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+           Text(
+             value,
+             style: TextStyle(
+               fontWeight: FontWeight.w900, 
+               fontSize: 14,
+               color: isHighlighted ? AppTheme.primary : AppTheme.textPrimary,
+             ),
+           ),
+         ],
+       ),
+     );
   }
 }
 

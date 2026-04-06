@@ -22,6 +22,8 @@ import 'package:flare_app/features/briefing/presentation/bloc/briefing_event.dar
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_event.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_state.dart';
+import 'package:flare_app/features/home/domain/services/ghost_score_service.dart';
+import 'package:flare_app/features/home/presentation/widgets/ghost_score_card.dart';
 
 class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
@@ -86,9 +88,16 @@ class HomeContent extends StatelessWidget {
                 ),
                 BlocBuilder<WalletBloc, WalletState>(
                   builder: (context, state) {
-                    return AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child: _buildWalletCapsule(context, state),
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildLiveButton(context),
+                        const SizedBox(width: 8),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: _buildWalletCapsule(context, state),
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -104,6 +113,39 @@ class HomeContent extends StatelessWidget {
               return AnimatedSwitcher(
                 duration: const Duration(milliseconds: 400),
                 child: _buildBriefingBanner(context, state),
+              );
+            },
+          ),
+
+          // ─── GHOST SCORE ───
+          BlocBuilder<WatchersBloc, WatchersState>(
+            builder: (context, watchersState) {
+              return BlocBuilder<FindingsBloc, FindingsState>(
+                builder: (context, findingsState) {
+                  if (watchersState is WatchersLoaded && findingsState is FindingsLoaded) {
+                    final walletState = context.read<WalletBloc>().state;
+                    double totalSpent = 0;
+                    if (walletState is WalletLoaded) totalSpent = walletState.stats?.totalSpentAllTime ?? 0;
+
+                    final scoreData = GhostScoreService.calculate(
+                      findingsState.findings,
+                      watchersState.watchers,
+                      totalSpent,
+                      3, // Mock streak
+                    );
+
+                    final tier = scoreData['tier'];
+                    return GhostScoreCard(
+                      score: scoreData['score'],
+                      tier: tier['name'],
+                      color: _getTierColor(tier['color']),
+                      icon: tier['icon'],
+                      breakdown: Map<String, double>.from(scoreData['breakdown']),
+                      onTap: () => _showScoreBreakdown(context, scoreData),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
               );
             },
           ),
@@ -446,6 +488,142 @@ class HomeContent extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.primary),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLiveButton(BuildContext context) {
+    return InkWell(
+      onTap: () => context.push('/payment-stream'),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+               width: 6,
+               height: 6,
+               decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+            const Text(
+              'LIVE',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.red, letterSpacing: 0.5),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _getTierColor(String color) {
+    switch (color) {
+      case 'purple': return Colors.purpleAccent;
+      case 'gold': return Colors.amber;
+      case 'blue': return Colors.blueAccent;
+      case 'green': return Colors.greenAccent;
+      default: return Colors.grey;
+    }
+  }
+
+  void _showScoreBreakdown(BuildContext context, Map<String, dynamic> data) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(32),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+               child: Container(
+                 width: 40, height: 4,
+                 decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(2)),
+               ),
+            ),
+            const SizedBox(height: 32),
+            Row(
+              children: [
+                Text(data['tier']['icon'], style: const TextStyle(fontSize: 32)),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${data['score']}% Efficiency',
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -1.0),
+                    ),
+                    Text(
+                      'Rank: ${data['tier']['name']}',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: _getTierColor(data['tier']['color'])),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            ... (data['breakdown'] as Map<String, double>).entries.map((e) {
+               return Padding(
+                 padding: const EdgeInsets.only(bottom: 20),
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     Row(
+                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                       children: [
+                         Text(e.key, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                         Text('${(e.value * 100).round()}%', style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.textSecondary)),
+                       ],
+                     ),
+                     const SizedBox(height: 8),
+                     ClipRRect(
+                       borderRadius: BorderRadius.circular(4),
+                       child: LinearProgressIndicator(
+                         value: e.value,
+                         backgroundColor: AppTheme.background,
+                         color: _getTierColor(data['tier']['color']),
+                         minHeight: 6,
+                       ),
+                     ),
+                   ],
+                 ),
+               );
+            }),
+            const SizedBox(height: 12),
+            Container(
+               padding: const EdgeInsets.all(20),
+               decoration: BoxDecoration(
+                 color: AppTheme.background,
+                 borderRadius: BorderRadius.circular(24),
+               ),
+               child: Row(
+                 children: [
+                   const Icon(Icons.lightbulb_outline_rounded, color: Colors.orangeAccent),
+                   const SizedBox(width: 16),
+                   const Expanded(
+                     child: Text(
+                       'Tip: Add a Crypto watcher to improve your Coverage score',
+                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+                     ),
+                   ),
+                 ],
+               ),
+            ),
+            const SizedBox(height: 32),
           ],
         ),
       ),
