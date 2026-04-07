@@ -181,7 +181,7 @@ export class NotificationService {
             },
             android: {
                 notification: {
-                    channel_id: "ghost_budget"
+                    channel_id: "flare_budget"
                 }
             },
             data: {

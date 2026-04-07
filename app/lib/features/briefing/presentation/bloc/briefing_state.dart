@@ -15,10 +15,16 @@ class BriefingLoading extends BriefingState {}
 class BriefingLoaded extends BriefingState {
   final BriefingModel? todayBriefing;
   final List<BriefingModel> history;
-  const BriefingLoaded({this.todayBriefing, this.history = const []});
+  final Map<String, BriefingModel?> briefingsByDate;
+  
+  const BriefingLoaded({
+    this.todayBriefing, 
+    this.history = const [],
+    this.briefingsByDate = const {},
+  });
 
   @override
-  List<Object?> get props => [todayBriefing, history];
+  List<Object?> get props => [todayBriefing, history, briefingsByDate];
 }
 
 class BriefingError extends BriefingState {

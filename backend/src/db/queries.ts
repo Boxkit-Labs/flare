@@ -255,6 +255,16 @@ export const getTodayBriefing = async (userId: string) => {
     return row;
 };
 
+export const getBriefingByDate = async (userId: string, date: string) => {
+    const res = await pool.query('SELECT * FROM briefings WHERE user_id = $1 AND date = $2', [userId, date]);
+    const row = res.rows[0];
+    if (row) {
+      if (typeof row.findings_json === 'string') row.findings_json = JSON.parse(row.findings_json);
+      if (typeof row.watcher_summaries_json === 'string') row.watcher_summaries_json = JSON.parse(row.watcher_summaries_json);
+    }
+    return row;
+};
+
 // --- TRANSACTION QUERIES ---
 
 export const createTransaction = async (tx: any) => {

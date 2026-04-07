@@ -40,3 +40,13 @@ class MarkBriefingRead extends BriefingEvent {
   @override
   List<Object?> get props => [briefingId];
 }
+
+class LoadBriefingByDate extends BriefingEvent {
+  final String userId;
+  final DateTime date;
+  
+  const LoadBriefingByDate(this.userId, this.date);
+
+  @override
+  List<Object?> get props => [userId, date];
+}
