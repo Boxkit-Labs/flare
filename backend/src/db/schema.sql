@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
   dnd_start TEXT DEFAULT '23:00',
   dnd_end TEXT DEFAULT '07:00',
   global_daily_cap REAL,
+  ghost_score INTEGER DEFAULT 0,
+  ghost_rank TEXT DEFAULT 'Novice',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -98,7 +98,7 @@ export class NotificationService {
             },
             android: {
                 notification: {
-                    channel_id: "ghost_findings",
+                    channel_id: "flare_findings",
                     priority: "high" as const
                 }
             },
@@ -123,7 +123,7 @@ export class NotificationService {
             },
             android: {
                 notification: {
-                    channel_id: "ghost_briefings"
+                    channel_id: "flare_briefings"
                 }
             },
             data: {
@@ -144,7 +144,7 @@ export class NotificationService {
             },
             android: {
                 notification: {
-                    channel_id: "ghost_budget"
+                    channel_id: "flare_budget"
                 }
             },
             data: {
@@ -196,12 +196,12 @@ export class NotificationService {
     async sendWeeklySummary(userId: string, stats: any): Promise<void> {
         const message = {
             notification: {
-                title: "👻 Weekly Ghost Report",
+                title: "🔥 Weekly Flare Report",
                 body: `Score: ${stats.score}. Saved: $${stats.saved}. Cost: $${stats.cost}. ${stats.txCount} Stellar transactions.`
             },
             android: {
                 notification: {
-                    channel_id: "ghost_weekly"
+                    channel_id: "flare_weekly"
                 }
             },
             data: {

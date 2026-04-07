@@ -8,12 +8,12 @@ class BriefingBloc extends Bloc<BriefingEvent, BriefingState> {
 
   BriefingBloc(this.apiService) : super(BriefingInitial()) {
     on<LoadTodayBriefing>((event, emit) async {
-      emit(BriefingLoading());
+      if (!event.isRefresh) emit(BriefingLoading());
       try {
         final today = await apiService.getTodayBriefing(event.userId);
         emit(BriefingLoaded(todayBriefing: today));
       } catch (e) {
-        emit(BriefingError(e.toString()));
+        if (!event.isRefresh) emit(BriefingError(e.toString()));
       }
     });
 

@@ -36,6 +36,7 @@ class _JobWatcherFormState extends State<JobWatcherForm> {
     _nameController.addListener(_updateData);
     _locationController.addListener(_updateData);
     _salaryController.addListener(_updateData);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateData());
   }
 
   void _updateData() {

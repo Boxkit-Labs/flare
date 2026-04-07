@@ -30,7 +30,7 @@ class _RealEstateWatcherFormState extends State<RealEstateWatcherForm> {
       _cityController.text = 'Austin, TX';
       _maxPriceController.text = '500000';
     }
-    _updateData();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateData());
   }
 
   void _updateData() {

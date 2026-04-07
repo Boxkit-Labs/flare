@@ -29,7 +29,7 @@ class _SportsWatcherFormState extends State<SportsWatcherForm> {
       _maxPriceController.text = '200';
       _cityController.text = 'San Francisco, CA';
     }
-    _updateData();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateData());
   }
 
   void _updateData() {

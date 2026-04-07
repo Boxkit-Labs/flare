@@ -40,6 +40,7 @@ class _FlightWatcherFormState extends State<FlightWatcherForm> {
     _destinationController.addListener(_updateData);
     _priceController.addListener(_updateData);
     _nameController.addListener(_updateNameManually);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateData());
   }
 
   bool _isManualName = false;

@@ -37,15 +37,17 @@ async function seed() {
 
     // 1. Create Demo User
     db.prepare(`
-        INSERT INTO users (user_id, device_id, stellar_public_key, stellar_secret_key_encrypted, briefing_time, timezone)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO users (user_id, device_id, stellar_public_key, stellar_secret_key_encrypted, briefing_time, timezone, ghost_score, ghost_rank)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
         DEMO_USER_ID, 
         DEMO_DEVICE_ID, 
         'GDEMO' + randomBytes(24).toString('hex').toUpperCase().substring(0, 51),
         'SDEMO_ENCRYPTED_SECRET',
         '08:00',
-        'UTC'
+        'UTC',
+        87,
+        'Agent Pro'
     );
     console.log('Demo user created.');
 
@@ -55,288 +57,173 @@ async function seed() {
 
     const now = new Date();
 
-    // --- Watcher 1: Tokyo Flights ---
-    const watcher1Id = 'watcher-tokyo';
-    const w1CreateDate = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
-    db.prepare(`
-        INSERT INTO watchers (watcher_id, user_id, name, type, parameters, alert_conditions, check_interval_minutes, weekly_budget_usdc, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-        watcher1Id, DEMO_USER_ID, 'Tokyo Flights', 'flight',
-        JSON.stringify({ from: 'SFO', to: 'HND' }),
-        JSON.stringify({ price_below: 800 }),
-        360, 5.0, 'active', w1CreateDate.toISOString()
-    );
-
-    const prices = [1247, 1230, 1198, 1210, 1189, 1195, 1150, 1120, 1089, 1050, 1020, 950, 920, 870, 890, 860, 840, 820, 810, 789];
-    for (let i = 0; i < prices.length; i++) {
+    function addCheck(watcherId: string, service: string, payload: any, response: any, cost: number, time: Date, reasoning: string, isFinding: boolean = false) {
         const checkId = randomUUID();
-        const checkTime = new Date(w1CreateDate.getTime() + i * 6 * 60 * 60 * 1000);
-        const cost = 0.008;
-        const isFinding = i === prices.length - 1; // Last one is finding
         const txHash = generateStellarHash();
 
         db.prepare(`
             INSERT INTO checks (check_id, watcher_id, user_id, service_name, request_payload, response_data, cost_usdc, stellar_tx_hash, finding_detected, agent_reasoning, checked_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
-            checkId, watcher1Id, DEMO_USER_ID, 'FlightService',
-            JSON.stringify({}), JSON.stringify({ price: prices[i] }),
-            cost, txHash, isFinding ? 1 : 0, 
-            `Analyzing flight prices for SFO -> HND. Current price: $${prices[i]}. ${isFinding ? 'Target threshold $800 reached!' : 'Waiting for further drops.'}`, 
-            checkTime.toISOString()
+            checkId, watcherId, DEMO_USER_ID, service,
+            JSON.stringify(payload), JSON.stringify(response),
+            cost, txHash, isFinding ? 1 : 0, reasoning, time.toISOString()
         );
 
         db.prepare(`
             INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(randomUUID(), DEMO_USER_ID, watcher1Id, checkId, cost, 'FlightService', txHash, 'check', checkTime.toISOString());
-
-        if (isFinding) {
-            const findingId = randomUUID();
-            const verifyHash = generateStellarHash();
-            const collabHash = generateStellarHash();
-            
-            db.prepare(`
-                INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, cost_usdc, stellar_tx_hash, verified, verification_tx_hash, collaboration_result, confidence_score, confidence_tier, found_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(
-                findingId, watcher1Id, checkId, DEMO_USER_ID, 'flight',
-                'Tokyo Flight: $789 ✈️', `Price found at $789 which is significantly below your $800 threshold.`,
-                JSON.stringify({ price: 789, previous_price: 810 }), 0.024, txHash, 
-                1, verifyHash, 
-                JSON.stringify({ 
-                    triggered_service: 'news', 
-                    safe: true, 
-                    result_summary: 'No travel advisories found for Tokyo.', 
-                    tx_hash: collabHash 
-                }),
-                96, 'Very High',
-                checkTime.toISOString()
-            );
-
-            // Add the verification and collaboration transactions to the audit log
-            db.prepare(`
-                INSERT INTO transactions (tx_id, user_id, watcher_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(randomUUID(), DEMO_USER_ID, watcher1Id, 0.008, 'FlightService/Verify', verifyHash, 'verification', checkTime.toISOString());
-
-            db.prepare(`
-                INSERT INTO transactions (tx_id, user_id, watcher_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(randomUUID(), DEMO_USER_ID, watcher1Id, 0.008, 'NewsService/Collab', collabHash, 'collaboration', checkTime.toISOString());
-            totalFindings++;
-        }
+        `).run(randomUUID(), DEMO_USER_ID, watcherId, checkId, cost, service, txHash, 'check', time.toISOString());
 
         totalSpent += cost;
         totalChecks++;
+        return { checkId, txHash };
     }
-    console.log('- Tokyo Flights seeded (20 checks, 1 finding)');
 
-    // --- Watcher 2: Crypto Watch ---
-    const watcher2Id = 'watcher-crypto';
-    const w2CreateDate = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
-    db.prepare(`
-        INSERT INTO watchers (watcher_id, user_id, name, type, parameters, alert_conditions, check_interval_minutes, weekly_budget_usdc, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-        watcher2Id, DEMO_USER_ID, 'Crypto Watch', 'crypto',
-        JSON.stringify({ assets: ['ETH', 'XLM'] }),
-        JSON.stringify({ eth_spike: 5 }),
-        60, 10.0, 'active', w2CreateDate.toISOString()
-    );
+    function addFinding(watcherId: string, checkId: string, txHash: string, type: string, headline: string, detail: string, data: any, cost: number, time: Date, confidence: number, tier: string, verified: boolean = true, collab: any = null) {
+        const findingId = randomUUID();
+        const verifyHash = verified ? generateStellarHash() : null;
+        
+        db.prepare(`
+            INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, cost_usdc, stellar_tx_hash, verified, verification_tx_hash, collaboration_result, confidence_score, confidence_tier, found_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            findingId, watcherId, checkId, DEMO_USER_ID, type,
+            headline, detail, JSON.stringify(data), cost, txHash, 
+            verified ? 1 : 0, verifyHash, collab ? JSON.stringify(collab) : null,
+            confidence, tier, time.toISOString()
+        );
 
+        if (verified) {
+            db.prepare(`
+                INSERT INTO transactions (tx_id, user_id, watcher_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(randomUUID(), DEMO_USER_ID, watcherId, 0.008, 'Security/Verify', verifyHash, 'verification', time.toISOString());
+            totalSpent += 0.008;
+        }
+
+        if (collab) {
+            db.prepare(`
+                INSERT INTO transactions (tx_id, user_id, watcher_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(randomUUID(), DEMO_USER_ID, watcherId, 0.008, 'Broker/Collab', collab.tx_hash, 'collaboration', time.toISOString());
+            totalSpent += 0.008;
+        }
+
+        totalFindings++;
+        return findingId;
+    }
+
+    // --- 1. TOKYO FLIGHTS (ANA) ---
+    const w1Id = 'watcher-tokyo';
+    const w1Date = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
+    db.prepare(`INSERT INTO watchers (watcher_id, user_id, name, type, parameters, alert_conditions, check_interval_minutes, weekly_budget_usdc, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(w1Id, DEMO_USER_ID, 'Tokyo Flights (ANA)', 'flight', JSON.stringify({to:'HND'}), JSON.stringify({price:800}), 360, 5.0, 'active', w1Date.toISOString());
+    for (let i = 0; i < 20; i++) {
+        const time = new Date(w1Date.getTime() + i * 6 * 60 * 60 * 1000);
+        const price = 1200 - i * 21;
+        const isF = i === 19;
+        const { checkId, txHash } = addCheck(w1Id, 'FlightService', {}, {price}, 0.008, time, `Analyzing SFO-HND price. Current: \$${price}. Threshold: \$800.`, isF);
+        if (isF) addFinding(w1Id, checkId, txHash, 'flight', 'Tokyo Flight: $789 ✈️', 'Price hit target of $800. Seat availability: 4.', {price:789, savings:410}, 0.024, time, 94, 'Very High', true, {triggered_service:'news', safe:true, result_summary:'No travel advisories.', tx_hash: generateStellarHash()});
+    }
+
+    // --- 2. CRYPTO PORTFOLIO ---
+    const w2Id = 'watcher-crypto';
+    const w2Date = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    db.prepare(`INSERT INTO watchers (watcher_id, user_id, name, type, parameters, alert_conditions, check_interval_minutes, weekly_budget_usdc, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(w2Id, DEMO_USER_ID, 'My Portfolio', 'crypto', JSON.stringify({assets:['ETH','XLM']}), JSON.stringify({value:50000}), 60, 10.0, 'active', w2Date.toISOString());
     for (let i = 0; i < 72; i++) {
-        const checkId = randomUUID();
-        const checkTime = new Date(w2CreateDate.getTime() + i * 1 * 60 * 60 * 1000);
-        const cost = 0.003;
-        const ethPrice = 3100 + Math.random() * 200;
-        const xlmPrice = 0.13 + Math.random() * 0.02;
-        const isFinding = i === 45; // Arbitrary finding at hour 45
-        if (isFinding) totalFindings++;
-        const txHash = generateStellarHash();
-
-        db.prepare(`
-            INSERT INTO checks (check_id, watcher_id, user_id, service_name, request_payload, response_data, cost_usdc, stellar_tx_hash, finding_detected, agent_reasoning, checked_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-            checkId, watcher2Id, DEMO_USER_ID, 'CryptoService',
-            JSON.stringify({}), JSON.stringify({ eth: isFinding ? 3500 : ethPrice, xlm: xlmPrice }),
-            cost, txHash, isFinding ? 1 : 0, 
-            `Monitoring ETH and XLM. Prices stable. ${isFinding ? 'ETH Spiked!' : ''}`, 
-            checkTime.toISOString()
-        );
-
-        db.prepare(`
-            INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(randomUUID(), DEMO_USER_ID, watcher2Id, checkId, cost, 'CryptoService', txHash, 'check', checkTime.toISOString());
-
-        if (isFinding) {
-            const verifyHash = generateStellarHash();
-            db.prepare(`
-                INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, cost_usdc, stellar_tx_hash, verified, verification_tx_hash, confidence_score, confidence_tier, found_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(
-                randomUUID(), watcher2Id, checkId, DEMO_USER_ID, 'crypto',
-                'ETH Volatility Alert 🪙', 'ETH price spiked 12% in the last hour.',
-                JSON.stringify({ price: 3500, previous_price: 3120 }), 0.016, txHash, 
-                1, verifyHash, 
-                88, 'High',
-                checkTime.toISOString()
-            );
-
-            db.prepare(`
-                INSERT INTO transactions (tx_id, user_id, watcher_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(randomUUID(), DEMO_USER_ID, watcher2Id, 0.008, 'CryptoService/Verify', verifyHash, 'verification', checkTime.toISOString());
-        }
-
-        totalSpent += cost;
-        totalChecks++;
+        const time = new Date(w2Date.getTime() + i * 1 * 60 * 60 * 1000);
+        const val = 42000 + i * 112;
+        const isF = i === 71;
+        const { checkId, txHash } = addCheck(w2Id, 'CryptoService', {}, {value:val}, 0.003, time, `Portfolio value: \$${val}. Goal: \$50,000.`, isF);
+        if (isF) addFinding(w2Id, checkId, txHash, 'crypto', 'Portfolio Milestone: $50K! 🪙', 'Your tracked assets crossed the target valuation.', {value:50120, savings:0}, 0.016, time, 82, 'High');
     }
-    console.log('- Crypto Watch seeded (72 checks, 1 finding)');
 
-    // --- Watcher 3: Stellar News ---
-    const watcher3Id = 'watcher-news';
-    const w3CreateDate = new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000);
-    db.prepare(`
-        INSERT INTO watchers (watcher_id, user_id, name, type, parameters, alert_conditions, check_interval_minutes, weekly_budget_usdc, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-        watcher3Id, DEMO_USER_ID, 'Stellar News', 'news',
-        JSON.stringify({ keywords: ['stellar', 'soroban'] }),
-        JSON.stringify({ new_articles: 1 }),
-        720, 2.0, 'active', w3CreateDate.toISOString()
-    );
-
+    // --- 3. STELLAR NEWS ---
+    const w3Id = 'watcher-news';
+    const w3Date = new Date(now.getTime() - 4 * 24 * 60 * 60 * 1000);
+    db.prepare(`INSERT INTO watchers (watcher_id, user_id, name, type, parameters, alert_conditions, check_interval_minutes, weekly_budget_usdc, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(w3Id, DEMO_USER_ID, 'Stellar News', 'news', JSON.stringify({q:'SDF funding'}), JSON.stringify({count:1}), 720, 2.0, 'active', w3Date.toISOString());
     for (let i = 0; i < 8; i++) {
-        const checkId = randomUUID();
-        const checkTime = new Date(w3CreateDate.getTime() + i * 12 * 60 * 60 * 1000);
-        const cost = 0.005;
-        const isFinding = i === 6;
-        if (isFinding) totalFindings++;
-        const txHash = generateStellarHash();
-
-        db.prepare(`
-            INSERT INTO checks (check_id, watcher_id, user_id, service_name, request_payload, response_data, cost_usdc, stellar_tx_hash, finding_detected, agent_reasoning, checked_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-            checkId, watcher3Id, DEMO_USER_ID, 'NewsService',
-            JSON.stringify({}), JSON.stringify({ count: isFinding ? 3 : 0 }),
-            cost, txHash, isFinding ? 1 : 0, 
-            `Scanned news for "stellar, soroban". ${isFinding ? 'Found 3 new articles.' : 'No new relevant articles.'}`, 
-            checkTime.toISOString()
-        );
-
-        db.prepare(`
-            INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(randomUUID(), DEMO_USER_ID, watcher3Id, checkId, cost, 'NewsService', txHash, 'check', checkTime.toISOString());
-
-        if (isFinding) {
-            db.prepare(`
-                INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, cost_usdc, stellar_tx_hash, verified, confidence_score, confidence_tier, found_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(
-                randomUUID(), watcher3Id, checkId, DEMO_USER_ID, 'news',
-                'Stellar Soroban SDK Update 📰', 'Major release 2.0 announced with massive performance gains.',
-                JSON.stringify({ articles: 3 }), 0.008, txHash, 0, 72, 'Moderate', checkTime.toISOString()
-            );
-        }
-
-        totalSpent += cost;
-        totalChecks++;
+        const time = new Date(w3Date.getTime() + i * 12 * 60 * 60 * 1000);
+        const isF = i === 7;
+        const { checkId, txHash } = addCheck(w3Id, 'NewsService', {}, {count:isF?3:0}, 0.005, time, `Scanning sources for "SDF funding". Found: ${isF?3:0}.`, isF);
+        if (isF) addFinding(w3Id, checkId, txHash, 'news', 'SDF Funding Boost 📰', '3 new articles published. Positive sentiment (0.85).', {sentiment: 0.85, articles: 3}, 0.008, time, 72, 'Moderate', false);
     }
-    console.log('- Stellar News seeded (8 checks, 1 finding)');
 
-    // --- Watcher 4: Job Search ---
-    const watcher4Id = 'watcher-jobs';
-    const w4CreateDate = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
-    db.prepare(`
-        INSERT INTO watchers (watcher_id, user_id, name, type, parameters, alert_conditions, check_interval_minutes, weekly_budget_usdc, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-        watcher4Id, DEMO_USER_ID, 'Job Search', 'job',
-        JSON.stringify({ keywords: ['flutter developer', 'remote'] }),
-        JSON.stringify({ new_jobs: 1 }),
-        1440, 1.0, 'active', w4CreateDate.toISOString()
-    );
-
-    for (let i = 0; i < 2; i++) {
-        const checkId = randomUUID();
-        const checkTime = new Date(w4CreateDate.getTime() + i * 24 * 60 * 60 * 1000);
-        const cost = 0.007;
-        const isFinding = i === 1;
-        if (isFinding) totalFindings++;
-        const txHash = generateStellarHash();
-
-        db.prepare(`
-            INSERT INTO checks (check_id, watcher_id, user_id, service_name, request_payload, response_data, cost_usdc, stellar_tx_hash, finding_detected, agent_reasoning, checked_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-            checkId, watcher4Id, DEMO_USER_ID, 'JobService',
-            JSON.stringify({}), JSON.stringify({ jobs: isFinding ? 2 : 0 }),
-            cost, txHash, isFinding ? 1 : 0, 
-            `Checking for remote Flutter jobs. ${isFinding ? '2 matching jobs found.' : 'Search returned 0 new results.'}`, 
-            checkTime.toISOString()
-        );
-
-        db.prepare(`
-            INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, tx_type, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(randomUUID(), DEMO_USER_ID, watcher4Id, checkId, cost, 'JobService', txHash, 'check', checkTime.toISOString());
-
-        if (isFinding) {
-            db.prepare(`
-                INSERT INTO findings (finding_id, watcher_id, check_id, user_id, type, headline, detail, data, cost_usdc, stellar_tx_hash, verified, confidence_score, confidence_tier, found_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(
-                randomUUID(), watcher4Id, checkId, DEMO_USER_ID, 'job',
-                'Flutter Developer @ Boxkit 💼', 'High-priority remote role matching your profile.',
-                JSON.stringify({ jobs: 2 }), 0.008, txHash, 0, 68, 'Moderate', checkTime.toISOString()
-            );
-        }
-
-        totalSpent += cost;
-        totalChecks++;
+    // --- 4. AIRPODS DEAL ---
+    const w4Id = 'watcher-product';
+    const w4Date = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+    db.prepare(`INSERT INTO watchers (watcher_id, user_id, name, type, parameters, alert_conditions, check_interval_minutes, weekly_budget_usdc, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(w4Id, DEMO_USER_ID, 'AirPods Deal', 'product', JSON.stringify({q:'AirPods Pro'}), JSON.stringify({price:200}), 480, 3.0, 'active', w4Date.toISOString());
+    for (let i = 0; i < 12; i++) {
+        const time = new Date(w4Date.getTime() + i * 8 * 60 * 60 * 1000);
+        const price = i < 11 ? 249 : 189;
+        const isF = i === 11;
+        const { checkId, txHash } = addCheck(w4Id, 'ProductService', {}, {price}, 0.006, time, `Price at Amazon: \$${price}. Checking Best Buy and Walmart...`, isF);
+        if (isF) addFinding(w4Id, checkId, txHash, 'product', 'AirPods Pro: $189 (Low) 📱', 'Lowest price in 6 months. Confirmed at 3 stores.', {price:189, savings:60}, 0.024, time, 91, 'Very High', true, {tx_hash: generateStellarHash(), result_summary: 'Verified at Amazon ($189), BB ($190), Walmart ($189).'});
     }
-    console.log('- Job Search seeded (2 checks, 1 finding)');
 
-    // 5. Update Watcher Totals in DB
-    db.prepare('UPDATE watchers SET total_checks = 20, total_findings = 1, total_spent_usdc = 20 * 0.008 WHERE watcher_id = ?').run(watcher1Id);
-    db.prepare('UPDATE watchers SET total_checks = 72, total_findings = 1, total_spent_usdc = 72 * 0.003 WHERE watcher_id = ?').run(watcher2Id);
-    db.prepare('UPDATE watchers SET total_checks = 8, total_findings = 1, total_spent_usdc = 8 * 0.005 WHERE watcher_id = ?').run(watcher3Id);
-    db.prepare('UPDATE watchers SET total_checks = 2, total_findings = 1, total_spent_usdc = 2 * 0.007 WHERE watcher_id = ?').run(watcher4Id);
+    // --- 5. REMOTE FLUTTER JOBS ---
+    const w5Id = 'watcher-jobs';
+    const w5Date = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
+    db.prepare(`INSERT INTO watchers (watcher_id, user_id, name, type, parameters, alert_conditions, check_interval_minutes, weekly_budget_usdc, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(w5Id, DEMO_USER_ID, 'Remote Flutter Jobs', 'job', JSON.stringify({q:'Flutter'}), JSON.stringify({salary:200000}), 360, 2.0, 'active', w5Date.toISOString());
+    for (let i = 0; i < 4; i++) {
+        const time = new Date(w5Date.getTime() + i * 6 * 60 * 60 * 1000);
+        const isF = i === 3;
+        const { checkId, txHash } = addCheck(w5Id, 'JobService', {}, {count:isF?3:0}, 0.007, time, `Scraping Indeed and LinkedIn for senior roles. Match: ${isF?'YES':'NO'}.`, isF);
+        if (isF) addFinding(w5Id, checkId, txHash, 'job', 'Google Flutter Role $220K 💼', 'Found 3 new listings. Google remote position is high match.', {salary:220000, match:0.95}, 0.008, time, 68, 'Moderate', false);
+    }
 
-    // 6. Create Morning Briefing for Today
-    const briefingId = randomUUID();
+    // --- 6. TECH PORTFOLIO (STOCK) ---
+    const w6Id = 'watcher-stock';
+    const w6Date = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+    db.prepare(`INSERT INTO watchers (watcher_id, user_id, name, type, parameters, alert_conditions, check_interval_minutes, weekly_budget_usdc, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(w6Id, DEMO_USER_ID, 'Tech Portfolio', 'stock', JSON.stringify({symbols:['AAPL','NVDA']}), JSON.stringify({nvda_spike:500}), 180, 4.0, 'active', w6Date.toISOString());
+    for (let i = 0; i < 24; i++) {
+        const time = new Date(w6Date.getTime() + i * 3 * 60 * 60 * 1000);
+        const nvda = 450 + i * 2.5;
+        const isF = i === 23;
+        const { checkId, txHash } = addCheck(w6Id, 'StockService', {}, {nvda}, 0.004, time, `NVDA: \$${nvda.toFixed(2)}. Analyst consensus: Strong Buy.`, isF);
+        if (isF) addFinding(w6Id, checkId, txHash, 'stock', 'NVDA Crossed $500! 📈', 'Goldman Sachs upgraded target. Resistance level broken.', {price: 507.50, analyst: 'Goldman Sachs'}, 0.016, time, 89, 'High', true);
+    }
+
+    // --- 7. AUSTIN APARTMENTS ---
+    const w7Id = 'watcher-realestate';
+    const w7Date = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+    db.prepare(`INSERT INTO watchers (watcher_id, user_id, name, type, parameters, alert_conditions, check_interval_minutes, weekly_budget_usdc, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(w7Id, DEMO_USER_ID, 'Austin Apartments', 'realestate', JSON.stringify({zip:'78701',beds:2}), JSON.stringify({price:2000}), 480, 5.0, 'active', w7Date.toISOString());
+    for (let i = 0; i < 10; i++) {
+        const time = new Date(w7Date.getTime() + i * 8 * 60 * 60 * 1000);
+        const price = 2200 - i * 35;
+        const isF = i === 9;
+        const { checkId, txHash } = addCheck(w7Id, 'RealEstateService', {}, {price}, 0.01, time, `Zillow scan in 78701. Newest listing: \$${price}.`, isF);
+        if (isF) addFinding(w7Id, checkId, txHash, 'realestate', 'New 2BR Austin $1,850 🏠', 'Listing found below market average ($2,100). Verified walk score.', {price:1850, savings:250}, 0.016, time, 85, 'High', true);
+    }
+
+    // --- 8. TAYLOR SWIFT TICKETS ---
+    const w8Id = 'watcher-sports';
+    const w8Date = new Date(now.getTime() - 1 * 24 * 60 * 60 * 1000);
+    db.prepare(`INSERT INTO watchers (watcher_id, user_id, name, type, parameters, alert_conditions, check_interval_minutes, weekly_budget_usdc, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(w8Id, DEMO_USER_ID, 'Taylor Swift Tickets', 'sports', JSON.stringify({team:'Swift'}), JSON.stringify({price:200}), 90, 5.0, 'active', w8Date.toISOString());
+    for (let i = 0; i < 15; i++) {
+        const time = new Date(w8Date.getTime() + i * 90 * 60 * 1000);
+        const price = 350 - i * 12;
+        const isF = i === 14;
+        const { checkId, txHash } = addCheck(w8Id, 'SportsService', {}, {price}, 0.009, time, `Ticketmaster/Stubhub scan. Floor seats: \$${price}.`, isF);
+        if (isF) addFinding(w8Id, checkId, txHash, 'sports', 'Eras Tour Floor: $180 🏀', 'Massive price drop detected. Floor tickets available.', {price:182, savings:170}, 0.008, time, 78, 'High', false);
+    }
+
+    // 5. Update Watcher Stats
+    db.prepare('UPDATE watchers SET total_checks = 20, total_findings = 1, total_spent_usdc = 1.25 WHERE watcher_id = ?').run(w1Id);
+    db.prepare('UPDATE watchers SET total_checks = 72, total_findings = 1, total_spent_usdc = 0.52 WHERE watcher_id = ?').run(w2Id);
+
+    // 6. Create Morning Briefing
     const todayStr = now.toISOString().split('T')[0];
-    db.prepare(`
-        INSERT INTO briefings (briefing_id, user_id, date, period_start, period_end, total_checks, total_findings, total_cost_usdc, generated_summary, generated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-        briefingId, 
-        DEMO_USER_ID, 
-        todayStr, 
-        new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-        now.toISOString(),
-        totalChecks, 
-        totalFindings, 
-        totalSpent,
-        "It's been a busy morning. Tokyo flight prices finally dropped below your $800 target, and we spotted a significant spike in ETH. You also have 3 new articles about the Stellar ecosystem and 2 new remote Flutter jobs to check out.",
-        now.toISOString()
-    );
-    console.log('Morning briefing created.');
+    db.prepare(`INSERT INTO briefings (briefing_id, user_id, date, period_start, period_end, total_checks, total_findings, total_cost_usdc, generated_summary, generated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(randomUUID(), DEMO_USER_ID, todayStr, new Date(now.getTime()-86400000).toISOString(), now.toISOString(), totalChecks, totalFindings, 3.47, "It's a historic morning for your Flare agents. Tokyo flights hit $789, your crypto portfolio crossed $50k, and we found Taylor Swift floor tickets for $180. Your estimated real-world savings this period is $715 across 8 categories.", now.toISOString());
 
-    const walletBalance = 10.00 - totalSpent;
-
-    console.log('\nDemo data seeded:');
-    console.log(`- 4 watchers (20, 72, 8, 2 checks)`);
-    console.log(`- 4 findings`);
-    console.log(`- ${totalChecks} total checks`);
-    console.log(`- 1 morning briefing`);
-    console.log(`- Wallet: $${walletBalance.toFixed(2)} USDC`);
+    // Update specific briefing savings in schema? No, it's calculated or in state.
+    
+    console.log('\nDemo data expansion complete:');
+    console.log(`- 8 watchers across all categories`);
+    console.log(`- ${totalChecks} total intelligence checks`);
+    console.log(`- 8 high-fidelity findings`);
+    console.log(`- Ghost Score: 87 (Agent Pro)`);
+    console.log(`- Est. Savings: \$715 | Total Cost: \$3.47`);
 }
 
 seed().catch(console.error);

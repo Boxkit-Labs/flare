@@ -30,6 +30,7 @@ class _ProductWatcherFormState extends State<ProductWatcherForm> {
     _currentPriceController.addListener(_updateData);
     _alertPriceController.addListener(_updateData);
     _nameController.addListener(_updateNameManually);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateData());
   }
 
   bool _isManualName = false;

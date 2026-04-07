@@ -8,7 +8,7 @@ class FindingsBloc extends Bloc<FindingsEvent, FindingsState> {
 
   FindingsBloc(this.apiService) : super(FindingsInitial()) {
     on<LoadFindings>((event, emit) async {
-      emit(FindingsLoading());
+      if (!event.isRefresh) emit(FindingsLoading());
       try {
         final findings = await apiService.getFindings(
           event.userId,
@@ -18,7 +18,7 @@ class FindingsBloc extends Bloc<FindingsEvent, FindingsState> {
         final unreadCount = findings.where((f) => !f.isRead).length;
         emit(FindingsLoaded(findings, unreadCount));
       } catch (e) {
-        emit(FindingsError(e.toString()));
+        if (!event.isRefresh) emit(FindingsError(e.toString()));
       }
     });
 

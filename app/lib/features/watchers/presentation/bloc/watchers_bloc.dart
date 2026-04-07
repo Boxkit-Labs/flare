@@ -8,12 +8,12 @@ class WatchersBloc extends Bloc<WatchersEvent, WatchersState> {
 
   WatchersBloc(this.apiService) : super(WatchersInitial()) {
     on<LoadWatchers>((event, emit) async {
-      emit(WatchersLoading());
+      if (!event.isRefresh) emit(WatchersLoading());
       try {
         final watchers = await apiService.getWatchers(event.userId);
         emit(WatchersLoaded(watchers));
       } catch (e) {
-        emit(WatchersError(e.toString()));
+        if (!event.isRefresh) emit(WatchersError(e.toString()));
       }
     });
 

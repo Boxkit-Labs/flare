@@ -9,10 +9,11 @@ abstract class BriefingEvent extends Equatable {
 
 class LoadTodayBriefing extends BriefingEvent {
   final String userId;
-  const LoadTodayBriefing(this.userId);
+  final bool isRefresh;
+  const LoadTodayBriefing(this.userId, {this.isRefresh = false});
 
   @override
-  List<Object?> get props => [userId];
+  List<Object?> get props => [userId, isRefresh];
 }
 
 class LoadBriefingHistory extends BriefingEvent {

@@ -10,6 +10,8 @@ class UserModel {
   final String dndStart;
   final String dndEnd;
   final double? globalDailyCap;
+  final int ghostScore;
+  final String ghostRank;
   final String createdAt;
 
   const UserModel({
@@ -22,6 +24,8 @@ class UserModel {
     this.dndStart = '23:00',
     this.dndEnd = '07:00',
     this.globalDailyCap,
+    this.ghostScore = 0,
+    this.ghostRank = 'Novice',
     required this.createdAt,
   });
 
@@ -43,6 +47,8 @@ class UserModel {
       dndStart: json['dnd_start'] ?? '23:00',
       dndEnd: json['dnd_end'] ?? '07:00',
       globalDailyCap: parseDouble(json['global_daily_cap']),
+      ghostScore: json['ghost_score'] ?? 0,
+      ghostRank: json['ghost_rank'] ?? 'Novice',
       createdAt: json['created_at'] ?? '',
     );
   }
@@ -57,6 +63,8 @@ class UserModel {
         'dnd_start': dndStart,
         'dnd_end': dndEnd,
         'global_daily_cap': globalDailyCap,
+        'ghost_score': ghostScore,
+        'ghost_rank': ghostRank,
         'created_at': createdAt,
       };
 }

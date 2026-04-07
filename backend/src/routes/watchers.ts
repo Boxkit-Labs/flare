@@ -57,7 +57,7 @@ router.post('/', async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        const allowedTypes = ['flight', 'crypto', 'news', 'product', 'job', 'custom'];
+        const allowedTypes = ['flight', 'crypto', 'news', 'product', 'job', 'custom', 'stock', 'realestate', 'sports'];
         if (!allowedTypes.includes(type)) {
             return res.status(400).json({ error: 'Invalid type' });
         }

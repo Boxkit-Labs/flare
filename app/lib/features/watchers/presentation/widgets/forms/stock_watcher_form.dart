@@ -30,7 +30,7 @@ class _StockWatcherFormState extends State<StockWatcherForm> {
       _symbolsController.text = 'AAPL, TSLA, NVDA';
       _changePercentController.text = '5.0';
     }
-    _updateData();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateData());
   }
 
   void _updateData() {

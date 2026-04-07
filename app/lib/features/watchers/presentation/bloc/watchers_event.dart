@@ -8,9 +8,10 @@ abstract class WatchersEvent extends Equatable {
 
 class LoadWatchers extends WatchersEvent {
   final String userId;
-  const LoadWatchers(this.userId);
+  final bool isRefresh;
+  const LoadWatchers(this.userId, {this.isRefresh = false});
   @override
-  List<Object?> get props => [userId];
+  List<Object?> get props => [userId, isRefresh];
 }
 
 class CreateWatcher extends WatchersEvent {
