@@ -107,18 +107,47 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
       if (lower.contains('800')) params['price_below'] = 800;
     } else if (lower.contains('bitcoin') || lower.contains('crypto')) {
       type = 'crypto';
-      params['symbols'] = ['BTC'];
+      params['coins'] = ['BTC'];
+      if (lower.contains('percent') || lower.contains('change')) params['change_24h_percent'] = 5;
     } else if (lower.contains('apple') || lower.contains('stock')) {
       type = 'stock';
       params['symbols'] = ['AAPL'];
+    } else if (lower.contains('news') || lower.contains('article')) {
+      type = 'news';
+      params['keywords'] = ['Stellar', 'Blockchain'];
+    } else if (lower.contains('job') || lower.contains('hiring')) {
+      type = 'job';
+      params['keywords'] = ['Flutter Developer'];
+      params['is_remote'] = true;
+    } else if (lower.contains('price') || lower.contains('buy')) {
+      type = 'product';
+      params['product_name'] = 'Sony WH-1000XM5';
+      params['price_below'] = 300.0;
+    } else if (lower.contains('house') || lower.contains('apartment') || lower.contains('rent')) {
+      type = 'realestate';
+      params['city'] = 'Austin, TX';
+      params['mode'] = lower.contains('rent') ? 'rental' : 'purchase';
+    } else if (lower.contains('game') || lower.contains('match') || lower.contains('ticket')) {
+      type = 'sports';
+      params['team'] = 'Warriors';
+      params['price_max'] = 150.0;
     }
 
     setState(() {
       _selectedType = type;
-      _formData = {'name': 'Voice Agent: $text', 'parameters': params};
+      _formData = {
+        'name': 'Voice Agent: $text',
+        'parameters': params,
+        'alert_conditions': {}, // Fail-safe: empty map to satisfy API req
+      };
     });
     
-    TopSnackbar.showSuccess(context, 'Ghost understood: $text');
+    TopSnackbar.showSuccess(context, 'Flare understood: $text');
+
+    // Auto-launch after brief delay to let user see feedback
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) _launchWatcher();
+    });
   }
 
   void _launchWatcher() {
@@ -262,11 +291,11 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
       decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(28)),
       child: () {
         switch (_selectedType) {
-          case 'flight': return FlightWatcherForm(onChanged: _onFormChanged, key: ValueKey('flight_$_voiceText'));
-          case 'crypto': return CryptoWatcherForm(onChanged: _onFormChanged, key: ValueKey('crypto_$_voiceText'));
-          case 'news': return NewsWatcherForm(onChanged: _onFormChanged, key: ValueKey('news_$_voiceText'));
-          case 'product': return ProductWatcherForm(onChanged: _onFormChanged, key: ValueKey('product_$_voiceText'));
-          case 'job': return JobWatcherForm(onChanged: _onFormChanged, key: ValueKey('job_$_voiceText'));
+          case 'flight': return FlightWatcherForm(onChanged: _onFormChanged, key: ValueKey('flight_$_voiceText'), initialData: _formData['parameters']);
+          case 'crypto': return CryptoWatcherForm(onChanged: _onFormChanged, key: ValueKey('crypto_$_voiceText'), initialData: _formData['parameters']);
+          case 'news': return NewsWatcherForm(onChanged: _onFormChanged, key: ValueKey('news_$_voiceText'), initialData: _formData['parameters']);
+          case 'product': return ProductWatcherForm(onChanged: _onFormChanged, key: ValueKey('product_$_voiceText'), initialData: _formData['parameters']);
+          case 'job': return JobWatcherForm(onChanged: _onFormChanged, key: ValueKey('job_$_voiceText'), initialData: _formData['parameters']);
           case 'stock': return StockWatcherForm(onChanged: _onFormChanged, key: ValueKey('stock_$_voiceText'), initialData: _formData['parameters']);
           case 'realestate': return RealEstateWatcherForm(onChanged: _onFormChanged, key: ValueKey('re_$_voiceText'), initialData: _formData['parameters']);
           case 'sports': return SportsWatcherForm(onChanged: _onFormChanged, key: ValueKey('sports_$_voiceText'), initialData: _formData['parameters']);
@@ -322,7 +351,7 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
             backgroundColor: AppTheme.primary,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
           ),
-          child: const Text('Deploy Ghost Agent', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+          child: const Text('Deploy Flare Agent', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
         ),
       ),
     );

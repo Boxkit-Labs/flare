@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import * as queries from '../db/queries.js';
 import { encrypt, decrypt } from '../utils/crypto.js';
 import { stellarService } from '../services/stellar.js';
+import { notificationService } from '../services/notification.js';
 
 const router = Router();
 
@@ -165,6 +166,19 @@ router.post('/:id/fcm-token', async (req: Request, res: Response) => {
         const userId = req.params.id as string;
         await queries.updateUserFcmToken(userId, fcm_token);
         res.json({ success: true });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * POST /api/users/:id/test-notification
+ */
+router.post('/:id/test-notification', async (req: Request, res: Response) => {
+    try {
+        const userId = req.params.id as string;
+        await notificationService.sendLowBalance(userId, '5.00');
+        res.json({ success: true, message: 'Test notification sent.' });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }

@@ -45,6 +45,7 @@ class _CryptoWatcherFormState extends State<CryptoWatcherForm> {
       _aboveControllers[coin]!.addListener(_updateData);
       _belowControllers[coin]!.addListener(_updateData);
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateData());
   }
 
   void _updateData() {

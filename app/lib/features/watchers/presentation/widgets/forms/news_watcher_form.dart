@@ -30,6 +30,7 @@ class _NewsWatcherFormState extends State<NewsWatcherForm> {
     }
 
     _nameController.addListener(_updateData);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateData());
   }
 
   void _updateData() {

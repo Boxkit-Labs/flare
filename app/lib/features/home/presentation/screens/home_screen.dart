@@ -25,7 +25,7 @@ class _HomeScreenState extends State<HomeScreen> with AutoRefreshMixin {
   void initState() {
     super.initState();
     _refreshData();
-    startAutoRefresh(const Duration(seconds: 30), _refreshData);
+    startAutoRefresh(const Duration(seconds: 120), _refreshData);
   }
 
   void _refreshData({bool force = false}) {
@@ -34,10 +34,11 @@ class _HomeScreenState extends State<HomeScreen> with AutoRefreshMixin {
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       final userId = authState.user.userId;
-      context.read<WalletBloc>().add(LoadAllWalletData(userId, isRefresh: !force));
-      context.read<WatchersBloc>().add(LoadWatchers(userId));
-      context.read<FindingsBloc>().add(LoadFindings(userId));
-      context.read<BriefingBloc>().add(LoadTodayBriefing(userId));
+      final isRefresh = !force;
+      context.read<WalletBloc>().add(LoadAllWalletData(userId, isRefresh: isRefresh));
+      context.read<WatchersBloc>().add(LoadWatchers(userId, isRefresh: isRefresh));
+      context.read<FindingsBloc>().add(LoadFindings(userId, isRefresh: isRefresh));
+      context.read<BriefingBloc>().add(LoadTodayBriefing(userId, isRefresh: isRefresh));
     }
   }
 

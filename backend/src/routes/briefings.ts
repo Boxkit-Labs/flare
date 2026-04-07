@@ -39,6 +39,23 @@ router.get('/today', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/briefings/by-date
+ * Fetch a briefing for a specific date (YYYY-MM-DD).
+ */
+router.get('/by-date', async (req: Request, res: Response) => {
+    try {
+        const userId = req.query.user_id as string;
+        const date = req.query.date as string;
+        if (!userId || !date) return res.status(400).json({ error: 'user_id and date are required' });
+
+        const briefing = await queries.getBriefingByDate(userId, date);
+        res.json(briefing || null);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
  * POST /api/briefings/generate
  * Placeholder for manual briefing generation.
  */

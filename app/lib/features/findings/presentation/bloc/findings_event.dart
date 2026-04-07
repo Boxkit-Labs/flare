@@ -11,10 +11,11 @@ class LoadFindings extends FindingsEvent {
   final String userId;
   final int limit;
   final int offset;
-  const LoadFindings(this.userId, {this.limit = 50, this.offset = 0});
+  final bool isRefresh;
+  const LoadFindings(this.userId, {this.limit = 50, this.offset = 0, this.isRefresh = false});
 
   @override
-  List<Object?> get props => [userId, limit, offset];
+  List<Object?> get props => [userId, limit, offset, isRefresh];
 }
 
 class MarkFindingAsRead extends FindingsEvent {

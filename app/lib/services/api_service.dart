@@ -192,6 +192,16 @@ class ApiService {
     return BriefingModel.fromJson(response.data);
   }
 
+  /// Get a briefing for a specific date.
+  Future<BriefingModel?> getBriefingByDate(String userId, String date) async {
+    final response = await _dio.get('/api/briefings/by-date', queryParameters: {
+      'user_id': userId,
+      'date': date,
+    });
+    if (response.data == null) return null;
+    return BriefingModel.fromJson(response.data);
+  }
+
   /// Manually generate a briefing for a user.
   Future<BriefingModel> generateBriefing(String userId) async {
     final response = await _dio.post(

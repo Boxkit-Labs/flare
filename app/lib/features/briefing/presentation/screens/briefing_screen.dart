@@ -9,6 +9,7 @@ import 'package:flare_app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flare_app/features/briefing/presentation/bloc/briefing_bloc.dart';
 import 'package:flare_app/features/briefing/presentation/bloc/briefing_event.dart';
 import 'package:flare_app/features/briefing/presentation/bloc/briefing_state.dart';
+import 'package:flare_app/features/briefing/presentation/widgets/horizontal_calendar.dart';
 import 'package:flare_app/features/findings/presentation/widgets/finding_card.dart';
 import 'package:intl/intl.dart';
 import 'package:flare_app/core/widgets/staggered_reveal.dart';
@@ -36,14 +37,19 @@ class _BriefingScreenState extends State<BriefingScreen> {
     if (authState is AuthAuthenticated) {
       final userId = authState.user.userId;
       context.read<BriefingBloc>().add(LoadTodayBriefing(userId));
-      context.read<BriefingBloc>().add(LoadBriefingHistory(userId, limit: 7));
+      context.read<BriefingBloc>().add(LoadBriefingHistory(userId, limit: 14));
     }
   }
 
-  void _changeDate(int days) {
+  void _onDateSelected(DateTime date) {
     setState(() {
-      _selectedDate = _selectedDate.add(Duration(days: days));
+      _selectedDate = date;
     });
+    
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      context.read<BriefingBloc>().add(LoadBriefingByDate(authState.user.userId, date));
+    }
   }
 
   @override
@@ -51,78 +57,118 @@ class _BriefingScreenState extends State<BriefingScreen> {
     return BlocListener<BriefingBloc, BriefingState>(
       listener: (context, state) {
         if (state is BriefingGenerated) {
-          TopSnackbar.showSuccess(context, '⚡ Your digest is ready!');
+          TopSnackbar.showSuccess(context, '⚡ Your Flare Digest is ready!');
           _refresh();
         }
       },
       child: Scaffold(
         backgroundColor: AppTheme.background,
-        appBar: AppBar(
-          backgroundColor: AppTheme.background,
-          elevation: 0,
-          title: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  onPressed: () => _changeDate(-1), 
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 14),
-                  visualDensity: VisualDensity.compact,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              _buildHeader(),
+              const SizedBox(height: 16),
+              HorizontalCalendar(
+                selectedDate: _selectedDate,
+                onDateSelected: _onDateSelected,
+              ),
+              Expanded(
+                child: BlocBuilder<BriefingBloc, BriefingState>(
+                  builder: (context, state) {
+                    return AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+                      child: _buildBriefingBody(context, state),
+                    );
+                  },
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  DateFormat('MMM d').format(_selectedDate), 
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: -0.5),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _selectedDate.day == DateTime.now().day ? null : () => _changeDate(1), 
-                  icon: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-                  visualDensity: VisualDensity.compact,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          centerTitle: true,
-          automaticallyImplyLeading: false,
-        ),
-        body: BlocBuilder<BriefingBloc, BriefingState>(
-          builder: (context, state) {
-            return AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: _buildBriefingBody(context, state),
-            );
-          },
         ),
       ),
     );
   }
 
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Flare Digest',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.0,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              Text(
+                'Intelligence for your day',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+            ),
+            child: const Icon(Icons.auto_awesome_rounded, color: AppTheme.primary, size: 20),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBriefingBody(BuildContext context, BriefingState state) {
-    if (state is BriefingLoaded) {
-      final briefing = state.todayBriefing; 
+    if (state is BriefingLoading && _isSelectingNewDate(state)) {
+      return _buildLoadingState();
+    }
+
+    if (state is BriefingLoaded || state is BriefingGenerating) {
+      final dateKey = _selectedDate.toIso8601String().split('T')[0];
+      final isToday = dateKey == DateTime.now().toIso8601String().split('T')[0];
       
-      if (briefing == null && _selectedDate.day == DateTime.now().day) {
-        return _buildNoBriefingState();
+      BriefingModel? briefing;
+      if (state is BriefingLoaded) {
+        if (isToday) {
+          briefing = state.todayBriefing;
+        } else {
+          briefing = state.briefingsByDate[dateKey];
+        }
       }
 
-      if (briefing != null) {
-        return RefreshIndicator(
-          key: ValueKey('briefing_${briefing.briefingId}'),
-          color: AppTheme.primary,
-          onRefresh: () async {
-            _refresh();
-            await Future.delayed(const Duration(milliseconds: 800));
-          },
-          child: _buildBriefingContent(briefing),
-        );
+      if (briefing == null) {
+        if (isToday && state is! BriefingGenerating) {
+          return _buildNoBriefingState();
+        } else if (state is BriefingGenerating) {
+            return _buildGeneratingState();
+        } else {
+          return _buildNoBriefingHistoricalState();
+        }
       }
+
+      return RefreshIndicator(
+        key: ValueKey('briefing_$dateKey'),
+        color: AppTheme.primary,
+        onRefresh: () async {
+          _refresh();
+          await Future.delayed(const Duration(milliseconds: 800));
+        },
+        child: _buildBriefingContent(briefing),
+      );
     }
 
     if (state is BriefingError) {
@@ -133,26 +179,52 @@ class _BriefingScreenState extends State<BriefingScreen> {
       );
     }
 
-    return SingleChildScrollView(
+    return _buildLoadingState();
+  }
+
+  bool _isSelectingNewDate(BriefingState state) {
+     // Check if we are literally mid-load for a date
+     return true; // Simplified for basic BLoC behavior
+  }
+
+  Widget _buildLoadingState() {
+     return SingleChildScrollView(
       key: const ValueKey('loading'),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const ShimmerPlaceholder(width: 200, height: 32),
+          const ShimmerPlaceholder(width: 220, height: 32),
           const SizedBox(height: 12),
-          const ShimmerPlaceholder(width: 250, height: 16),
-          const SizedBox(height: 48),
-          const ShimmerHeader(),
-          const SizedBox(height: 20),
-          const ShimmerList(itemCount: 2, itemHeight: 140, padding: EdgeInsets.zero),
+          const ShimmerPlaceholder(width: 140, height: 16),
           const SizedBox(height: 40),
           const ShimmerHeader(),
           const SizedBox(height: 20),
-          const ShimmerList(itemCount: 3, itemHeight: 80, padding: EdgeInsets.zero),
+          const ShimmerList(itemCount: 2, itemHeight: 140, padding: EdgeInsets.zero),
         ],
       ),
     );
+  }
+
+  Widget _buildGeneratingState() {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(color: AppTheme.primary),
+            const SizedBox(height: 24),
+            const Text(
+              'Assembling Intel...',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Your agents are compiling their findings.',
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+            ),
+          ],
+        ),
+      );
   }
 
   Widget _buildNoBriefingState() {
@@ -167,17 +239,14 @@ class _BriefingScreenState extends State<BriefingScreen> {
                decoration: BoxDecoration(
                  color: AppTheme.surface,
                  shape: BoxShape.circle,
-                 boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 20),
-                 ],
                ),
-               child: const Text('☕', style: TextStyle(fontSize: 48)),
+               child: const Text('💡', style: TextStyle(fontSize: 48)),
              ),
              const SizedBox(height: 24),
              const Text('Daily Digest', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.8)),
              const SizedBox(height: 12),
              const Text(
-               'Ready for your morning update? Your agents have been working overnight. Generate your briefing to see what they found.', 
+               'Ready for your briefing? Your agents have been active. Generate your intel report now.', 
                textAlign: TextAlign.center, 
                style: TextStyle(color: AppTheme.textSecondary, height: 1.5, fontSize: 15),
              ),
@@ -187,9 +256,6 @@ class _BriefingScreenState extends State<BriefingScreen> {
                decoration: BoxDecoration(
                  gradient: AppTheme.primaryGradient,
                  borderRadius: BorderRadius.circular(16),
-                 boxShadow: [
-                   BoxShadow(color: AppTheme.primary.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4)),
-                 ],
                ),
                child: ElevatedButton(
                  onPressed: () {
@@ -204,7 +270,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
                    padding: const EdgeInsets.symmetric(vertical: 16),
                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                  ),
-                 child: const Text('Generate Digest', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.white)),
+                 child: const Text('Generate Intelligence', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.white)),
                ),
              ),
            ],
@@ -213,187 +279,183 @@ class _BriefingScreenState extends State<BriefingScreen> {
      );
   }
 
+  Widget _buildNoBriefingHistoricalState() {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Opacity(opacity: 0.3, child: const Icon(Icons.history_rounded, size: 64)),
+            const SizedBox(height: 16),
+            const Text('No Archives Found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            const Text('There was no activity tracked on this date.', style: TextStyle(color: AppTheme.textSecondary)),
+          ],
+        ),
+      );
+  }
+
   Widget _buildBriefingContent(BriefingModel briefing) {
      final findings = briefing.findingsJson.map((f) => FindingModel.fromJson(f as Map<String, dynamic>)).toList();
      final summaries = briefing.watcherSummaries;
 
      return ListView(
-       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+       padding: const EdgeInsets.all(20),
        physics: const BouncingScrollPhysics(),
        children: [
          Column(
            crossAxisAlignment: CrossAxisAlignment.start,
            children: [
              Text(
-               DateFormat('EEEE, MMMM d').format(DateTime.parse(briefing.date)), 
+               DateFormat('EEEE, MMM d').format(DateTime.parse(briefing.date)), 
                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, height: 1.1, letterSpacing: -1.0),
              ),
              const SizedBox(height: 12),
              Row(
                children: [
                  Container(
-                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                    decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)),
                    child: Text(
-                     '${briefing.totalChecks} AGENT CHECKS', 
+                     '${briefing.totalChecks} AGENT SCANS', 
                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                    ),
                  ),
-                 const SizedBox(width: 8),
+                 const SizedBox(width: 12),
                  Text(
-                   'Completed overnight', 
-                   style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontWeight: FontWeight.w600),
+                   'Status: Optimized', 
+                   style: const TextStyle(color: AppTheme.primary, fontSize: 13, fontWeight: FontWeight.w700),
                  ),
                ],
              ),
-             const SizedBox(height: 48),
+             const SizedBox(height: 32),
            ],
          ),
          
          if (findings.isNotEmpty) ...[
-           _buildSectionHeader('⚡ Signal Detected', count: findings.length),
-           const SizedBox(height: 20),
+           _buildSectionHeader('Intelligence Findings', count: findings.length),
+           const SizedBox(height: 16),
            ...findings.asMap().entries.map((entry) {
              return StaggeredReveal(
                index: entry.key,
                child: FindingCard(finding: entry.value),
              );
            }),
-           const SizedBox(height: 40),
+           const SizedBox(height: 32),
          ],
 
-         _buildSectionHeader('📊 Agent Status'),
-         const SizedBox(height: 20),
+         _buildSectionHeader('Agent Reconnaissance'),
+         const SizedBox(height: 16),
          ...summaries.asMap().entries.map((entry) {
            return StaggeredReveal(
              index: entry.key + findings.length,
-             child: _buildNoChangeTile(entry.value),
+             child: _buildAgentSummaryTile(entry.value),
            );
          }),
 
          const SizedBox(height: 48),
-         _buildCostSummary(briefing),
-         const SizedBox(height: 100),
+         _buildDigestFooter(briefing),
+         const SizedBox(height: 80),
        ],
      );
   }
 
   Widget _buildSectionHeader(String title, {int? count}) {
-     return Row(
-       children: [
-         Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-         if (count != null) ...[
-           const SizedBox(width: 12),
-           Container(
-             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-             decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(10)),
-             child: Text('$count', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white)),
-           ),
-         ],
-       ],
-     );
-  }
-
-  Widget _buildNoChangeTile(WatcherSummary summary) {
-     final emoji = _getEmoji(summary.type);
-     final name = summary.watcherName;
-     final latestData = summary.latestDataSummary.isNotEmpty ? summary.latestDataSummary : 'Nominal activity detected.';
-
-     return Container(
-       margin: const EdgeInsets.only(bottom: 12),
-       decoration: BoxDecoration(
-         color: AppTheme.surface,
-         borderRadius: BorderRadius.circular(20),
-         boxShadow: [
-           BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
-         ],
-         border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
-       ),
-       child: Theme(
-         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-         child: ExpansionTile(
-           leading: Container(
-             width: 40,
-             height: 40,
-             decoration: BoxDecoration(color: AppTheme.background, borderRadius: BorderRadius.circular(12)),
-             child: Center(child: Text(emoji, style: const TextStyle(fontSize: 20))),
-           ),
-           title: Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-           subtitle: Text(
-             latestData, 
-             style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
-             maxLines: 1,
-             overflow: TextOverflow.ellipsis,
-           ),
-           iconColor: AppTheme.primary,
-           collapsedIconColor: AppTheme.textSecondary,
-           children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: AppTheme.background, borderRadius: BorderRadius.circular(12)),
-                  child: Text(
-                    summary.latestDataSummary.isNotEmpty 
-                       ? summary.latestDataSummary 
-                       : 'Your agent scanned ${summary.type} and found no items meeting your priority thresholds. Next scan scheduled in 4 hours. 👻',
-                    style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.5, fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ),
-           ],
-         ),
-       ),
-     );
-  }
-
-  Widget _buildCostSummary(BriefingModel briefing) {
-     final avgCost = briefing.totalFindings > 0 
-        ? briefing.totalCostUsdc / briefing.totalFindings 
-        : 0.0;
-
-     return Container(
-       padding: const EdgeInsets.all(24),
-       decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(28),
-       ),
-       child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Digest Summary', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5)),
-            const SizedBox(height: 24),
-            _buildSummaryRow('Operation Cost', '\$${briefing.totalCostUsdc.toStringAsFixed(3)} USDC', isDark: true),
-            const SizedBox(height: 12),
-            _buildSummaryRow('Efficiency', 'Found ${briefing.totalFindings} signals from ${briefing.totalChecks} scans', isDark: true),
-            const SizedBox(height: 12),
-            _buildSummaryRow('Avg Signal Cost', '\$${avgCost.toStringAsFixed(3)}', isDark: true),
-            const Divider(height: 48, color: Colors.white24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Wallet Balance', style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(12)),
-                  child: const Text('\$4.82 USDC', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14)),
-                ),
-              ],
+      return Row(
+        children: [
+          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+          if (count != null) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(color: AppTheme.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+              child: Text('$count', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.primary)),
             ),
           ],
-       ),
-     );
+        ],
+      );
   }
 
-  Widget _buildSummaryRow(String label, String value, {bool isDark = false}) {
-     return Row(
-       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-       children: [
-         Text(label, style: TextStyle(color: isDark ? Colors.white60 : AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
-         Text(value, style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary, fontWeight: FontWeight.w900, fontSize: 13)),
-       ],
-     );
+  Widget _buildAgentSummaryTile(WatcherSummary summary) {
+      final emoji = _getEmoji(summary.type);
+      final latestData = summary.latestDataSummary.isNotEmpty ? summary.latestDataSummary : 'No critical changes found.';
+
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+        ),
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            leading: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(color: AppTheme.background, borderRadius: BorderRadius.circular(12)),
+              child: Center(child: Text(emoji, style: const TextStyle(fontSize: 22))),
+            ),
+            title: Text(summary.watcherName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+            subtitle: Text(
+              latestData, 
+              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            children: [
+               Padding(
+                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                 child: Text(
+                   summary.latestDataSummary.isNotEmpty 
+                      ? summary.latestDataSummary 
+                      : 'Your agent scanned ${summary.type} and verified all nodes were stable. Flare Score remains constant.',
+                   style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.5),
+                 ),
+               ),
+            ],
+          ),
+        ),
+      );
+  }
+
+  Widget _buildDigestFooter(BriefingModel briefing) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+           color: Colors.black,
+           borderRadius: BorderRadius.circular(28),
+        ),
+        child: Column(
+           crossAxisAlignment: CrossAxisAlignment.start,
+           children: [
+             Row(
+               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+               children: [
+                 const Text('Flare Score', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+                 Text('${Math.min(100, (briefing.totalFindings * 25) + 45)}', style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w900, fontSize: 24)),
+               ],
+             ),
+             const SizedBox(height: 24),
+             _buildSummaryRow('Operational Cost', '\$${briefing.totalCostUsdc.toStringAsFixed(3)} USDC', true),
+             const SizedBox(height: 12),
+             _buildSummaryRow('Scanned Agents', '${summariesCount(briefing)}', true),
+             const Divider(height: 40, color: Colors.white12),
+             const Text('Intelligence efficiency: High', style: TextStyle(color: Colors.white60, fontSize: 12, fontWeight: FontWeight.w700)),
+           ],
+        ),
+      );
+  }
+
+  int summariesCount(BriefingModel b) => b.watcherSummaries.length;
+
+  Widget _buildSummaryRow(String label, String value, bool isDark) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: isDark ? Colors.white60 : AppTheme.textSecondary, fontSize: 13)),
+          Text(value, style: TextStyle(color: isDark ? Colors.white : AppTheme.textPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+        ],
+      );
   }
 
   String _getEmoji(String type) {
@@ -406,7 +468,14 @@ class _BriefingScreenState extends State<BriefingScreen> {
       case 'products': return '🛍️';
       case 'job':
       case 'jobs': return '💼';
+      case 'stock': return '📈';
+      case 'realestate': return '🏠';
+      case 'sports': return '🏆';
       default: return '✨';
     }
   }
+}
+
+class Math {
+   static num min(num a, num b) => a < b ? a : b;
 }

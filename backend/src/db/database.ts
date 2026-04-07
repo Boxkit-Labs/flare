@@ -11,13 +11,15 @@ dotenv.config();
 
 const { Pool } = pg;
 
+const defaultConnectionString = 'postgresql://postgres:postgres@localhost:5432/postgres';
+
 if (!process.env.DATABASE_URL) {
-    console.error("FATAL: DATABASE_URL environment variable is not set.");
+    console.warn("WARNING: DATABASE_URL not set. Falling back to local development defaults.");
 }
 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    connectionString: process.env.DATABASE_URL || defaultConnectionString,
+    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
 export const initializeDatabase = async () => {

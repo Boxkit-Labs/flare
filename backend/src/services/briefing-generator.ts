@@ -140,7 +140,7 @@ export class BriefingGenerator {
     // Overnight Summary & Projection
     const totalSpent = totalCost;
     const estSavings = totalFindings * 45.0; // Placeholder ROI: $45 per finding
-    const ghostScore = Math.min(100, Math.round((totalFindings * 15) + (totalChecks * 0.5) + 50));
+    const flareScore = Math.min(100, Math.round((totalFindings * 15) + (totalChecks * 0.5) + 50));
     
     // Wallet Projection
     const walletRes = await getSpendingStats(userId);
@@ -148,7 +148,7 @@ export class BriefingGenerator {
     const dailyRate = Math.max(0.01, walletRes.spent_today || (totalSpent / 1));
     const daysLeft = Math.round(balance / dailyRate);
 
-    const generatedSummary = `${findingsSection}${noChangeSection}\n💸 OVERNIGHT SUMMARY\nCost: $${totalSpent.toFixed(3)} across ${totalChecks} checks\nEstimated savings: $${estSavings}\nGhost Score: ${ghostScore}/100\n\n💰 Wallet lasts ~${daysLeft} more days at current rate.`;
+    const generatedSummary = `${findingsSection}${noChangeSection}\n💸 OVERNIGHT SUMMARY\nCost: $${totalSpent.toFixed(3)} across ${totalChecks} checks\nEstimated savings: $${estSavings}\nFlare Score: ${flareScore}/100\n\n💰 Wallet lasts ~${daysLeft} more days at current rate.`;
 
     // 8. Create DB Record
     const today = now.toISOString().split('T')[0];
