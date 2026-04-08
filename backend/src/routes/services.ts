@@ -5,7 +5,10 @@ import {
     getCryptoData, 
     getNewsAlerts, 
     getJobPostings, 
-    getProductPrices 
+    getProductPrices,
+    getStockData,
+    getRealEstateData,
+    getSportsData
 } from '../services/mock-data.js';
 
 const router = express.Router();
@@ -84,6 +87,45 @@ router.post('/job/api/jobs', stellarPaywall({
 }), (req: Request, res: Response) => {
     const role = req.body.role || (req.body.keywords && req.body.keywords[0]) || 'Developer';
     res.json(getJobPostings(role));
+});
+
+/**
+ * 6. Stock Data Service
+ */
+router.get('/stocks/api/stocks', stellarPaywall({
+    priceStroops: 35000, // 0.0035 USDC
+    recipientAddress: RECIPIENT_ADDRESS,
+    usdcContractId: USDC_CONTRACT,
+    rpcUrl: SOROBAN_RPC_URL
+}), (req: Request, res: Response) => {
+    const symbol = req.query.symbol as string;
+    res.json(getStockData(symbol));
+});
+
+/**
+ * 7. Real Estate Data Service
+ */
+router.get('/realestate/api/realestate', stellarPaywall({
+    priceStroops: 90000, // 0.009 USDC
+    recipientAddress: RECIPIENT_ADDRESS,
+    usdcContractId: USDC_CONTRACT,
+    rpcUrl: SOROBAN_RPC_URL
+}), (req: Request, res: Response) => {
+    const neighborhood = req.query.neighborhood as string;
+    res.json(getRealEstateData(neighborhood));
+});
+
+/**
+ * 8. Sports Data Service
+ */
+router.get('/sports/api/sports', stellarPaywall({
+    priceStroops: 45000, // 0.0045 USDC
+    recipientAddress: RECIPIENT_ADDRESS,
+    usdcContractId: USDC_CONTRACT,
+    rpcUrl: SOROBAN_RPC_URL
+}), (req: Request, res: Response) => {
+    const team = req.query.team as string;
+    res.json(getSportsData(team));
 });
 
 export default router;

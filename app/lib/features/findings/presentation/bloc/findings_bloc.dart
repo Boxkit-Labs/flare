@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flare_app/services/api_service.dart';
 import 'findings_event.dart';
 import 'findings_state.dart';
+import 'package:flare_app/core/utils/error_formatter.dart';
 
 class FindingsBloc extends Bloc<FindingsEvent, FindingsState> {
   final ApiService apiService;
@@ -18,7 +19,7 @@ class FindingsBloc extends Bloc<FindingsEvent, FindingsState> {
         final unreadCount = findings.where((f) => !f.isRead).length;
         emit(FindingsLoaded(findings, unreadCount));
       } catch (e) {
-        if (!event.isRefresh) emit(FindingsError(e.toString()));
+        if (!event.isRefresh) emit(FindingsError(ErrorFormatter.format(e)));
       }
     });
 
@@ -30,7 +31,7 @@ class FindingsBloc extends Bloc<FindingsEvent, FindingsState> {
           add(LoadFindings(apiService.userId!));
         }
       } catch (e) {
-        emit(FindingsError(e.toString()));
+        emit(FindingsError(ErrorFormatter.format(e)));
       }
     });
 
@@ -40,7 +41,7 @@ class FindingsBloc extends Bloc<FindingsEvent, FindingsState> {
         final finding = await apiService.getFinding(event.findingId);
         emit(FindingDetailLoaded(finding));
       } catch (e) {
-        emit(FindingsError(e.toString()));
+        emit(FindingsError(ErrorFormatter.format(e)));
       }
     });
   }

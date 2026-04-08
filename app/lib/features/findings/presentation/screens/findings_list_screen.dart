@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:flare_app/core/models/models.dart';
 import 'package:flare_app/core/widgets/error_state.dart';
+import 'package:flare_app/core/widgets/top_snackbar.dart';
 import 'package:flare_app/core/widgets/shimmer_utilities.dart';
 import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:flare_app/features/auth/presentation/bloc/auth_state.dart';
@@ -68,13 +69,20 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: BlocBuilder<FindingsBloc, FindingsState>(
-        builder: (context, state) {
-          return AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: _buildFindingsContent(context, state),
-          );
+      body: BlocListener<FindingsBloc, FindingsState>(
+        listener: (context, state) {
+          if (state is FindingsError && context.read<FindingsBloc>().state is FindingsLoaded) {
+            TopSnackbar.showError(context, state.message);
+          }
         },
+        child: BlocBuilder<FindingsBloc, FindingsState>(
+          builder: (context, state) {
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: _buildFindingsContent(context, state),
+            );
+          },
+        ),
       ),
     );
   }

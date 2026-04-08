@@ -3,6 +3,7 @@ import 'package:flare_app/services/api_service.dart';
 import 'package:flare_app/core/models/models.dart';
 import 'briefing_event.dart';
 import 'briefing_state.dart';
+import 'package:flare_app/core/utils/error_formatter.dart';
 
 class BriefingBloc extends Bloc<BriefingEvent, BriefingState> {
   final ApiService apiService;
@@ -14,7 +15,7 @@ class BriefingBloc extends Bloc<BriefingEvent, BriefingState> {
         final today = await apiService.getTodayBriefing(event.userId);
         emit(BriefingLoaded(todayBriefing: today));
       } catch (e) {
-        if (!event.isRefresh) emit(BriefingError(e.toString()));
+        if (!event.isRefresh) emit(BriefingError(ErrorFormatter.format(e)));
       }
     });
 
@@ -24,7 +25,7 @@ class BriefingBloc extends Bloc<BriefingEvent, BriefingState> {
         final history = await apiService.getBriefings(event.userId, limit: event.limit);
         emit(BriefingLoaded(history: history));
       } catch (e) {
-        emit(BriefingError(e.toString()));
+        emit(BriefingError(ErrorFormatter.format(e)));
       }
     });
 
@@ -36,7 +37,7 @@ class BriefingBloc extends Bloc<BriefingEvent, BriefingState> {
         // No auto-dispatch of LoadTodayBriefing here to avoid state flicker
         // but the generated briefing is sent to the success state
       } catch (e) {
-        emit(BriefingError(e.toString()));
+        emit(BriefingError(ErrorFormatter.format(e)));
       }
     });
 
@@ -90,7 +91,7 @@ class BriefingBloc extends Bloc<BriefingEvent, BriefingState> {
           ));
         }
       } catch (e) {
-        emit(BriefingError(e.toString()));
+        emit(BriefingError(ErrorFormatter.format(e)));
       }
     });
   }
