@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flare_app/core/router/app_router.dart';
-import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:flare_app/services/api_service.dart';
+import 'package:flare_app/core/widgets/notification_banner.dart';
 
 /// Top-level handler for background messages (must be a top-level function).
 @pragma('vm:entry-point')
@@ -74,6 +74,13 @@ class NotificationService {
     );
     debugPrint('[FCM] Permission status: ${settings.authorizationStatus}');
 
+    // Enable explicit foreground notifications for iOS/macOS
+    await _messaging.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
     // Create Android notification channels
     final androidPlugin =
         _localNotifications.resolvePlatformSpecificImplementation<
@@ -123,9 +130,14 @@ class NotificationService {
     }
   }
 
-  /// Update the associated user ID (e.g., after registration).
-  void setUserId(String userId) {
+  /// Update the associated user ID and upload the token.
+  Future<void> setUserId(String userId) async {
     _currentUserId = userId;
+    final token = await _messaging.getToken();
+    if (token != null) {
+      debugPrint('[FCM] Uploading token for newly assigned user ID: $userId');
+      await _sendTokenToBackend(token);
+    }
   }
 
   // ─── TOKEN MANAGEMENT ──────────────────────────────────────
@@ -168,39 +180,36 @@ class NotificationService {
     // Show in-app banner for active users
     final context = AppRouter.navigatorKey.currentContext;
     if (context != null) {
-      AppRouter.scaffoldMessengerKey.currentState?.clearSnackBars();
-      AppRouter.scaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                notification.title ?? 'New Notification',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text(
-                notification.body ?? '',
-                style: const TextStyle(fontSize: 12),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: AppTheme.surfaceLight,
-          margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 8),
-          action: SnackBarAction(
-            label: 'VIEW',
-            textColor: AppTheme.primary,
-            onPressed: () {
-              _navigateFromData(message.data);
-            },
-          ),
+      late OverlayEntry bannerEntry;
+      bool isRemoved = false;
+
+      String emoji = '🔔';
+      if (dataType == 'finding') emoji = '🔥';
+      if (dataType == 'briefing') emoji = '☀️';
+      if (dataType == 'low_balance' || dataType == 'budget_warning') emoji = '⚠️';
+
+      bannerEntry = OverlayEntry(
+        builder: (ctx) => NotificationBanner(
+          emoji: emoji,
+          headline: notification.title ?? 'New Notification',
+          onTap: () {
+            if (!isRemoved) {
+              bannerEntry.remove();
+              isRemoved = true;
+            }
+            _navigateFromData(message.data);
+          },
         ),
       );
+
+      Overlay.of(context).insert(bannerEntry);
+
+      Future.delayed(const Duration(seconds: 4), () {
+        if (!isRemoved && bannerEntry.mounted) {
+          bannerEntry.remove();
+          isRemoved = true;
+        }
+      });
     }
   }
 

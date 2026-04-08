@@ -56,7 +56,7 @@ export class NotificationService {
     private async sendPayload(userId: string, payload: any): Promise<void> {
         if (!this.isEnabled) return;
 
-        const user = getUserById(userId) as any;
+        const user = await getUserById(userId) as any;
         if (!user || !user.fcm_token) {
             console.log(`NotificationService: No FCM token for user ${userId}. Skipping.`);
             return;
@@ -79,7 +79,7 @@ export class NotificationService {
     }
 
     async sendFindingNotification(userId: string, finding: any, watcher: WatcherRow): Promise<void> {
-        const user = getUserById(userId) as any;
+        const user = await getUserById(userId) as any;
         if (!user) return;
 
         // DND Check
