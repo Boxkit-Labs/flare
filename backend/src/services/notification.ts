@@ -1,5 +1,5 @@
 import admin from 'firebase-admin';
-import { getUserById, updateUserFcmToken, markFindingNotified } from '../db/queries.js';
+import { getUserById, updateUserFcmToken, markFindingNotified, createNotification } from '../db/queries.js';
 import { WatcherRow } from '../types.js';
 
 export class NotificationService {
@@ -112,6 +112,15 @@ export class NotificationService {
 
         await this.sendPayload(userId, message);
         markFindingNotified(finding.finding_id);
+        
+        await createNotification({
+            user_id: userId,
+            title: message.notification.title,
+            body: message.notification.body,
+            type: 'finding',
+            data_id: finding.finding_id
+        });
+
         console.log(`Notification sent to user ${userId}: ${finding.headline}`);
     }
 
@@ -133,6 +142,15 @@ export class NotificationService {
             }
         };
         await this.sendPayload(userId, message);
+
+        await createNotification({
+            user_id: userId,
+            title: message.notification.title,
+            body: message.notification.body,
+            type: 'briefing',
+            data_id: briefing.briefing_id
+        });
+
         console.log(`Briefing Notification sent to user ${userId}`);
     }
 
@@ -154,6 +172,15 @@ export class NotificationService {
             }
         };
         await this.sendPayload(userId, message);
+
+        await createNotification({
+            user_id: userId,
+            title: message.notification.title,
+            body: message.notification.body,
+            type: 'budget_warning',
+            data_id: watcher.watcher_id
+        });
+
         console.log(`Budget Warning Notification sent to user ${userId} for watcher ${watcher.watcher_id}`);
     }
 
@@ -170,6 +197,15 @@ export class NotificationService {
             }
         };
         await this.sendPayload(userId, message);
+
+        await createNotification({
+            user_id: userId,
+            title: message.notification.title,
+            body: message.notification.body,
+            type: 'budget_exhausted',
+            data_id: watcher.watcher_id
+        });
+
         console.log(`Budget Exhausted Notification sent to user ${userId} for watcher ${watcher.watcher_id}`);
     }
 
@@ -190,6 +226,15 @@ export class NotificationService {
             }
         };
         await this.sendPayload(userId, message);
+
+        await createNotification({
+            user_id: userId,
+            title: message.notification.title,
+            body: message.notification.body,
+            type: 'low_balance',
+            data_id: null
+        });
+
         console.log(`Low Balance Notification sent to user ${userId}`);
     }
 
@@ -210,6 +255,15 @@ export class NotificationService {
             }
         };
         await this.sendPayload(userId, message);
+
+        await createNotification({
+            user_id: userId,
+            title: message.notification.title,
+            body: message.notification.body,
+            type: 'weekly_summary',
+            data_id: null
+        });
+        
         console.log(`Weekly Summary Notification sent to user ${userId}`);
     }
 }

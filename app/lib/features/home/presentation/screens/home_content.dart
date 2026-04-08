@@ -24,6 +24,9 @@ import 'package:flare_app/features/wallet/presentation/bloc/wallet_event.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_state.dart';
 import 'package:flare_app/features/home/domain/services/ghost_score_service.dart';
 import 'package:flare_app/features/home/presentation/widgets/ghost_score_card.dart';
+import 'package:flare_app/features/notifications/presentation/widgets/notification_badge_icon.dart';
+import 'package:flare_app/features/notifications/presentation/bloc/notifications_bloc.dart';
+import 'package:flare_app/features/notifications/presentation/bloc/notifications_event.dart';
 
 class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
@@ -43,6 +46,7 @@ class HomeContent extends StatelessWidget {
       context.read<WatchersBloc>().add(LoadWatchers(userId));
       context.read<FindingsBloc>().add(LoadFindings(userId));
       context.read<BriefingBloc>().add(LoadTodayBriefing(userId));
+      context.read<NotificationsBloc>().add(LoadUnreadCount(userId));
     }
   }
 
@@ -92,6 +96,8 @@ class HomeContent extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildLiveButton(context),
+                        const SizedBox(width: 8),
+                        const NotificationBadgeIcon(),
                         const SizedBox(width: 8),
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 300),

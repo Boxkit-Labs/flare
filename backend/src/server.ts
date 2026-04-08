@@ -8,6 +8,7 @@ import briefingsRouter from './routes/briefings.js';
 import walletRouter from './routes/wallet.js';
 import transactionsRouter from './routes/transactions.js';
 import servicesRouter from './routes/services.js';
+import notificationsRouter from './routes/notifications.js';
 
 
 import { CheckExecutor } from './services/check-executor.js';
@@ -32,6 +33,7 @@ app.use('/api/findings', findingsRouter);
 app.use('/api/briefings', briefingsRouter);
 app.use('/api/wallet', walletRouter);
 app.use('/api/transactions', transactionsRouter);
+app.use('/api/notifications', notificationsRouter);
 app.use('/services', servicesRouter);
 
 

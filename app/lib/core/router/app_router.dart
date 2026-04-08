@@ -15,8 +15,9 @@ import 'package:flare_app/features/wallet/presentation/screens/wallet_screen.dar
 import 'package:flare_app/features/settings/presentation/screens/settings_screen.dart';
 import 'package:flare_app/features/watchers/presentation/screens/watcher_templates_screen.dart';
 import 'package:flare_app/features/wallet/presentation/screens/payment_stream_screen.dart';
-import 'package:flare_app/features/home/presentation/screens/shell_screen.dart';
 import 'package:flare_app/features/wallet/presentation/screens/stellar_proof_screen.dart';
+import 'package:flare_app/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:flare_app/features/home/presentation/screens/shell_screen.dart';
 
 class AppRouter {
   AppRouter._();
@@ -55,6 +56,11 @@ class AppRouter {
           path: '/onboarding',
           name: 'onboarding',
           builder: (context, state) => const OnboardingScreen(),
+        ),
+        GoRoute(
+          path: '/notifications',
+          name: 'notifications',
+          builder: (context, state) => const NotificationsScreen(),
         ),
         GoRoute(
           path: '/settings',
