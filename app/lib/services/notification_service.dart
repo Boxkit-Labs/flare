@@ -178,39 +178,48 @@ class NotificationService {
     _showLocalNotification(notification, message.data, channelId);
 
     // Show in-app banner for active users
-    final context = AppRouter.navigatorKey.currentContext;
-    if (context != null) {
-      late OverlayEntry bannerEntry;
-      bool isRemoved = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = AppRouter.router.routerDelegate.navigatorKey.currentContext;
+      if (ctx == null) return;
 
-      String emoji = '🔔';
-      if (dataType == 'finding') emoji = '🔥';
-      if (dataType == 'briefing') emoji = '☀️';
-      if (dataType == 'low_balance' || dataType == 'budget_warning') emoji = '⚠️';
+      try {
+        late OverlayEntry bannerEntry;
+        bool isRemoved = false;
 
-      bannerEntry = OverlayEntry(
-        builder: (ctx) => NotificationBanner(
-          emoji: emoji,
-          headline: notification.title ?? 'New Notification',
-          onTap: () {
-            if (!isRemoved) {
+        String emoji = '🔔';
+        if (dataType == 'finding') emoji = '🔥';
+        if (dataType == 'briefing') emoji = '☀️';
+        if (dataType == 'low_balance' || dataType == 'budget_warning') emoji = '⚠️';
+
+        bannerEntry = OverlayEntry(
+          builder: (overlayCtx) => NotificationBanner(
+            emoji: emoji,
+            headline: notification.title ?? 'New Notification',
+            onTap: () {
+              if (!isRemoved) {
+                bannerEntry.remove();
+                isRemoved = true;
+              }
+              _navigateFromData(message.data);
+            },
+          ),
+        );
+
+        final overlay = Overlay.maybeOf(ctx);
+        if (overlay != null) {
+          overlay.insert(bannerEntry);
+
+          Future.delayed(const Duration(seconds: 4), () {
+            if (!isRemoved && bannerEntry.mounted) {
               bannerEntry.remove();
               isRemoved = true;
             }
-            _navigateFromData(message.data);
-          },
-        ),
-      );
-
-      Overlay.of(context).insert(bannerEntry);
-
-      Future.delayed(const Duration(seconds: 4), () {
-        if (!isRemoved && bannerEntry.mounted) {
-          bannerEntry.remove();
-          isRemoved = true;
+          });
         }
-      });
-    }
+      } catch (e) {
+        debugPrint('[FCM] Could not show in-app banner: $e');
+      }
+    });
   }
 
   void _showLocalNotification(RemoteNotification notification, Map<String, dynamic> data, String channelId) {

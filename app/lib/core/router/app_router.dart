@@ -22,17 +22,26 @@ import 'package:flare_app/features/home/presentation/screens/shell_screen.dart';
 class AppRouter {
   AppRouter._();
 
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
   static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
   static GoRouter? _router;
   static GoRouter get router => _router!;
 
+  /// Reset the router (call before re-init on hot restart)
+  static void reset() {
+    _router?.dispose();
+    _router = null;
+  }
+
   static void init(AuthBloc authBloc) {
-    if (_router != null) return;
+    // Dispose any previous router to avoid stale listeners
+    if (_router != null) {
+      _router!.dispose();
+      _router = null;
+    }
 
     _router = GoRouter(
-      navigatorKey: navigatorKey,
       initialLocation: '/',
       refreshListenable: _AuthRefreshListenable(authBloc.stream),
       redirect: (context, state) {

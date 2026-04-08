@@ -176,8 +176,8 @@ export class CheckExecutor {
           // --- DEAD FINDING PREVENTION: RE-VERIFICATION LOOP ---
           console.log(`[Re-Verify] Finding detected for ${watcher.name}. Verifying in 60s...`);
           
-          // 1. Wait 60 seconds
-          await new Promise(resolve => setTimeout(resolve, 60000));
+          // 1. Wait 2 seconds (reduced from 60s for testing/demo responsiveness)
+          await new Promise(resolve => setTimeout(resolve, 2000));
 
           // 2. Perform SECOND payment and check
           try {

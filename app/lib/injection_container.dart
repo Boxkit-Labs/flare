@@ -15,6 +15,10 @@ import 'package:flare_app/services/notification_service.dart';
 final sl = GetIt.instance;
 
 Future<void> init() async {
+  // Reset GetIt on hot restart to prevent stale singletons
+  if (sl.isRegistered<ApiService>()) {
+    await sl.reset();
+  }
   //! Features - Auth
   // Bloc
   sl.registerLazySingleton(() => AuthBloc(
