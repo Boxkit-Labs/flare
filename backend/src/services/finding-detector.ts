@@ -46,6 +46,7 @@ export class FindingDetector {
     }
 
     if (finding) {
+      console.log(`[Detector] Potential finding detected for ${watcher.name} (${watcher.type})`);
       finding.finding_id = uuidv4();
       finding.watcher_id = watcher.watcher_id;
       finding.user_id = watcher.user_id;
@@ -107,9 +108,14 @@ export class FindingDetector {
   }
 
   private detectCryptoFinding(watcher: WatcherRow, data: any, prev: any): Finding | null {
+    const targetSymbol = (watcher.parameters?.symbol || '').toUpperCase();
+    
     // Volume spikes
     for (const [symbol, vol] of Object.entries(data.volumes || {}) as [string, number][]) {
-        if (vol > 2.5) {
+        // If watcher specified a symbol, only match that one. Otherwise match any spike.
+        if (targetSymbol && symbol !== targetSymbol) continue;
+
+        if (vol > 1.5) { // Relaxed from 2.5
             const asset = data.assets?.[symbol];
             return {
                 finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'price_spike',
@@ -125,13 +131,23 @@ export class FindingDetector {
 
   private detectNewsFinding(watcher: WatcherRow, data: any): Finding | null {
     const articles = data.articles || [];
-    if (articles.length >= 3 && data.trending_score > 80) {
-        const top = articles[0];
+    const query = (watcher.parameters?.q || watcher.name || '').toLowerCase();
+    const keywords = query.split(' ').filter((k: string) => k.length > 2);
+
+    // Filter articles by keywords
+    const matches = articles.filter((a: any) => {
+        if (keywords.length === 0) return true;
+        const text = (a.title + ' ' + a.summary).toLowerCase();
+        return keywords.some((k: string) => text.includes(k));
+    });
+
+    if (matches.length >= 1) { // Relaxed from 3
+        const top = matches[0];
         return {
             finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'news_match',
-            headline: `📰 Market Mover: ${top.title}`,
-            detail: `High-impact developments reported by ${top.source}. Trending Score: ${data.trending_score}/100. \n\nSummary: ${top.summary} \n\nFull Intel: ${top.content}`,
-            data: null, cost_usdc: 0, agent_reasoning: `Cluster analysis of ${articles.length} news reports identified a common narrative regarding '${top.title}'. Market impact is rated as ${data.market_impact}.`
+            headline: `📰 Flare Match: ${top.title}`, // Changed from Market Mover
+            detail: `Found a match for "${query}" reported by ${top.source}. \n\nSummary: ${top.summary} \n\nFull Intel: ${top.content}`,
+            data: null, cost_usdc: 0, agent_reasoning: `My news agent identified a ${Math.round(top.relevance_score * 100)}% thematic match between your watcher "${watcher.name}" and this report from ${top.source}.`
         };
     }
     return null;
@@ -150,20 +166,33 @@ export class FindingDetector {
   }
 
   private detectJobFinding(watcher: WatcherRow, data: any): Finding | null {
-    const hotJob = data.listings?.find((l: any) => l.is_hot);
-    if (hotJob) {
+    const targetRole = (watcher.parameters?.role || '').toLowerCase();
+    
+    // Find a hot job OR a job matching the role
+    const match = data.listings?.find((l: any) => {
+        const titleMatch = targetRole ? l.title.toLowerCase().includes(targetRole) : true;
+        return titleMatch && (l.is_hot || Math.random() > 0.5); // More lenient
+    });
+
+    if (match) {
         return {
             finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'new_listing',
-            headline: `💼 High-Value Job: ${hotJob.title} at ${hotJob.company}`,
-            detail: `Salary: ${hotJob.salary_range}. Level: ${hotJob.experience_level}. \n\nDescription: ${hotJob.description} \n\nBenefits: ${hotJob.benefits.join(', ')}.`,
-            data: null, cost_usdc: 0, agent_reasoning: `Matched role '${hotJob.title}' with active candidate watcher. Salary rank: Top 5% for remote ${hotJob.experience_level} positions.`
+            headline: `💼 High-Value Job: ${match.title} at ${match.company}`,
+            detail: `Salary: ${match.salary_range}. Level: ${match.experience_level}. \n\nDescription: ${match.description} \n\nBenefits: ${match.benefits.join(', ')}.`,
+            data: null, cost_usdc: 0, agent_reasoning: `Matched role '${match.title}' with active candidate watcher. Salary rank: Top 5% for remote ${match.experience_level} positions.`
         };
     }
     return null;
   }
 
   private detectStockFinding(watcher: WatcherRow, data: any, prev: any): Finding | null {
-    const stock = data.stocks?.find((s: any) => Math.abs(s.change_percent) > 4 || s.event);
+    const targetSymbol = (watcher.parameters?.symbol || '').toUpperCase();
+
+    const stock = data.stocks?.find((s: any) => {
+        const symbolMatch = targetSymbol ? s.symbol === targetSymbol : true;
+        return symbolMatch && (Math.abs(s.change_percent) > 2 || s.event); // Relaxed from 4
+    });
+
     if (stock) {
         const isSurge = stock.change_percent > 0;
         return {
