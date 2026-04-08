@@ -3,6 +3,7 @@ import 'package:flare_app/services/api_service.dart';
 import 'package:flare_app/core/models/models.dart';
 import 'wallet_event.dart';
 import 'wallet_state.dart';
+import 'package:flare_app/core/utils/error_formatter.dart';
 
 class WalletBloc extends Bloc<WalletEvent, WalletState> {
   final ApiService apiService;
@@ -22,7 +23,7 @@ class WalletBloc extends Bloc<WalletEvent, WalletState> {
           transactions: responses[2] as List<TransactionModel>,
         ));
       } catch (e) {
-        emit(WalletError(e.toString()));
+        emit(WalletError(ErrorFormatter.format(e)));
       }
     });
 

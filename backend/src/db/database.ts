@@ -55,6 +55,26 @@ export const initializeDatabase = async () => {
                 ADD COLUMN IF NOT EXISTS error_message TEXT;
             `);
 
+            // Create notifications table if missing
+            console.log('Ensuring notifications table exists...');
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS notifications (
+                    notification_id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+                    title TEXT NOT NULL,
+                    body TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    data_id TEXT,
+                    read BOOLEAN DEFAULT false,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            `);
+
+            await pool.query(`
+                CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+            `);
+            console.log('Notifications table check complete.');
+
             console.log('Database schema updates verified.');
         }
     } catch (error) {

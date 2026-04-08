@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flare_app/services/api_service.dart';
 import 'watchers_event.dart';
 import 'watchers_state.dart';
+import 'package:flare_app/core/utils/error_formatter.dart';
 
 class WatchersBloc extends Bloc<WatchersEvent, WatchersState> {
   final ApiService apiService;
@@ -13,7 +14,7 @@ class WatchersBloc extends Bloc<WatchersEvent, WatchersState> {
         final watchers = await apiService.getWatchers(event.userId);
         emit(WatchersLoaded(watchers));
       } catch (e) {
-        if (!event.isRefresh) emit(WatchersError(e.toString()));
+        if (!event.isRefresh) emit(WatchersError(ErrorFormatter.format(e)));
       }
     });
 
@@ -27,7 +28,7 @@ class WatchersBloc extends Bloc<WatchersEvent, WatchersState> {
           add(LoadWatchers(apiService.userId!));
         }
       } catch (e) {
-        emit(WatchersError(e.toString()));
+        emit(WatchersError(ErrorFormatter.format(e)));
       }
     });
 
@@ -40,7 +41,7 @@ class WatchersBloc extends Bloc<WatchersEvent, WatchersState> {
           add(LoadWatchers(apiService.userId!));
         }
       } catch (e) {
-        emit(WatchersError(e.toString()));
+        emit(WatchersError(ErrorFormatter.format(e)));
       }
     });
 
@@ -51,7 +52,7 @@ class WatchersBloc extends Bloc<WatchersEvent, WatchersState> {
           add(LoadWatchers(apiService.userId!));
         }
       } catch (e) {
-        emit(WatchersError(e.toString()));
+        emit(WatchersError(ErrorFormatter.format(e)));
       }
     });
 
@@ -64,7 +65,7 @@ class WatchersBloc extends Bloc<WatchersEvent, WatchersState> {
           add(LoadWatchers(apiService.userId!));
         }
       } catch (e) {
-        emit(WatchersError(e.toString()));
+        emit(WatchersError(ErrorFormatter.format(e)));
       }
     });
 
@@ -74,7 +75,7 @@ class WatchersBloc extends Bloc<WatchersEvent, WatchersState> {
         final watcher = await apiService.getWatcher(event.watcherId);
         emit(WatcherDetailLoaded(watcher));
       } catch (e) {
-        emit(WatchersError(e.toString()));
+        emit(WatchersError(ErrorFormatter.format(e)));
       }
     });
   }

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flare_app/core/config/app_constants.dart';
 import 'package:flare_app/core/models/models.dart';
 import 'package:flare_app/core/models/notification_model.dart';
+import 'package:flare_app/core/error/exceptions.dart';
 
 /// Central API service for communicating with the Flare backend.
 /// Uses Dio with interceptors for logging and error handling.
@@ -33,6 +34,22 @@ class ApiService {
         ),
       );
     }
+
+    // Add error mapping interceptor
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onError: (DioException e, handler) {
+          final appException = mapDioException(e);
+          return handler.next(DioException(
+            requestOptions: e.requestOptions,
+            response: e.response,
+            type: e.type,
+            error: appException,
+            message: appException.message,
+          ));
+        },
+      ),
+    );
   }
   
   // ─── HEALTH METHODS ────────────────────────────────────────

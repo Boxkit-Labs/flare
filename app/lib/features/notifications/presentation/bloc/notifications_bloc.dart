@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flare_app/services/api_service.dart';
 import 'notifications_event.dart';
 import 'notifications_state.dart';
+import 'package:flare_app/core/utils/error_formatter.dart';
 
 class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
   final ApiService apiService;
@@ -25,7 +26,7 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
         unreadCount: unreadCount,
       ));
     } catch (e) {
-      emit(NotificationsError(e.toString()));
+      emit(NotificationsError(ErrorFormatter.format(e)));
     }
   }
 

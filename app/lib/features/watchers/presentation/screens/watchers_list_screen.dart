@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:flare_app/core/widgets/error_state.dart';
+import 'package:flare_app/core/widgets/top_snackbar.dart';
 import 'package:flare_app/core/widgets/shimmer_utilities.dart';
 import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:flare_app/features/auth/presentation/bloc/auth_state.dart';
@@ -57,27 +58,37 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: Column(
-        children: [
-          _buildFilterChips(),
-          Expanded(
-            child: RefreshIndicator(
-              color: AppTheme.primary,
-              onRefresh: () async {
-                _refresh();
-                await Future.delayed(const Duration(milliseconds: 800));
-              },
-              child: BlocBuilder<WatchersBloc, WatchersState>(
-                builder: (context, state) {
-                  return AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: _buildWatcherListContent(context, state),
-                  );
+      body: BlocListener<WatchersBloc, WatchersState>(
+        listener: (context, state) {
+          if (state is WatcherActionSuccess) {
+            TopSnackbar.showSuccess(context, state.message);
+          } else if (state is WatchersError && context.read<WatchersBloc>().state is WatchersLoaded) {
+            // If we already have data, show error as snackbar instead of replacing the whole UI
+            TopSnackbar.showError(context, state.message);
+          }
+        },
+        child: Column(
+          children: [
+            _buildFilterChips(),
+            Expanded(
+              child: RefreshIndicator(
+                color: AppTheme.primary,
+                onRefresh: () async {
+                  _refresh();
+                  await Future.delayed(const Duration(milliseconds: 800));
                 },
+                child: BlocBuilder<WatchersBloc, WatchersState>(
+                  builder: (context, state) {
+                    return AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: _buildWatcherListContent(context, state),
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: _buildFab(),
     );

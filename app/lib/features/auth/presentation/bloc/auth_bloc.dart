@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flare_app/services/api_service.dart';
 import 'package:flare_app/features/auth/data/datasources/auth_local_data_source.dart';
+import 'package:flare_app/core/utils/error_formatter.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -51,7 +52,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         apiService.userId = event.user.userId;
         emit(AuthAuthenticated(event.user));
       } catch (e) {
-        emit(AuthFailure(e.toString()));
+        emit(AuthFailure(ErrorFormatter.format(e)));
       }
     });
 
@@ -64,7 +65,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           final updatedUser = await apiService.getUser(currentUser.userId);
           emit(AuthAuthenticated(updatedUser));
         } catch (e) {
-          emit(AuthFailure(e.toString()));
+          emit(AuthFailure(ErrorFormatter.format(e)));
         }
       }
     });
