@@ -248,6 +248,7 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
               15: 'Every 15 minutes', 
               60: 'Every hour', 
               360: 'Every 6 hours', 
+              720: 'Every 12 hours',
               1440: 'Once a day'
             },
           ),
@@ -259,16 +260,28 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
               Text('\$${(_formData['weekly_budget_usdc'] ?? 0.0).toStringAsFixed(2)} USDC', style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.primary)),
             ],
           ),
-          const SizedBox(height: 8),
-          Slider(
-            value: _formData['weekly_budget_usdc'],
-            min: 0.1,
-            max: 2.0,
-            activeColor: AppTheme.primary,
-            inactiveColor: AppTheme.primary.withValues(alpha: 0.1),
-            onChanged: (val) => _handleDataChange({..._formData, 'weekly_budget_usdc': val}),
+          const SizedBox(height: 4),
+          SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 12,
+              activeTrackColor: AppTheme.primary,
+              inactiveTrackColor: AppTheme.primary.withValues(alpha: 0.1),
+              thumbColor: Colors.white,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10, elevation: 4),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+            ),
+            child: Slider(
+              value: (_formData['weekly_budget_usdc'] ?? 0.5).clamp(0.1, 5.0),
+              min: 0.1,
+              max: 5.0,
+              onChanged: (val) => _handleDataChange({..._formData, 'weekly_budget_usdc': val}),
+            ),
           ),
-          const SizedBox(height: 16),
+          const Text(
+            'Adjust the budget cap to limit how much USDC this agent can spend on transactions per week.',
+            style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, height: 1.4),
+          ),
+          const SizedBox(height: 24),
           const Text('Priority Level', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
           const SizedBox(height: 12),
           SizedBox(
@@ -279,7 +292,7 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
                 ButtonSegment(value: 'medium', label: Text('Med')),
                 ButtonSegment(value: 'high', label: Text('High')),
               ],
-              selected: {_formData['priority']},
+              selected: {_formData['priority'] ?? 'medium'},
               onSelectionChanged: (set) => _handleDataChange({..._formData, 'priority': set.first}),
               style: SegmentedButton.styleFrom(
                 selectedBackgroundColor: AppTheme.primary,
@@ -305,7 +318,15 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<int>(
           value: _formData[key],
-          items: options.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)))).toList(),
+          items: () {
+            final items = options.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)))).toList();
+            // Safety: if the value is not in the list, add it to prevent the "exactly one item" assertion crash
+            final currentValue = _formData[key];
+            if (currentValue != null && !options.containsKey(currentValue)) {
+              items.add(DropdownMenuItem(value: currentValue, child: Text('Custom ($currentValue min)', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))));
+            }
+            return items;
+          }(),
           onChanged: (val) => _handleDataChange({..._formData, key: val}),
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textSecondary),
