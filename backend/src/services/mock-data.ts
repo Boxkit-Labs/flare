@@ -75,6 +75,7 @@ export function getCryptoData() {
     return {
         prices,
         changes_24h,
+        volumes: { XLM: 3.2, BTC: 1.1, ETH: 0.8 }, // XLM has a volume spike > 2.5
         checked_at: new Date().toISOString()
     };
 }
@@ -91,7 +92,8 @@ export function getNewsAlerts() {
             relevance_score: 0.75 + Math.random() * 0.25, // always 0.75–1.0
             summary: `Significant developments in ${topic} reported today.`,
             timestamp: new Date().toISOString()
-        }))
+        })),
+        trending_score: 92 // High trending score to trigger news findings
     };
 }
 
@@ -121,7 +123,9 @@ export function getProductPrices(name: string) {
         product_name: name,
         current_price: 199 + Math.floor(Math.random() * 1000),
         store: "E-Shop",
-        on_sale: Math.random() > 0.8,
+        on_sale: true,
+        is_ath: true, // Trigger all-time low (ATH in logic? mapping check)
+        stores: [{ store: "E-Shop", price: 199 }],
         checked_at: new Date().toISOString()
     };
 }

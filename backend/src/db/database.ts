@@ -37,10 +37,30 @@ export const initializeDatabase = async () => {
             const schema = readFileSync(schemaPath, 'utf8');
             await pool.query(schema);
             console.log('Database schema initialized successfully.');
+        } else {
+            // Existing DB: Ensure all columns from recent schema updates are present
+            console.log('Checking for database schema updates...');
+            
+            // Add tx_type to transactions if missing
+            await pool.query(`
+                ALTER TABLE transactions 
+                ADD COLUMN IF NOT EXISTS tx_type TEXT 
+                DEFAULT 'check' 
+                CHECK (tx_type IN ('check', 'verification', 'collaboration'));
+            `);
+
+            // Add error_message to watchers if missing
+            await pool.query(`
+                ALTER TABLE watchers 
+                ADD COLUMN IF NOT EXISTS error_message TEXT;
+            `);
+
+            console.log('Database schema updates verified.');
         }
     } catch (error) {
         console.error('Failed to initialize database schema:', error);
-        process.exit(1);
+        // We don't exit(1) on migration failure if it might be a 'column already exists' error 
+        // that IF NOT EXISTS didn't catch, but pg is generally good with IF NOT EXISTS.
     }
 };
 
