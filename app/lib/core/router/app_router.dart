@@ -25,10 +25,13 @@ class AppRouter {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
   static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
-  static late GoRouter router;
+  static GoRouter? _router;
+  static GoRouter get router => _router!;
 
   static void init(AuthBloc authBloc) {
-    router = GoRouter(
+    if (_router != null) return;
+
+    _router = GoRouter(
       navigatorKey: navigatorKey,
       initialLocation: '/',
       refreshListenable: _AuthRefreshListenable(authBloc.stream),

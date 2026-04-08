@@ -3,16 +3,19 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flare_app/services/api_service.dart';
 import 'package:flare_app/features/auth/data/datasources/auth_local_data_source.dart';
 import 'package:flare_app/core/utils/error_formatter.dart';
+import 'package:flare_app/services/notification_service.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final ApiService apiService;
   final AuthLocalDataSource localDataSource;
+  final NotificationService notificationService;
 
   AuthBloc({
     required this.apiService,
     required this.localDataSource,
+    required this.notificationService,
   }) : super(AuthInitial()) {
     on<AppStarted>((event, emit) async {
       emit(const AuthLoading(message: 'Waking up Flare server... (Takes ~40s on first launch)'));
@@ -36,6 +39,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         if (userId != null) {
           final user = await apiService.getUser(userId);
           apiService.userId = user.userId;
+          notificationService.setUserId(user.userId);
           emit(AuthAuthenticated(user));
         } else {
           emit(AuthUnauthenticated());
@@ -50,6 +54,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       try {
         await localDataSource.cacheUserId(event.user.userId);
         apiService.userId = event.user.userId;
+        notificationService.setUserId(event.user.userId);
         emit(AuthAuthenticated(event.user));
       } catch (e) {
         emit(AuthFailure(ErrorFormatter.format(e)));

@@ -20,6 +20,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => AuthBloc(
         apiService: sl(),
         localDataSource: sl(),
+        notificationService: sl(),
       ));
   sl.registerFactory(() => OnboardingBloc(sl()));
 
