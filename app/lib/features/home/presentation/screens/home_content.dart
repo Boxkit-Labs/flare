@@ -309,6 +309,7 @@ class HomeContent extends StatelessWidget {
             key: Key(briefing.briefingId),
             direction: DismissDirection.endToStart,
             onDismissed: (_) {
+               // Optimistically mark as read on UI to prevent jumpiness
                context.read<BriefingBloc>().add(MarkBriefingRead(briefing.briefingId));
             },
             child: InkWell(
@@ -735,10 +736,12 @@ class _AgentActivityIndicatorState extends State<AgentActivityIndicator> {
            final activeWatchers = state.watchers.where((w) => w.status == 'active').toList();
            if (activeWatchers.isNotEmpty) {
              activeWatchers.sort((a, b) => a.checkIntervalMinutes.compareTo(b.checkIntervalMinutes));
-             setState(() {
-               _nextCheckMinutes = (activeWatchers.first.checkIntervalMinutes / 2).floor();
-               if (_nextCheckMinutes < 1) _nextCheckMinutes = 1;
-             });
+             final next = (activeWatchers.first.checkIntervalMinutes / 2).floor();
+             if (next != _nextCheckMinutes) {
+               setState(() {
+                 _nextCheckMinutes = next < 1 ? 1 : next;
+               });
+             }
            }
         }
       },

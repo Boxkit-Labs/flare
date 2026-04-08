@@ -247,17 +247,17 @@ export class BriefingGenerator {
       
       if (newWatchers.length === 0) return;
 
-      console.log(`[BRIEFING] Triggering initial checks for ${newWatchers.length} new watchers...`);
+      console.log(`[BRIEFING] Triggering initial checks for ${newWatchers.length} new watchers in parallel...`);
       
-      // Run checks in sequence (don't parallelize too many)
-      // Limit to top 3 to avoid extreme latency
-      for (const watcher of newWatchers.slice(0, 3)) {
+      // Run checks in parallel (up to a reasonable limit, e.g., 5)
+      const checksToRun = newWatchers.slice(0, 5);
+      await Promise.all(checksToRun.map(async (watcher) => {
         try {
-          await this.checkExecutor.runCheck(watcher.watcher_id);
+          await this.checkExecutor!.runCheck(watcher.watcher_id);
         } catch (err) {
           console.error(`[BRIEFING] Initial check failed for watcher ${watcher.watcher_id}`, err);
         }
-      }
+      }));
     } catch (e) {
       console.error(`[BRIEFING] Failed to trigger initial checks for user ${userId}`, e);
     }

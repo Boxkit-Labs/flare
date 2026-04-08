@@ -133,12 +133,13 @@ class _BriefingScreenState extends State<BriefingScreen> {
   }
 
   Widget _buildBriefingBody(BuildContext context, BriefingState state) {
-    if (state is BriefingLoading && _isSelectingNewDate(state)) {
+    final dateKey = _selectedDate.toIso8601String().split('T')[0];
+
+    if (state is BriefingLoading && _isSelectingNewDate(state, dateKey)) {
       return _buildLoadingState();
     }
 
     if (state is BriefingLoaded || state is BriefingGenerating) {
-      final dateKey = _selectedDate.toIso8601String().split('T')[0];
       final isToday = dateKey == DateTime.now().toIso8601String().split('T')[0];
       
       BriefingModel? briefing;
@@ -182,9 +183,15 @@ class _BriefingScreenState extends State<BriefingScreen> {
     return _buildLoadingState();
   }
 
-  bool _isSelectingNewDate(BriefingState state) {
-     // Check if we are literally mid-load for a date
-     return true; // Simplified for basic BLoC behavior
+  bool _isSelectingNewDate(BriefingState state, String currentKey) {
+    if (state is BriefingLoaded) {
+      // If we are looking for a historical date, but the state doesn't have it yet, show shimmer
+      final isToday = currentKey == DateTime.now().toIso8601String().split('T')[0];
+      if (!isToday && !state.briefingsByDate.containsKey(currentKey)) {
+          return true;
+      }
+    }
+    return state is BriefingLoading;
   }
 
   Widget _buildLoadingState() {
