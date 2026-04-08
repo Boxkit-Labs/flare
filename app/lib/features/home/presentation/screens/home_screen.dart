@@ -12,6 +12,8 @@ import 'package:flare_app/features/briefing/presentation/bloc/briefing_bloc.dart
 import 'package:flare_app/features/briefing/presentation/bloc/briefing_event.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_event.dart';
+import 'package:flare_app/features/notifications/presentation/bloc/notifications_bloc.dart';
+import 'package:flare_app/features/notifications/presentation/bloc/notifications_event.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -39,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> with AutoRefreshMixin {
       context.read<WatchersBloc>().add(LoadWatchers(userId, isRefresh: isRefresh));
       context.read<FindingsBloc>().add(LoadFindings(userId, isRefresh: isRefresh));
       context.read<BriefingBloc>().add(LoadTodayBriefing(userId, isRefresh: isRefresh));
+      context.read<NotificationsBloc>().add(LoadUnreadCount(userId));
     }
   }
 

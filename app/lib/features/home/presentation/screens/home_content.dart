@@ -24,6 +24,9 @@ import 'package:flare_app/features/wallet/presentation/bloc/wallet_event.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_state.dart';
 import 'package:flare_app/features/home/domain/services/ghost_score_service.dart';
 import 'package:flare_app/features/home/presentation/widgets/ghost_score_card.dart';
+import 'package:flare_app/features/notifications/presentation/widgets/notification_badge_icon.dart';
+import 'package:flare_app/features/notifications/presentation/bloc/notifications_bloc.dart';
+import 'package:flare_app/features/notifications/presentation/bloc/notifications_event.dart';
 
 class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
@@ -43,6 +46,7 @@ class HomeContent extends StatelessWidget {
       context.read<WatchersBloc>().add(LoadWatchers(userId));
       context.read<FindingsBloc>().add(LoadFindings(userId));
       context.read<BriefingBloc>().add(LoadTodayBriefing(userId));
+      context.read<NotificationsBloc>().add(LoadUnreadCount(userId));
     }
   }
 
@@ -92,6 +96,8 @@ class HomeContent extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildLiveButton(context),
+                        const SizedBox(width: 8),
+                        const NotificationBadgeIcon(),
                         const SizedBox(width: 8),
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 300),
@@ -309,6 +315,7 @@ class HomeContent extends StatelessWidget {
             key: Key(briefing.briefingId),
             direction: DismissDirection.endToStart,
             onDismissed: (_) {
+               // Optimistically mark as read on UI to prevent jumpiness
                context.read<BriefingBloc>().add(MarkBriefingRead(briefing.briefingId));
             },
             child: InkWell(
@@ -735,10 +742,12 @@ class _AgentActivityIndicatorState extends State<AgentActivityIndicator> {
            final activeWatchers = state.watchers.where((w) => w.status == 'active').toList();
            if (activeWatchers.isNotEmpty) {
              activeWatchers.sort((a, b) => a.checkIntervalMinutes.compareTo(b.checkIntervalMinutes));
-             setState(() {
-               _nextCheckMinutes = (activeWatchers.first.checkIntervalMinutes / 2).floor();
-               if (_nextCheckMinutes < 1) _nextCheckMinutes = 1;
-             });
+             final next = (activeWatchers.first.checkIntervalMinutes / 2).floor();
+             if (next != _nextCheckMinutes) {
+               setState(() {
+                 _nextCheckMinutes = next < 1 ? 1 : next;
+               });
+             }
            }
         }
       },

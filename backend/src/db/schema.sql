@@ -116,3 +116,16 @@ CREATE INDEX IF NOT EXISTS idx_watchers_user_id ON watchers(user_id);
 CREATE INDEX IF NOT EXISTS idx_checks_watcher_id ON checks(watcher_id);
 CREATE INDEX IF NOT EXISTS idx_findings_user_id ON findings(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
+
+-- Notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  notification_id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  type TEXT NOT NULL, -- 'finding', 'briefing', 'budget_warning', 'low_balance', etc.
+  data_id TEXT,       -- optional link to specific finding/briefing/watcher
+  read BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);

@@ -8,6 +8,7 @@ import 'package:flare_app/features/findings/presentation/bloc/findings_bloc.dart
 import 'package:flare_app/features/watchers/presentation/bloc/watchers_bloc.dart';
 import 'package:flare_app/features/briefing/presentation/bloc/briefing_bloc.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:flare_app/features/notifications/presentation/bloc/notifications_bloc.dart';
 import 'package:flare_app/services/api_service.dart';
 import 'package:flare_app/services/notification_service.dart';
 
@@ -38,6 +39,9 @@ Future<void> init() async {
 
   //! Features - Wallet
   sl.registerFactory(() => WalletBloc(sl()));
+
+  //! Features - Notifications
+  sl.registerFactory(() => NotificationsBloc(sl()));
 
   //! Services
   sl.registerLazySingleton(() => ApiService());

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flare_app/core/config/app_constants.dart';
 import 'package:flare_app/core/models/models.dart';
+import 'package:flare_app/core/models/notification_model.dart';
 
 /// Central API service for communicating with the Flare backend.
 /// Uses Dio with interceptors for logging and error handling.
@@ -258,5 +259,37 @@ class ApiService {
     });
     final list = response.data as List;
     return list.map((t) => TransactionModel.fromJson(t)).toList();
+  }
+
+  // ─── NOTIFICATION METHODS ──────────────────────────────────
+
+  /// List notifications for a user with optional pagination.
+  Future<List<NotificationModel>> getNotifications(
+    String userId, {
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final response = await _dio.get('/api/notifications', queryParameters: {
+      'user_id': userId,
+      'limit': limit,
+      'offset': offset,
+    });
+    final list = response.data as List;
+    return list.map((n) => NotificationModel.fromJson(n)).toList();
+  }
+
+  /// Get the unread notification count for a user.
+  Future<int> getUnreadNotificationCount(String userId) async {
+    final response = await _dio.get('/api/notifications/unread-count', queryParameters: {
+      'user_id': userId,
+    });
+    return response.data['unread_count'] as int;
+  }
+
+  /// Mark a notification as read.
+  Future<void> markNotificationRead(String notificationId, String userId) async {
+    await _dio.post('/api/notifications/$notificationId/read', data: {
+      'user_id': userId,
+    });
   }
 }

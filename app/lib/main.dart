@@ -12,6 +12,7 @@ import 'package:flare_app/features/watchers/presentation/bloc/watchers_bloc.dart
 import 'package:flare_app/features/findings/presentation/bloc/findings_bloc.dart';
 import 'package:flare_app/features/briefing/presentation/bloc/briefing_bloc.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:flare_app/features/notifications/presentation/bloc/notifications_bloc.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,6 +51,9 @@ Future<void> main() async {
         ),
         BlocProvider<WalletBloc>(
           create: (context) => di.sl<WalletBloc>(),
+        ),
+        BlocProvider<NotificationsBloc>(
+          create: (context) => di.sl<NotificationsBloc>(),
         ),
       ],
       child: const FlareApp(),

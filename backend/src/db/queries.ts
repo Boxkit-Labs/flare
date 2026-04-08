@@ -82,12 +82,17 @@ export const getWatchersByUserId = async (userId: string) => {
 };
 
 export const updateWatcher = async (id: string, fields: any) => {
-  const keys = Object.keys(fields);
-  if (keys.length === 0) return;
+  // Filter out updated_at if it's already in fields to prevent duplicate assignment error
+  const { updated_at, ...updateFields } = fields;
+  const keys = Object.keys(updateFields);
+  if (keys.length === 0) {
+      // If only updated_at was provided, just update that timestamp
+      return pool.query('UPDATE watchers SET updated_at = NOW() WHERE watcher_id = $1', [id]);
+  }
   const assignments = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
   const values = keys.map(key => {
-    if (key === 'parameters' || key === 'alert_conditions') return JSON.stringify(fields[key]);
-    return fields[key];
+    if (key === 'parameters' || key === 'alert_conditions') return JSON.stringify(updateFields[key]);
+    return updateFields[key];
   });
   const query = `UPDATE watchers SET ${assignments}, updated_at = NOW() WHERE watcher_id = $${keys.length + 1}`;
   return pool.query(query, [...values, id]);
@@ -346,4 +351,44 @@ export const getWalletAnalytics = async (userId: string) => {
     total_findings_all_time: Number(totalsRes.rows[0].total_findings_all_time),
     total_spent_all_time: totalsRes.rows[0].total_spent_all_time
   };
+};
+
+// --- NOTIFICATION QUERIES ---
+
+export const createNotification = async (notification: any) => {
+  const query = `
+    INSERT INTO notifications (notification_id, user_id, title, body, type, data_id)
+    VALUES ($1, $2, $3, $4, $5, $6)
+  `;
+  return pool.query(query, [
+    notification.notification_id || uuidv4(),
+    notification.user_id,
+    notification.title,
+    notification.body,
+    notification.type,
+    notification.data_id || null
+  ]);
+};
+
+export const getNotificationsByUserId = async (userId: string, limit: number = 50, offset: number = 0) => {
+  const res = await pool.query(
+    'SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
+    [userId, limit, offset]
+  );
+  return res.rows;
+};
+
+export const markNotificationRead = async (id: string, userId: string) => {
+  return pool.query(
+    'UPDATE notifications SET read = true WHERE notification_id = $1 AND user_id = $2',
+    [id, userId]
+  );
+};
+
+export const getUnreadNotificationCount = async (userId: string) => {
+  const res = await pool.query(
+    'SELECT COUNT(*) as unread_count FROM notifications WHERE user_id = $1 AND read = false',
+    [userId]
+  );
+  return parseInt(res.rows[0].unread_count);
 };
