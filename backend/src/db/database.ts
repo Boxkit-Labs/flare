@@ -75,6 +75,23 @@ export const initializeDatabase = async () => {
             `);
             console.log('Notifications table check complete.');
 
+            console.log('Ensuring mpp_channels table exists...');
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS mpp_channels (
+                    id SERIAL PRIMARY KEY,
+                    channel_id VARCHAR(255) NOT NULL UNIQUE,
+                    funder_address VARCHAR(255) NOT NULL,
+                    recipient_address VARCHAR(255) NOT NULL,
+                    commitment_pubkey VARCHAR(255) NOT NULL,
+                    commitment_secret VARCHAR(255) NOT NULL,
+                    cumulative_amount BIGINT NOT NULL DEFAULT 0,
+                    latest_signature TEXT,
+                    status VARCHAR(50) NOT NULL DEFAULT 'open',
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                );
+            `);
+
             console.log('Database schema updates verified.');
         }
     } catch (error) {

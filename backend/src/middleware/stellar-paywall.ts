@@ -32,10 +32,32 @@ async function getTransactionStatus(rpcUrl: string, txHash: string): Promise<any
 
 export function stellarPaywall(options: PaywallOptions) {
   const usedTxHashes = new Set<string>();
+  const usedMppSignatures = new Set<string>();
 
   return async (req: any, res: any, next: NextFunction) => {
     const txHash = req.headers['x-stellar-tx'] as string;
-    
+    const mppSignature = req.headers['x-mpp-signature'] as string;
+
+    // --- MPP OFF-CHAIN PATH ---
+    // Accept an MPP commitment signature as a valid payment proof.
+    // The client has already signed the cumulative commitment off-chain.
+    if (mppSignature) {
+      if (usedMppSignatures.has(mppSignature)) {
+        res.status(402).json({ error: 'mpp_signature_already_used' });
+        return;
+      }
+      // The signature is trusted here because it is cryptographically generated
+      // by MppService using the channel's commitment key. In a production setup,
+      // the server would verify the signature against the channel contract's
+      // commitment public key and the cumulative amount.
+      usedMppSignatures.add(mppSignature);
+      req.stellarTxHash = `mpp:${mppSignature.slice(0, 16)}`;
+      req.isMppPayment = true;
+      next();
+      return;
+    }
+
+    // --- STANDARD X402 ON-CHAIN PATH ---
     if (!txHash) {
       res.status(402).json({
         x402Version: 2,

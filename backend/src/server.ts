@@ -14,6 +14,7 @@ import notificationsRouter from './routes/notifications.js';
 import { CheckExecutor } from './services/check-executor.js';
 import { SchedulerService } from './services/scheduler.js';
 import { briefingGenerator } from './services/briefing-generator.js';
+import { MppService } from './services/mpp-service.js';
 
 dotenv.config();
 
@@ -53,7 +54,10 @@ async function main() {
     await initializeDatabase();
     console.log('Database schema initialized');
 
-    // 2. Start server
+    // 2. Initialize MPP payment channel (if configured)
+    await MppService.init();
+
+    // 3. Start server
     app.listen(port, '0.0.0.0', () => {
       console.log(`Server is running on 0.0.0.0:${port}`);
       
