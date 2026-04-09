@@ -75,6 +75,37 @@ export const initializeDatabase = async () => {
             `);
             console.log('Notifications table check complete.');
 
+            console.log('Ensuring mpp_channels table exists...');
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS mpp_channels (
+                  channel_id TEXT PRIMARY KEY,
+                  user_id TEXT NOT NULL,
+                  service_id TEXT NOT NULL,
+                  sender_address TEXT NOT NULL,
+                  receiver_address TEXT NOT NULL,
+                  commitment_public_key TEXT,
+                  commitment_secret_key_encrypted TEXT,
+                  deposit_usdc REAL NOT NULL,
+                  spent_usdc REAL NOT NULL DEFAULT 0,
+                  latest_proof TEXT,
+                  open_tx_hash TEXT NOT NULL,
+                  opened_at TIMESTAMPTZ DEFAULT NOW(),
+                  expires_at TIMESTAMPTZ NOT NULL,
+                  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed', 'expired')),
+                  close_tx_hash TEXT
+                );
+            `);
+
+            // Add new columns to existing table if needed
+            await pool.query(`
+                ALTER TABLE mpp_channels 
+                ADD COLUMN IF NOT EXISTS commitment_public_key TEXT;
+            `);
+            await pool.query(`
+                ALTER TABLE mpp_channels 
+                ADD COLUMN IF NOT EXISTS commitment_secret_key_encrypted TEXT;
+            `);
+
             console.log('Database schema updates verified.');
         }
     } catch (error) {

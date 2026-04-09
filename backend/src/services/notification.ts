@@ -12,7 +12,7 @@ export class NotificationService {
             const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 
             if (!projectId || !privateKey || !clientEmail) {
-                console.warn('⚠️ Firebase credentials missing in .env. FCM push notifications disabled.');
+                console.warn('Warning: Firebase credentials missing in .env. FCM push notifications disabled.');
                 return;
             }
 
@@ -25,9 +25,9 @@ export class NotificationService {
             });
 
             this.isEnabled = true;
-            console.log('✅ Firebase Admin initialized. Push notifications enabled.');
+            console.log('OK: Firebase Admin initialized. Push notifications enabled.');
         } catch (error) {
-            console.warn('⚠️ Failed to initialize Firebase Admin. Push notifications disabled.', error);
+            console.warn('Warning: Failed to initialize Firebase Admin. Push notifications disabled.', error);
         }
     }
 
@@ -127,7 +127,7 @@ export class NotificationService {
     async sendBriefingNotification(userId: string, briefing: any): Promise<void> {
         const message = {
             notification: {
-                title: `☀️ Morning Briefing — ${briefing.total_findings} findings`,
+                title: `Morning Briefing - ${briefing.total_findings} findings`,
                 body: `Saved est. $${(briefing.total_findings * 45).toFixed(0)}. Cost: $${briefing.total_cost_usdc.toFixed(3)}. Score: ${Math.round(50 + (briefing.total_findings * 10))}`
             },
             android: {
@@ -241,7 +241,7 @@ export class NotificationService {
     async sendWeeklySummary(userId: string, stats: any): Promise<void> {
         const message = {
             notification: {
-                title: "🔥 Weekly Flare Report",
+                title: "Weekly Flare Report",
                 body: `Score: ${stats.score}. Saved: $${stats.saved}. Cost: $${stats.cost}. ${stats.txCount} Stellar transactions.`
             },
             android: {

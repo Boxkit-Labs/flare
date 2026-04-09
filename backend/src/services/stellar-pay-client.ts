@@ -8,6 +8,7 @@ import {
     nativeToScVal,
     BASE_FEE
 } from '@stellar/stellar-sdk';
+import { MppService } from './mpp-service.js';
 
 const USDC_CONTRACT = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA';
 
@@ -69,7 +70,32 @@ export async function payForService(params: PayParams): Promise<{ data: any, txH
         throw new Error("Invalid x402 challenge: missing recipient or amount");
     }
 
-    // 2. Build and Submit Stellar Payment
+    // --- MPP OFF-CHAIN SESSION PAYMENT ---
+    if (MppService.isActive()) {
+        const signature = await MppService.makePayment(Number(amountStroops));
+        if (signature) {
+            console.log(`[MPP] Making fast off-chain payment of ${amountStroops} stroops via channel`);
+            const paidRes = await fetch(serviceUrl, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-mpp-signature': signature
+                },
+                body: (body && method === 'POST') ? JSON.stringify(body) : undefined
+            });
+
+            if (!paidRes.ok) {
+                const errBody = await paidRes.text();
+                throw new Error(`MPP Paid request failed (${paidRes.status}): ${errBody}`);
+            }
+
+            return { data: await paidRes.json(), txHash: 'mpp-' + Date.now(), costPaid: Number(amountStroops) };
+        } else {
+             console.warn('[MPP] makePayment failed. Falling back to on-chain X402.');
+        }
+    }
+
+    // --- STANDARD X402 ON-CHAIN PAYMENT ---
     const keypair = Keypair.fromSecret(payerSecretKey);
     const rpc = new SorobanRpc.Server(rpcUrl);
     const account = await rpc.getAccount(keypair.publicKey());

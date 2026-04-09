@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS checks (
   finding_detected BOOLEAN DEFAULT false,
   finding_id TEXT,
   agent_reasoning TEXT,
+  payment_method TEXT DEFAULT 'x402',
+  channel_id TEXT,
   checked_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -108,6 +110,8 @@ CREATE TABLE IF NOT EXISTS transactions (
   service_name TEXT NOT NULL,
   stellar_tx_hash TEXT NOT NULL,
   tx_type TEXT DEFAULT 'check' CHECK (tx_type IN ('check', 'verification', 'collaboration')),
+  payment_method TEXT DEFAULT 'x402',
+  channel_id TEXT,
   timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -129,3 +133,22 @@ CREATE TABLE IF NOT EXISTS notifications (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+
+-- MPP Channels table
+CREATE TABLE IF NOT EXISTS mpp_channels (
+  channel_id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  service_id TEXT NOT NULL,
+  sender_address TEXT NOT NULL,
+  receiver_address TEXT NOT NULL,
+  commitment_public_key TEXT,
+  commitment_secret_key_encrypted TEXT,
+  deposit_usdc REAL NOT NULL,
+  spent_usdc REAL NOT NULL DEFAULT 0,
+  latest_proof TEXT,
+  open_tx_hash TEXT NOT NULL,
+  opened_at TIMESTAMPTZ DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed', 'expired')),
+  close_tx_hash TEXT
+);

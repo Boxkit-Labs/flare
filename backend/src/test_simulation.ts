@@ -64,14 +64,14 @@ async function runTest() {
         await executor.runCheck('test-watcher-456');
         
         console.log('\n--- SUCCESS ---');
-        console.log('✅ The simulation passed successfully.');
-        console.log('✅ Intelligence Engine identified the finding.');
-        console.log('✅ Notification Service triggered the database record.');
-        console.log('✅ Mock FCM captured the payload delivery.');
+        console.log('OK: The simulation passed successfully.');
+        console.log('OK: Intelligence Engine identified the finding.');
+        console.log('OK: Notification Service triggered the database record.');
+        console.log('OK: Mock FCM captured the payload delivery.');
         console.log('--------------------------------');
         
     } catch (error) {
-        console.error('❌ Test Failed:', error);
+        console.error('Error: Test Failed:', error);
     } finally {
         // Give a tiny bit of time for any async ops to log
         setTimeout(() => process.exit(0), 100);

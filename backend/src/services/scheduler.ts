@@ -3,6 +3,7 @@ import { getActiveWatchers, getWatcherById, updateWatcher, getAllUsers, getToday
 import { WatcherRow } from '../types.js';
 import { CheckExecutor } from './check-executor.js';
 import { briefingGenerator } from './briefing-generator.js';
+import { mppChannelManager } from './mpp-channel-manager.js';
 import pool from '../db/database.js';
 
 export class SchedulerService {
@@ -34,6 +35,9 @@ export class SchedulerService {
 
     // Initialize 15-minute Morning Briefing Cron
     this.initBriefingCron();
+
+    // Initialize daily MPP Channel Cleanup Cron
+    this.initMPPCleanupCron();
   }
 
   scheduleWatcher(watcher: WatcherRow): void {
@@ -211,6 +215,21 @@ export class SchedulerService {
         } catch (err) {
             console.error('Error during briefing cron execution:', err);
         }
+    });
+  }
+
+  private initMPPCleanupCron(): void {
+    // Runs at 02:00 UTC every day (off-peak)
+    cron.schedule('0 2 * * *', async () => {
+      console.log('Running daily MPP channel cleanup job...');
+      try {
+        await mppChannelManager.autoCloseExpiredChannels();
+        console.log('MPP channel cleanup complete.');
+      } catch (err) {
+        console.error('Error during MPP channel cleanup cron:', err);
+      }
+    }, {
+      timezone: "UTC"
     });
   }
 }

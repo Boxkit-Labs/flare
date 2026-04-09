@@ -18,7 +18,21 @@ class CheckHistoryTile extends StatelessWidget {
     return 'Check complete';
   }
 
-  Future<void> _launchStellar(String hash) async {
+  Future<void> _launchStellar(BuildContext context, String hash, bool isOffChain) async {
+    if (isOffChain || hash.startsWith('mpp:')) {
+        // Show an info dialog for off-chain proof instead of an explorer link
+        showDialog(
+            context: context, 
+            builder: (context) => AlertDialog(
+                title: const Text('MPP Session Proof'),
+                content: Text('This payment was batched off-chain using the Micro-Payment Protocol.\n\nChannel Signature/ID:\n$hash'),
+                actions: [
+                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))
+                ]
+            )
+        );
+        return;
+    }
     final url = Uri.parse('https://stellar.expert/explorer/testnet/tx/$hash');
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
@@ -38,16 +52,47 @@ class CheckHistoryTile extends StatelessWidget {
             DateFormat('MMM d, HH:mm').format(date),
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
           ),
-          Container(
-             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-             decoration: BoxDecoration(
-               color: AppTheme.surface,
-               borderRadius: BorderRadius.circular(4),
-             ),
-             child: Text(
-              '\$${check.costUsdc.toStringAsFixed(3)}',
-              style: const TextStyle(fontSize: 10, color: AppTheme.secondary),
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                 decoration: BoxDecoration(
+                   color: check.isOffChain ? Colors.purple.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.1),
+                   borderRadius: BorderRadius.circular(4),
+                 ),
+                 child: Row(
+                   children: [
+                     Icon(
+                         check.isOffChain ? Icons.bolt_rounded : Icons.language_rounded, 
+                         size: 10, 
+                         color: check.isOffChain ? Colors.purple : Colors.blue
+                     ),
+                     const SizedBox(width: 4),
+                     Text(
+                      check.isOffChain ? 'Off-chain' : 'On-chain',
+                      style: TextStyle(
+                          fontSize: 8, 
+                          fontWeight: FontWeight.bold, 
+                          color: check.isOffChain ? Colors.purple : Colors.blue
+                      ),
+                    ),
+                   ],
+                 ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                 decoration: BoxDecoration(
+                   color: AppTheme.surface,
+                   borderRadius: BorderRadius.circular(4),
+                 ),
+                 child: Text(
+                  '\$${check.costUsdc.toStringAsFixed(3)}',
+                  style: const TextStyle(fontSize: 10, color: AppTheme.secondary),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -78,8 +123,8 @@ class CheckHistoryTile extends StatelessWidget {
       ),
       trailing: check.stellarTxHash != null 
           ? IconButton(
-              icon: const Icon(Icons.link, size: 16, color: AppTheme.primary),
-              onPressed: () => _launchStellar(check.stellarTxHash!),
+              icon: Icon(check.isOffChain ? Icons.receipt_long_rounded : Icons.link, size: 16, color: check.isOffChain ? Colors.purple : AppTheme.primary),
+              onPressed: () => _launchStellar(context, check.stellarTxHash!, check.isOffChain),
             )
           : null,
     );

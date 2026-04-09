@@ -8,6 +8,9 @@ class CheckResultModel {
   final bool findingDetected;
   final String? findingId;
   final String agentReasoning;
+  final String? paymentMethod;
+  final String? channelId;
+  final bool isOffChain;
   final DateTime checkedAt;
 
   const CheckResultModel({
@@ -20,6 +23,9 @@ class CheckResultModel {
     required this.findingDetected,
     this.findingId,
     required this.agentReasoning,
+    this.paymentMethod,
+    this.channelId,
+    this.isOffChain = false,
     required this.checkedAt,
   });
 
@@ -34,6 +40,9 @@ class CheckResultModel {
       findingDetected: json['findingDetected'] as bool? ?? false,
       findingId: json['findingId'] as String?,
       agentReasoning: json['agentReasoning'] as String? ?? "",
+      paymentMethod: json['paymentMethod'] as String? ?? "x402",
+      channelId: json['channelId'] as String?,
+      isOffChain: json['isOffChain'] as bool? ?? (json['paymentMethod'] == 'mpp'),
       checkedAt: json['checkedAt'] != null
           ? DateTime.parse(json['checkedAt'] as String)
           : DateTime.now(),
@@ -51,6 +60,9 @@ class CheckResultModel {
       'findingDetected': findingDetected,
       'findingId': findingId,
       'agentReasoning': agentReasoning,
+      'paymentMethod': paymentMethod,
+      'channelId': channelId,
+      'isOffChain': isOffChain,
       'checkedAt': checkedAt.toIso8601String(),
     };
   }
@@ -65,6 +77,9 @@ class CheckResultModel {
     bool? findingDetected,
     String? findingId,
     String? agentReasoning,
+    String? paymentMethod,
+    String? channelId,
+    bool? isOffChain,
     DateTime? checkedAt,
   }) {
     return CheckResultModel(
@@ -77,6 +92,9 @@ class CheckResultModel {
       findingDetected: findingDetected ?? this.findingDetected,
       findingId: findingId ?? this.findingId,
       agentReasoning: agentReasoning ?? this.agentReasoning,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      channelId: channelId ?? this.channelId,
+      isOffChain: isOffChain ?? this.isOffChain,
       checkedAt: checkedAt ?? this.checkedAt,
     );
   }

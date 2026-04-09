@@ -81,7 +81,7 @@ export class FindingDetector {
     if (data.is_error_fare) {
         return {
             finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'threshold_crossed',
-            headline: `✈️ Error Fare: ${airline} to ${data.destination} for $${price}`,
+            headline: `Error Fare: ${airline} to ${data.destination} for $${price}`,
             detail: `${airline} flight from ${data.origin_full} to ${data.destination_full} shows a 70% price anomaly. Itinerary includes ${data.itinerary.stops} stops and ${data.itinerary.cabin_class}.\n\nBaggage: ${data.itinerary.baggage}.`,
             data: null, cost_usdc: 0, agent_reasoning: `My proprietary pricing engine detected a $${data.cheapest_price} fare, which is $${800 - price} below the standard market rate for ${data.destination}. Direct signal from GDS shows high volume of bookings on this mistake fare.`
         };
@@ -90,7 +90,7 @@ export class FindingDetector {
     if (data.is_historical_low) {
         return {
             finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'price_drop',
-            headline: `✈️ 12-Month Low: ${data.origin} → ${data.destination} ($${price})`,
+            headline: `12-Month Low: ${data.origin} -> ${data.destination} ($${price})`,
             detail: `Lowest price detected since Nov 2023. Flight ${data.flight_number} on ${airline} has dropped significantly below the moving average. Includes ${data.itinerary.amenities.join(', ')}.`,
             data: null, cost_usdc: 0, agent_reasoning: `Route analysis of ${data.origin} to ${data.destination} across 14 months of historical data confirms this price is in the 1st percentile of all observations.`
         };
@@ -99,7 +99,7 @@ export class FindingDetector {
     if (conditions.price_below && price <= conditions.price_below) {
         return {
             finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'threshold_crossed',
-            headline: `✈️ Watcher Hit: ${data.destination} reached $${price}`,
+            headline: `Watcher Hit: ${data.destination} reached $${price}`,
             detail: `Current price on ${airline} is $${price}, meeting your target of $${conditions.price_below}. Flight duration: ${Math.floor(data.itinerary.duration_minutes / 60)}h ${data.itinerary.duration_minutes % 60}m.`,
             data: null, cost_usdc: 0, agent_reasoning: `Automated threshold trigger reached. Current deal rating is ${data.deal_rating}.`
         };
@@ -119,7 +119,7 @@ export class FindingDetector {
             const asset = data.assets?.[symbol];
             return {
                 finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'price_spike',
-                headline: `⚠️ ${symbol} Whale Alert: Volume +${Math.round(vol * 100)}%`,
+                headline: `${symbol} Whale Alert: Volume +${Math.round(vol * 100)}%`,
                 detail: `${asset?.name} (${symbol}) is seeing massive institutional buying. Current Price: $${asset?.price}. Sentiment is ${asset?.sentiment}. RSI(14) is at ${asset?.rsi_14}.\n\nSignals: ${asset?.signals?.join(', ')}.`,
                 data: null, cost_usdc: 0, agent_reasoning: `On-chain monitoring for ${symbol} detected a transfer of ${vol}x the average hourly volume. Technical setup shows a ${asset?.sentiment} divergence with RSI at ${asset?.rsi_14}.`
             };
@@ -145,7 +145,7 @@ export class FindingDetector {
         const top = matches[0];
         return {
             finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'news_match',
-            headline: `📰 Flare Match: ${top.title}`, // Changed from Market Mover
+            headline: `Flare Match: ${top.title}`, // Changed from Market Mover
             detail: `Found a match for "${query}" reported by ${top.source}. \n\nSummary: ${top.summary} \n\nFull Intel: ${top.content}`,
             data: null, cost_usdc: 0, agent_reasoning: `My news agent identified a ${Math.round(top.relevance_score * 100)}% thematic match between your watcher "${watcher.name}" and this report from ${top.source}.`
         };
@@ -157,7 +157,7 @@ export class FindingDetector {
     if (data.is_ath) {
         return {
             finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'price_drop',
-            headline: `🛍️ Price Bottomed: ${data.product_name} at $${data.current_price}`,
+            headline: `Price Bottomed: ${data.product_name} at $${data.current_price}`,
             detail: `${data.discount_percent}% off MSRP ($1299). Specs: ${data.specs.cpu}, ${data.specs.ram}, ${data.specs.storage}.\n\nRating: ${data.rating.score}/5 (${data.rating.count} reviews). Price trend is ${data.price_trend}.`,
             data: null, cost_usdc: 0, agent_reasoning: `Inventory scan of ${data.stores.length} retailers confirms ${data.stores[0].name} has the lowest price of $${data.current_price}. This is a confirmed All-Time Low.`
         };
@@ -177,7 +177,7 @@ export class FindingDetector {
     if (match) {
         return {
             finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'new_listing',
-            headline: `💼 High-Value Job: ${match.title} at ${match.company}`,
+            headline: `High-Value Job: ${match.title} at ${match.company}`,
             detail: `Salary: ${match.salary_range}. Level: ${match.experience_level}. \n\nDescription: ${match.description} \n\nBenefits: ${match.benefits.join(', ')}.`,
             data: null, cost_usdc: 0, agent_reasoning: `Matched role '${match.title}' with active candidate watcher. Salary rank: Top 5% for remote ${match.experience_level} positions.`
         };
@@ -197,7 +197,7 @@ export class FindingDetector {
         const isSurge = stock.change_percent > 0;
         return {
             finding_id: '', watcher_id: '', user_id: '', check_id: '', type: isSurge ? 'price_spike' : 'price_drop',
-            headline: `📊 ${stock.symbol} ${isSurge ? 'Momentum' : 'Alert'}: ${Math.abs(stock.change_percent)}% Swing`,
+            headline: `${stock.symbol} ${isSurge ? 'Momentum' : 'Alert'}: ${Math.abs(stock.change_percent)}% Swing`,
             detail: `Current: $${stock.price}. Volume: ${data.volume}. P/E: ${data.pe_ratio}. Rating: ${data.analyst_rating}. \n\nEvent: ${stock.event || 'Standard Market Move'}.`,
             data: null, cost_usdc: 0, agent_reasoning: `Market sentiment analysis for ${stock.symbol} shows ${isSurge ? 'strong buy' : 'sell-side'} order flow. Technical indicator shows a ${stock.event || 'price shift'}.`
         };
@@ -211,7 +211,7 @@ export class FindingDetector {
         const isReduction = listing.price_reduced;
         return {
             finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'new_listing',
-            headline: isReduction ? `🏠 Price Drop in ${data.neighborhood}` : `🏠 New Entry in ${data.neighborhood}`,
+            headline: isReduction ? `Price Drop in ${data.neighborhood}` : `New Entry in ${data.neighborhood}`,
             detail: `${listing.address}. $${listing.price.toLocaleString()} ($${listing.price_per_sqft}/sqft). \n\nFeatures: ${listing.amenities.join(', ')}. Agent: ${listing.agent.name}. \n\nNeighborhood: Walk ${data.walk_score}, School ${data.school_score}.`,
             data: null, cost_usdc: 0, agent_reasoning: `Found a high-value listing in ${data.neighborhood}. Real-time trend is ${data.stats.trend} with median price of $${data.stats.median_price.toLocaleString()}.`
         };
@@ -224,7 +224,7 @@ export class FindingDetector {
     if (ticket) {
         return {
             finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'price_drop',
-            headline: `⚽ Ticket Steal: ${data.match.home} vs ${data.match.away}`,
+            headline: `Ticket Steal: ${data.match.home} vs ${data.match.away}`,
             detail: `Section ${ticket.section} dropped $${ticket.drop_amount} ($${ticket.price} total). Venue: ${data.match.venue}. Weather: ${data.match.weather}. \n\nStatus: ${ticket.availability}.`,
             data: null, cost_usdc: 0, agent_reasoning: `Secondary market arbitrage detected for ${data.match.home} tickets. Current floor price is $${ticket.price}, down from $${ticket.history[0]}.`
         };

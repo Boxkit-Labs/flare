@@ -40,7 +40,7 @@ class _StellarProofScreenState extends State<StellarProofScreen> {
 
             return Column(
               children: [
-                _buildHeaderStats(state.transactions.length, totalUsdc, state.wallet?.publicKey ?? 'G...'),
+                _buildHeaderStats(state.transactions, totalUsdc, state.wallet?.publicKey ?? 'G...'),
                 _buildFilterBar(),
                 Expanded(
                   child: filteredTxs.isEmpty
@@ -63,10 +63,15 @@ class _StellarProofScreenState extends State<StellarProofScreen> {
   List<TransactionModel> _getFilteredTransactions(List<TransactionModel> txs) {
     if (_filter == 'all') return txs;
     if (_filter == 'findings') return txs.where((tx) => tx.findingDetected == true).toList();
+    if (_filter == 'on_chain') return txs.where((tx) => !tx.isOffChain).toList();
+    if (_filter == 'off_chain') return txs.where((tx) => tx.isOffChain).toList();
     return txs.where((tx) => tx.txType == _filter).toList();
   }
 
-  Widget _buildHeaderStats(int count, double usdc, String wallet) {
+  Widget _buildHeaderStats(List<TransactionModel> txs, double usdc, String wallet) {
+    final offChainCount = txs.where((t) => t.isOffChain).length;
+    final feesSavedXlm = offChainCount * 0.0001; // Standard fee approximation
+
     return Container(
       padding: const EdgeInsets.all(24),
       margin: const EdgeInsets.all(20),
@@ -79,8 +84,8 @@ class _StellarProofScreenState extends State<StellarProofScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildStatItem('TOTAL TXs', count.toString()),
-              _buildStatItem('TOTAL USDC', '\$${usdc.toStringAsFixed(3)}'),
+              _buildStatItem('TOTAL TXs', txs.length.toString()),
+              _buildStatItem('FEES SAVED', '${feesSavedXlm.toStringAsFixed(4)} XLM', color: Colors.tealAccent),
               _buildStatItem('NETWORK', 'TESTNET', color: Colors.orangeAccent),
             ],
           ),
@@ -130,8 +135,8 @@ class _StellarProofScreenState extends State<StellarProofScreen> {
         children: [
           _buildFilterChip('All', 'all'),
           _buildFilterChip('Findings', 'findings'),
-          _buildFilterChip('Verified', 'verification'),
-          _buildFilterChip('Collaborations', 'collaboration'),
+          _buildFilterChip('On-chain', 'on_chain'),
+          _buildFilterChip('Off-chain', 'off_chain'),
         ],
       ),
     );
@@ -216,12 +221,24 @@ class _StellarProofScreenState extends State<StellarProofScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-               _buildBadge(tx.txType, tx.findingDetected ?? false),
-               TextButton.icon(
-                 onPressed: () => _launchExplorer(tx.stellarTxHash),
-                 icon: const Icon(Icons.open_in_new_rounded, size: 14),
-                 label: const Text('Verify on Explorer', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
-               ),
+               _buildBadge(tx.txType, tx.findingDetected ?? false, tx.isOffChain),
+               tx.isOffChain 
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.bolt_rounded, size: 14, color: Colors.purple),
+                          SizedBox(width: 4),
+                          Text('MPP Batched', style: TextStyle(color: Colors.purple, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    )
+                  : TextButton.icon(
+                     onPressed: () => _launchExplorer(tx.stellarTxHash),
+                     icon: const Icon(Icons.open_in_new_rounded, size: 14),
+                     label: const Text('Verify on Explorer', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+                   ),
             ],
           ),
         ],
@@ -238,16 +255,18 @@ class _StellarProofScreenState extends State<StellarProofScreen> {
     }
   }
 
-  Widget _buildBadge(String type, bool detected) {
+  Widget _buildBadge(String type, bool detected, bool isOffChain) {
     String label = 'CHECK';
     Color color = Colors.grey;
     
     if (detected) {
       label = 'FINDING'; color = Colors.amber;
+    } else if (isOffChain) {
+      label = 'M-PROOF'; color = Colors.purpleAccent;
     } else if (type == 'verification') {
       label = 'VERIFIED'; color = Colors.blueAccent;
     } else if (type == 'collaboration') {
-      label = 'CROSS-CHECK'; color = Colors.purpleAccent;
+      label = 'CROSS-CHECK'; color = Colors.tealAccent;
     }
 
     return Container(

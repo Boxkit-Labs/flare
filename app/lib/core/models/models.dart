@@ -182,6 +182,9 @@ class CheckModel {
   final bool findingDetected;
   final String? findingId;
   final String? agentReasoning;
+  final String? paymentMethod;
+  final String? channelId;
+  final bool isOffChain;
   final String checkedAt;
 
   const CheckModel({
@@ -196,6 +199,9 @@ class CheckModel {
     this.findingDetected = false,
     this.findingId,
     this.agentReasoning,
+    this.paymentMethod,
+    this.channelId,
+    this.isOffChain = false,
     required this.checkedAt,
   });
 
@@ -224,6 +230,9 @@ class CheckModel {
           json['finding_detected'] == 1 || json['finding_detected'] == true,
       findingId: json['finding_id'],
       agentReasoning: json['agent_reasoning'],
+      paymentMethod: json['payment_method'] ?? 'x402',
+      channelId: json['channel_id'],
+      isOffChain: json['is_off_chain'] == 1 || json['is_off_chain'] == true || json['payment_method'] == 'mpp',
       checkedAt: json['checked_at'] ?? '',
     );
   }
@@ -461,6 +470,9 @@ class TransactionModel {
   final String timestamp;
   final String? watcherName;
   final bool? findingDetected;
+  final String? paymentMethod;
+  final String? channelId;
+  final bool isOffChain;
 
   const TransactionModel({
     required this.txId,
@@ -474,6 +486,9 @@ class TransactionModel {
     required this.timestamp,
     this.watcherName,
     this.findingDetected,
+    this.paymentMethod,
+    this.channelId,
+    this.isOffChain = false,
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
@@ -497,6 +512,9 @@ class TransactionModel {
       watcherName: json['watcher_name'],
       findingDetected:
           json['finding_detected'] == 1 || json['finding_detected'] == true,
+      paymentMethod: json['payment_method'] ?? 'x402',
+      channelId: json['channel_id'],
+      isOffChain: json['is_off_chain'] == 1 || json['is_off_chain'] == true || json['payment_method'] == 'mpp',
     );
   }
 }

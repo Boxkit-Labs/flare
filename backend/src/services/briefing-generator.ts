@@ -111,15 +111,15 @@ export class BriefingGenerator {
     }
 
     // 7. Generate Enhanced Summary Text
-    let findingsSection = "⚡ FINDINGS\n";
+    let findingsSection = "FINDINGS\n";
     if (totalFindings === 0) {
       findingsSection += "No new findings overnight.\n";
     } else {
       for (const fId of findingsIds) {
         const f = await getFindingById(fId);
         if (!f) continue;
-        const vStatus = f.verified ? "Verified ✓" : "Single Check";
-        const cStatus = f.collaboration_result ? " | Cross-checked ✓" : "";
+        const vStatus = f.verified ? "Verified" : "Single Check";
+        const cStatus = f.collaboration_result ? " | Cross-checked" : "";
         // Cost: 0.008 (standard) + 0.008 (verify) + 0.008 (collab)
         let cost = f.cost_usdc || 0.008;
         let checkCount = 1;
@@ -131,7 +131,7 @@ export class BriefingGenerator {
       }
     }
 
-    let noChangeSection = "\n📊 NO CHANGE\n";
+    let noChangeSection = "\nNO CHANGE\n";
     const noChangeWatchers = watcherSummaries.filter(s => s.findings_count === 0 && s.checks_run > 0);
     for (const s of noChangeWatchers) {
       noChangeSection += `• ${s.type.toUpperCase()}: ${s.watcher_name} - ${s.latest_data_summary}\n`;
@@ -148,7 +148,7 @@ export class BriefingGenerator {
     const dailyRate = Math.max(0.01, walletRes.spent_today || (totalSpent / 1));
     const daysLeft = Math.round(balance / dailyRate);
 
-    const generatedSummary = `${findingsSection}${noChangeSection}\n💸 OVERNIGHT SUMMARY\nCost: $${totalSpent.toFixed(3)} across ${totalChecks} checks\nEstimated savings: $${estSavings}\nFlare Score: ${flareScore}/100\n\n💰 Wallet lasts ~${daysLeft} more days at current rate.`;
+    const generatedSummary = `${findingsSection}${noChangeSection}\nOVERNIGHT SUMMARY\nCost: $${totalSpent.toFixed(3)} across ${totalChecks} checks\nEstimated savings: $${estSavings}\nFlare Score: ${flareScore}/100\n\nWallet lasts ~${daysLeft} more days at current rate.`;
 
     // 8. Create DB Record
     const today = now.toISOString().split('T')[0];
