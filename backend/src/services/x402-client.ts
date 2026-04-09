@@ -220,7 +220,7 @@ export class X402Client {
         const latestLedger = simData.latestLedger;
 
         await assembledTx.signAuthEntries({
-            publicKey: publicKey,
+            address: publicKey,
             signAuthEntry: signer.signAuthEntry,
             expiration: simData.latestLedger + 20,
         });

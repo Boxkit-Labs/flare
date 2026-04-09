@@ -6,7 +6,7 @@ dotenv.config({ path: path.join(process.cwd(), '.env') });
 import { StellarService } from '../src/services/stellar.js';
 import {
     Keypair,
-    SorobanRpc,
+    rpc as SorobanRpc,
     Networks,
     TransactionBuilder,
     Address,
