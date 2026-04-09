@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+// import fetch from 'node-fetch'; // No import needed for native fetch in Node 18+
 import WebSocket from 'ws';
 
 const BASE_URL = 'http://localhost:3000';
