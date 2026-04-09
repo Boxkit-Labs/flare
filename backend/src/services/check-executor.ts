@@ -1,6 +1,6 @@
 import { getWatcherById, getUserById, updateWatcher, createCheck, createTransaction, createFinding, getChecksByWatcherId } from '../db/queries.js';
 import { decrypt } from '../utils/crypto.js';
-import { payForService } from './stellar-pay-client.js';
+import { paymentRouter } from './payment-router.js';
 import { detector } from './finding-detector.js';
 import { notificationService } from './notification.js';
 import { ConfidenceCalculator } from './confidence-calculator.js';
@@ -11,6 +11,9 @@ dotenv.config();
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '';
 const SOROBAN_RPC_URL = process.env.SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
+const OPERATOR_ADDRESS = process.env.OPERATOR_SECRET
+  ? (await import('@stellar/stellar-sdk')).Keypair.fromSecret(process.env.OPERATOR_SECRET).publicKey()
+  : '';
 
 export class CheckExecutor {
   
@@ -99,23 +102,31 @@ export class CheckExecutor {
       const checks = await getChecksByWatcherId(watcherId, 1, 0);
       const previousCheckData = checks.length > 0 ? checks[0].response_data : null;
 
-      // 7. Execute X402 Payment
+      // 7. Execute Payment (X402 or MPP via PaymentRouter)
       let responseData: any;
       let txHash: string;
       let costPaid: number;
 
       try {
           console.log(`Executing check for ${watcher.type} watcher: ${watcherId} ...`);
-          const result = await payForService({
+          const result = await paymentRouter.payForCheck({
+            userId: watcher.user_id,
+            watcherId,
+            watcherType: watcher.type,
+            checkIntervalMinutes: watcher.check_interval_minutes,
+            serviceId: `${watcher.type}-service`,
             serviceUrl,
+            requestBody: body,
             method,
-            body,
-            payerSecretKey,
-            rpcUrl: SOROBAN_RPC_URL
+            userSecretKey: payerSecretKey,
+            receiverAddress: OPERATOR_ADDRESS,
+            priceStroops: 5000,
+            weeklyBudgetUsdc: watcher.weekly_budget_usdc,
           });
           responseData = result.data;
           txHash = result.txHash;
           costPaid = result.costPaid;
+          console.log(`[CheckExecutor] Payment via ${result.paymentMethod.toUpperCase()}`);
       } catch (payError: any) {
           // 8. If X402 Payment Fails
           const errorMsg = payError instanceof Error ? payError.message : 'Unknown payment error';
@@ -182,8 +193,19 @@ export class CheckExecutor {
           // 2. Perform SECOND payment and check
           try {
             console.log(`[Re-Verify] Executing second check for ${watcher.type} ...`);
-            const vResult = await payForService({
-              serviceUrl, method, body, payerSecretKey, rpcUrl: SOROBAN_RPC_URL
+            const vResult = await paymentRouter.payForCheck({
+              userId: watcher.user_id,
+              watcherId,
+              watcherType: watcher.type,
+              checkIntervalMinutes: watcher.check_interval_minutes,
+              serviceId: `${watcher.type}-service`,
+              serviceUrl,
+              requestBody: body,
+              method,
+              userSecretKey: payerSecretKey,
+              receiverAddress: OPERATOR_ADDRESS,
+              priceStroops: 5000,
+              weeklyBudgetUsdc: watcher.weekly_budget_usdc,
             });
             
             const vFinding = await detector.detectFinding(watcher, vResult.data, responseData, vResult.costPaid / 10000000, vResult.txHash);
@@ -352,12 +374,19 @@ export class CheckExecutor {
 
     try {
       console.log(`[Collab] Triple-Check: querying ${triggeredService} for "${query}" ...`);
-      const result = await payForService({
+      const result = await paymentRouter.payForCheck({
+        userId: watcher.user_id,
+        watcherId: watcher.watcher_id,
+        watcherType: triggeredService,
+        checkIntervalMinutes: watcher.check_interval_minutes,
+        serviceId: `${triggeredService}-service`,
         serviceUrl: targetUrl,
+        requestBody: triggeredService === 'news' ? { q: query } : { search: query },
         method: triggeredService === 'news' ? 'GET' : 'POST',
-        body: triggeredService === 'news' ? { q: query } : { search: query },
-        payerSecretKey,
-        rpcUrl: SOROBAN_RPC_URL
+        userSecretKey: payerSecretKey,
+        receiverAddress: OPERATOR_ADDRESS,
+        priceStroops: 5000,
+        weeklyBudgetUsdc: watcher.weekly_budget_usdc,
       });
 
       // Log collaboration transaction
