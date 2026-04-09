@@ -30,24 +30,24 @@ export class CheckExecutor {
     try {
         watcher = await getWatcherById(watcherId);
         if (!watcher) {
-            console.error(`CheckExecutor: Watcher ${watcherId} not found.`);
+            console.error("CheckExecutor: Watcher ${watcherId} not found.");
             return;
         }
     } catch (e) {
-        console.error(`CheckExecutor: Failed to load watcher ${watcherId}`, e);
+        console.error("CheckExecutor: Failed to load watcher ${watcherId}", e);
         return;
     }
 
     try {
       // 2. Verify status
       if (watcher.status !== 'active') {
-        console.log(`CheckExecutor: Watcher ${watcherId} is ${watcher.status}. Skipping.`);
+        console.log("CheckExecutor: Watcher ${watcherId} is ${watcher.status}. Skipping.");
         return; 
       }
 
       // 3. Check budget limits
       if (watcher.spent_this_week_usdc >= watcher.weekly_budget_usdc) {
-        console.warn(`CheckExecutor: Watcher ${watcherId} exceeded weekly budget. Pausing.`);
+        console.warn("CheckExecutor: Watcher ${watcherId} exceeded weekly budget. Pausing.");
         await updateWatcher(watcherId, { status: 'paused_budget' });
         await notificationService.sendBudgetExhausted(watcher.user_id, watcher);
         return;
@@ -56,7 +56,7 @@ export class CheckExecutor {
       // 4 & 5. Load user and decrypt secret
       const user = await getUserById(watcher.user_id) as any;
       if (!user) {
-         throw new Error(`User ${watcher.user_id} not found for watcher ${watcherId}`);
+         throw new Error("User ${watcher.user_id} not found for watcher ${watcherId}");
       }
       const payerSecretKey = decrypt(user.stellar_secret_key_encrypted, ENCRYPTION_KEY);
 
@@ -65,14 +65,14 @@ export class CheckExecutor {
           if (!this.activeStreams.has(watcherId)) {
               this.startStream(watcher, payerSecretKey, checkId);
           } else {
-              console.log(`CheckExecutor: Watcher ${watcherId} is already streaming. Stripping from poll.`);
+              console.log("CheckExecutor: Watcher ${watcherId} is already streaming. Stripping from poll.");
           }
           return; // Bypass normal polling
       }
 
       // Local service resolution
       const port = process.env.PORT || '3000';
-      const baseUrl = `http://localhost:${port}/services`;
+      const baseUrl = "http://localhost:${port}/services";
       
       let serviceUrl = '';
       let method: 'GET' | 'POST' = 'POST';
@@ -80,33 +80,33 @@ export class CheckExecutor {
 
       switch (watcher.type.toLowerCase()) {
         case 'flight':
-          serviceUrl = `${baseUrl}/flight/api/flights`;
+          serviceUrl = "${baseUrl}/flight/api/flights";
           break;
         case 'crypto':
-          serviceUrl = `${baseUrl}/crypto/api/crypto`;
+          serviceUrl = "${baseUrl}/crypto/api/crypto";
           method = 'GET';
           break;
         case 'news':
-          serviceUrl = `${baseUrl}/news/api/news`;
+          serviceUrl = "${baseUrl}/news/api/news";
           method = 'GET';
           break;
         case 'product':
-          serviceUrl = `${baseUrl}/product/api/products`;
+          serviceUrl = "${baseUrl}/product/api/products";
           break;
         case 'job':
-          serviceUrl = `${baseUrl}/job/api/jobs`;
+          serviceUrl = "${baseUrl}/job/api/jobs";
           break;
         case 'stock':
-          serviceUrl = `${baseUrl}/stocks/api/stocks`;
+          serviceUrl = "${baseUrl}/stocks/api/stocks";
           break;
         case 'realestate':
-          serviceUrl = `${baseUrl}/realestate/api/realestate`;
+          serviceUrl = "${baseUrl}/realestate/api/realestate";
           break;
         case 'sports':
-          serviceUrl = `${baseUrl}/sports/api/sports`;
+          serviceUrl = "${baseUrl}/sports/api/sports";
           break;
         default:
-          throw new Error(`Unknown watcher type: ${watcher.type}`);
+          throw new Error("Unknown watcher type: ${watcher.type}");
       }
 
       // 6. Retrieve previous check for comparison logic
@@ -119,13 +119,13 @@ export class CheckExecutor {
       let costPaid: number;
 
       try {
-          console.log(`Executing check for ${watcher.type} watcher: ${watcherId} ...`);
+          console.log("Executing check for ${watcher.type} watcher: ${watcherId} ...");
           const result = await paymentRouter.payForCheck({
             userId: watcher.user_id,
             watcherId,
             watcherType: watcher.type,
             checkIntervalMinutes: watcher.check_interval_minutes,
-            serviceId: `${watcher.type}-service`,
+            serviceId: "${watcher.type}-service",
             serviceUrl,
             requestBody: body,
             method,
@@ -137,11 +137,11 @@ export class CheckExecutor {
           responseData = result.data;
           txHash = result.txHash;
           costPaid = result.costPaid;
-          console.log(`[CheckExecutor] Payment via ${result.paymentMethod.toUpperCase()}`);
+          console.log("[CheckExecutor] Payment via ${result.paymentMethod.toUpperCase()}");
       } catch (payError: any) {
           // 8. If X402 Payment Fails
           const errorMsg = payError instanceof Error ? payError.message : 'Unknown payment error';
-          console.error(`CheckExecutor Payment Error (Watcher ${watcherId}):`, errorMsg);
+          console.error("CheckExecutor Payment Error (Watcher ${watcherId}):", errorMsg);
           
           await createCheck({
              checkId: checkId,
@@ -153,7 +153,7 @@ export class CheckExecutor {
              costUsdc: 0,
              stellarTxHash: '',
              findingDetected: false,
-             agentReasoning: `Payment failed: ${errorMsg}`
+             agentReasoning: "Payment failed: ${errorMsg}"
           });
           
           // Check if it's a balance issue based on common Soroban/Stellar errors
@@ -196,20 +196,20 @@ export class CheckExecutor {
 
       if (finding) {
           // --- DEAD FINDING PREVENTION: RE-VERIFICATION LOOP ---
-          console.log(`[Re-Verify] Finding detected for ${watcher.name}. Verifying in 60s...`);
+          console.log("[Re-Verify] Finding detected for ${watcher.name}. Verifying in 60s...");
           
           // 1. Wait 2 seconds (reduced from 60s for testing/demo responsiveness)
           await new Promise(resolve => setTimeout(resolve, 2000));
 
           // 2. Perform SECOND payment and check
           try {
-            console.log(`[Re-Verify] Executing second check for ${watcher.type} ...`);
+            console.log("[Re-Verify] Executing second check for ${watcher.type} ...");
             const vResult = await paymentRouter.payForCheck({
               userId: watcher.user_id,
               watcherId,
               watcherType: watcher.type,
               checkIntervalMinutes: watcher.check_interval_minutes,
-              serviceId: `${watcher.type}-service`,
+              serviceId: "${watcher.type}-service",
               serviceUrl,
               requestBody: body,
               method,
@@ -228,19 +228,19 @@ export class CheckExecutor {
               watcherId: watcherId,
               checkId: checkId, // Associate with main check
               amountUsdc: vResult.costPaid / 10000000,
-              serviceName: `${watcher.type} (verify)`,
+              serviceName: "${watcher.type} (verify)",
               stellarTxHash: vResult.txHash,
               txType: 'verification'
             });
             
             if (vFinding) {
-              console.log(`[Re-Verify] CONFIRMED! Finding is still valid.`);
+              console.log("[Re-Verify] CONFIRMED! Finding is still valid.");
               vFinding.verified = true;
               vFinding.verification_tx_hash = vResult.txHash;
               vFinding.verification_check_id = uuidv4();
               
               // --- AGENT-TO-AGENT COLLABORATION: TRIPLE CHECK ---
-              console.log(`[Collab] Running agent-to-agent cross-check for ${watcher.type}...`);
+              console.log("[Collab] Running agent-to-agent cross-check for ${watcher.type}...");
               const collabResult = await this.runCollaborationCheck(watcher, vFinding, payerSecretKey);
               vFinding.collaboration_result = collabResult;
               
@@ -256,7 +256,7 @@ export class CheckExecutor {
               
               vFinding.confidence_score = confidence.score;
               vFinding.confidence_tier = confidence.tier;
-              vFinding.headline = `[${confidence.score}%] ${vFinding.headline}`;
+              vFinding.headline = "[${confidence.score}%] ${vFinding.headline}";
               
               await createFinding(vFinding);
               findingDetected = true;
@@ -265,7 +265,7 @@ export class CheckExecutor {
               
               await notificationService.sendFindingNotification(watcher.user_id, vFinding as any, watcher);
             } else {
-              console.log(`[Re-Verify] FAILED. Finding no longer valid. Suppressing alert.`);
+              console.log("[Re-Verify] FAILED. Finding no longer valid. Suppressing alert.");
               findingDetected = false;
               agentReasoning = "Initial check found finding, but re-verification 60s later failed. Alert suppressed.";
             }
@@ -277,7 +277,7 @@ export class CheckExecutor {
       } else {
           // 14. If No Finding
           agentReasoning = "No finding matched the alert criteria.";
-          console.log(`No finding: ${agentReasoning}`);
+          console.log("No finding: ${agentReasoning}");
       }
 
       await createCheck({
@@ -327,7 +327,7 @@ export class CheckExecutor {
     } catch (e: any) {
       // Unhandled generic system errors
       const errorMsg = e instanceof Error ? e.message : 'Unknown system error during execution';
-      console.error(`CheckExecutor Critical Error (Watcher ${watcherId}):`, errorMsg);
+      console.error("CheckExecutor Critical Error (Watcher ${watcherId}):", errorMsg);
       await updateWatcher(watcherId, { status: 'error', error_message: errorMsg });
     }
   }
@@ -338,7 +338,7 @@ export class CheckExecutor {
    */
   private async runCollaborationCheck(watcher: WatcherRow, finding: any, payerSecretKey: string): Promise<any> {
     const port = process.env.PORT || '3000';
-    const baseUrl = `http://localhost:${port}/services`;
+    const baseUrl = "http://localhost:${port}/services";
     
     let targetUrl = '';
     let query = '';
@@ -347,50 +347,50 @@ export class CheckExecutor {
     // Collaboration Rules
     if (watcher.type === 'flight') {
       triggeredService = 'news';
-      targetUrl = `${baseUrl}/news/api/news`;
+      targetUrl = "${baseUrl}/news/api/news";
       const dest = finding.data?.destination_city || 'destination';
-      query = `${dest} travel advisory safety`;
+      query = "${dest} travel advisory safety";
     } else if (watcher.type === 'stock') {
       triggeredService = 'news';
-      targetUrl = `${baseUrl}/news/api/news`;
+      targetUrl = "${baseUrl}/news/api/news";
       const symbol = finding.data?.symbol || 'company';
-      query = `${symbol} stock news announcement`;
+      query = "${symbol} stock news announcement";
     } else if (watcher.type === 'crypto') {
        triggeredService = 'news';
-       targetUrl = `${baseUrl}/news/api/news`;
+       targetUrl = "${baseUrl}/news/api/news";
        const coin = finding.data?.symbol || 'coin';
-       query = `${coin} price volume sentiment news`;
+       query = "${coin} price volume sentiment news";
     } else if (watcher.type === 'job') {
        triggeredService = 'news';
-       targetUrl = `${baseUrl}/news/api/news`;
+       targetUrl = "${baseUrl}/news/api/news";
        const company = finding.data?.company || 'company';
-       query = `${company} hiring layoff news`;
+       query = "${company} hiring layoff news";
     } else if (watcher.type === 'realestate') {
        triggeredService = 'news';
-       targetUrl = `${baseUrl}/news/api/news`;
+       targetUrl = "${baseUrl}/news/api/news";
        const neighborhood = finding.data?.neighborhood || 'neighborhood';
-       query = `${neighborhood} crime development school ratings`;
+       query = "${neighborhood} crime development school ratings";
     } else if (watcher.type === 'sports') {
        triggeredService = 'news';
-       targetUrl = `${baseUrl}/news/api/news`;
+       targetUrl = "${baseUrl}/news/api/news";
        const team = finding.data?.team || 'team';
-       query = `${team} injury player trade news`;
+       query = "${team} injury player trade news";
     } else if (watcher.type === 'product') {
        triggeredService = 'product';
-       targetUrl = `${baseUrl}/product/api/products`;
+       targetUrl = "${baseUrl}/product/api/products";
        query = finding.data?.product_name || 'product';
     } else {
        return null; // No collaboration rule for this type
     }
 
     try {
-      console.log(`[Collab] Triple-Check: querying ${triggeredService} for "${query}" ...`);
+      console.log("[Collab] Triple-Check: querying ${triggeredService} for "${query}" ...");
       const result = await paymentRouter.payForCheck({
         userId: watcher.user_id,
         watcherId: watcher.watcher_id,
         watcherType: triggeredService,
         checkIntervalMinutes: watcher.check_interval_minutes,
-        serviceId: `${triggeredService}-service`,
+        serviceId: "${triggeredService}-service",
         serviceUrl: targetUrl,
         requestBody: triggeredService === 'news' ? { q: query } : { search: query },
         method: triggeredService === 'news' ? 'GET' : 'POST',
@@ -418,17 +418,17 @@ export class CheckExecutor {
       if (triggeredService === 'news') {
         const articles = result.data?.articles || [];
         summary = articles.length > 0 
-          ? `Cross-checked ${articles.length} related articles. Insights incorporated.`
-          : `No specific news flags found for "${query}".`;
+          ? "Cross-checked ${articles.length} related articles. Insights incorporated."
+          : "No specific news flags found for "${query}".";
         
         // Simple heuristic for "safety"
         const content = JSON.stringify(articles).toLowerCase();
         if (content.includes('warning') || content.includes('advisory') || content.includes('alert')) {
            safe = false;
-           summary = `Warning: Cross-check found potential concerns in recent news for ${query}.`;
+           summary = "Warning: Cross-check found potential concerns in recent news for ${query}.";
         }
       } else if (triggeredService === 'product') {
-        summary = `Cross-store price verification complete. Finding remains competitive.`;
+        summary = "Cross-store price verification complete. Finding remains competitive.";
       }
 
       return {
@@ -439,7 +439,7 @@ export class CheckExecutor {
         safe
       };
     } catch (error) {
-      console.error(`[Collab] Collaboration check failed:`, error);
+      console.error("[Collab] Collaboration check failed:", error);
       return { error: 'Collaboration check unavailable', safe: true };
     }
   }
@@ -460,14 +460,14 @@ export class CheckExecutor {
    */
   private async startStream(watcher: WatcherRow, secretKey: string, initialCheckId: string) {
       this.activeStreams.add(watcher.watcher_id);
-      console.log(`[CheckExecutor] Starting stream for ${watcher.type} watcher: ${watcher.watcher_id}`);
+      console.log("[CheckExecutor] Starting stream for ${watcher.type} watcher: ${watcher.watcher_id}");
 
       // We need an open channel to pass to the stream server. 
       // The router creates/loads channels.
       const port = process.env.PORT || '3000';
       const baseUrl = "http://localhost:" + port + "/services";
       
-      let serviceUrl = `${baseUrl}/${watcher.type}/api/${watcher.type}`;
+      let serviceUrl = "${baseUrl}/${watcher.type}/api/${watcher.type}";
       
       try {
           // Trigger a dummy REST check just to ensure the channel is opened and initialized
@@ -477,7 +477,7 @@ export class CheckExecutor {
               watcherId: watcher.watcher_id,
               watcherType: watcher.type,
               checkIntervalMinutes: watcher.check_interval_minutes,
-              serviceId: `${watcher.type}-service`,
+              serviceId: "${watcher.type}-service",
               serviceUrl,
               requestBody: watcher.parameters,
               method: 'GET',
@@ -493,7 +493,7 @@ export class CheckExecutor {
               // Actually, paymentRouter's txHash might be openTxHash or 'mpp-offchain'.
               // Better to fetch it directly from manager:
               const { mppChannelManager } = await import('./mpp-channel-manager.js');
-              const state = await mppChannelManager.getChannelStatus(watcher.user_id, `${watcher.type}-service`);
+              const state = await mppChannelManager.getChannelStatus(watcher.user_id, "${watcher.type}-service");
               if (state) channelId = state.channelId;
           }
 
@@ -503,12 +503,12 @@ export class CheckExecutor {
 
           // Dynamically import ws to avoid top-level issues if not installed yet
           const WebSocket = await import('ws').then(m => m.default || m.WebSocket);
-          const wsUrl = `ws://localhost:3010/ws/stream?userId=${watcher.user_id}&serviceId=${watcher.type}-service&channelId=${channelId}&watcherId=${watcher.watcher_id}`;
+          const wsUrl = "ws://localhost:3010/ws/stream?userId=${watcher.user_id}&serviceId=${watcher.type}-service&channelId=${channelId}&watcherId=${watcher.watcher_id}";
           
           const ws = new WebSocket(wsUrl);
 
           ws.on('open', () => {
-              console.log(`[Stream Client] Connected to stream for watcher ${watcher.watcher_id}`);
+              console.log("[Stream Client] Connected to stream for watcher ${watcher.watcher_id}");
           });
 
           ws.on('message', async (data: any) => {
@@ -516,7 +516,7 @@ export class CheckExecutor {
                   const message = JSON.parse(data.toString());
                   if (message.type === 'data') {
                       // Process streaming data frame
-                      console.log(`[Stream Client] Data frame received for ${watcher.watcher_id}`);
+                      console.log("[Stream Client] Data frame received for ${watcher.watcher_id}");
                       const costUsdc = parseFloat(message.cost_this_frame || '0');
                       
                       // Run finding detector
@@ -541,7 +541,7 @@ export class CheckExecutor {
                           requestPayload: { frame: true },
                           responseData: message.payload,
                           costUsdc,
-                          stellarTxHash: `mpp:${channelId.substring(0,8)}:frame`,
+                          stellarTxHash: "mpp:${channelId.substring(0,8)}:frame",
                           findingDetected,
                           findingId: fId,
                           agentReasoning: findingDetected ? finding!.agent_reasoning : 'Stream frame received',
@@ -556,20 +556,20 @@ export class CheckExecutor {
                           checkId: cId,
                           amountUsdc: costUsdc,
                           serviceName: message.service,
-                          stellarTxHash: `mpp:${channelId.substring(0,8)}:frame`,
+                          stellarTxHash: "mpp:${channelId.substring(0,8)}:frame",
                           txType: 'check',
                           paymentMethod: 'mpp',
                           channelId
                       });
 
                   } else if (message.type === 'payment_required') {
-                      console.log(`[Stream Client] Payment required (${message.amount_due} USDC) for watcher ${watcher.watcher_id}`);
+                      console.log("[Stream Client] Payment required (${message.amount_due} USDC) for watcher ${watcher.watcher_id}");
                       // Request a signature from MPP Manager
                       const { mppChannelManager } = await import('./mpp-channel-manager.js');
                       try {
                           const { proof } = await mppChannelManager.makePayment({
                               userId: watcher.user_id,
-                              serviceId: `${watcher.type}-service`,
+                              serviceId: "${watcher.type}-service",
                               amount: message.amount_due, // Provide the difference or the cumulative?
                               // Note: MPPChannelManager expects the *incremental* amount to add.
                               // Our WS stream expects the *cumulative*.
@@ -580,30 +580,30 @@ export class CheckExecutor {
                               type: 'payment_proof',
                               proof: JSON.parse(proof)
                           }));
-                          console.log(`[Stream Client] Proof sent for watcher ${watcher.watcher_id}`);
+                          console.log("[Stream Client] Proof sent for watcher ${watcher.watcher_id}");
                       } catch (err: any) {
-                          console.error(`[Stream Client] Failed to generate proof: ${err.message}`);
+                          console.error("[Stream Client] Failed to generate proof: ${err.message}");
                       }
                   } else if (message.type === 'error') {
-                      console.error(`[Stream Client] Error received: ${message.message}`);
+                      console.error("[Stream Client] Error received: ${message.message}");
                   }
               } catch (e) {
-                  console.error(`[Stream Client] Parse error: `, e);
+                  console.error("[Stream Client] Parse error: ", e);
               }
           });
 
           ws.on('close', () => {
-              console.log(`[Stream Client] Connection closed for ${watcher.watcher_id}`);
+              console.log("[Stream Client] Connection closed for ${watcher.watcher_id}");
               this.activeStreams.delete(watcher.watcher_id);
           });
           
           ws.on('error', (err: any) => {
-              console.error(`[Stream Client] Connection error: `, err);
+              console.error("[Stream Client] Connection error: ", err);
               this.activeStreams.delete(watcher.watcher_id);
           });
 
       } catch (err: any) {
-          console.error(`[CheckExecutor] Failed to start stream: `, err.message);
+          console.error("[CheckExecutor] Failed to start stream: ", err.message);
           this.activeStreams.delete(watcher.watcher_id);
       }
   }
