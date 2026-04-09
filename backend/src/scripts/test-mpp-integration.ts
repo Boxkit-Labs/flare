@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 import WebSocket from 'ws';
 
 const BASE_URL = 'http://localhost:3000';
-const WS_URL = 'ws://localhost:3010/ws/stream';
+const WS_URL = 'ws://127.0.0.1:4000/ws/stream';
 
 async function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));

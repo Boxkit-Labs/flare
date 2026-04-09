@@ -1,6 +1,6 @@
 import {
     Keypair,
-    SorobanRpc,
+    rpc as SorobanRpc,
     Networks,
     TransactionBuilder,
     Address,

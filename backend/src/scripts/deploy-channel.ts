@@ -2,12 +2,12 @@ import dotenv from 'dotenv';
 import {
   Keypair,
   Networks,
-  SorobanRpc,
   TransactionBuilder,
   Operation,
   xdr,
   Address
 } from '@stellar/stellar-sdk';
+import { Server } from '@stellar/stellar-sdk/rpc';
 import crypto from 'node:crypto';
 
 dotenv.config();
@@ -30,7 +30,7 @@ async function deployChannel() {
   }
 
   const funderKeypair = Keypair.fromSecret(secretKey);
-  const server = new SorobanRpc.Server(SOROBAN_RPC_URL);
+  const server = new Server(SOROBAN_RPC_URL);
 
   console.log(`Funder account: ${funderKeypair.publicKey()}`);
 
@@ -72,7 +72,9 @@ async function deployChannel() {
 
     
     console.log('Simulating CreateContract transaction...');
-    const preparedTx = await server.prepareTransaction(tx);
+    const simResult = await server.simulateTransaction(tx);
+    const { assembleTransaction } = await import('@stellar/stellar-sdk/rpc');
+    const preparedTx = assembleTransaction(tx, simResult).build();
     preparedTx.sign(funderKeypair);
     
     console.log('Submitting CreateContract transaction to Testnet...');

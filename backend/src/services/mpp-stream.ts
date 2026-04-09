@@ -20,15 +20,15 @@ export class MPPStreamService {
     private clients = new Map<string, StreamClient>();
     private readonly FRAME_COST_USDC = 0.0005;
 
-    constructor(port: number = 3010) {
-        this.wss = new WebSocketServer({ port });
-        console.log(`[MPP Stream] WebSocket server started on port ${port}`);
+    constructor(port: number = 4000) {
+        this.wss = new WebSocketServer({ port, host: '127.0.0.1' });
+        console.log(`[MPP Stream] WebSocket server started on port ${port} at 127.0.0.1`);
 
         this.wss.on('connection', async (ws: WebSocket, req: any) => {
             console.log(`[MPP Stream] New connection attempt: ${req.url}`);
             
             try {
-                // Parse URL: /ws/stream?userId=xxx&serviceId=crypto-data&channelId=yyy&watcherId=zzz
+                const WS_URL = 'ws://127.0.0.1:4000/ws/stream';
                 const url = new URL(req.url, `ws://${req.headers.host}`);
                 const userId = url.searchParams.get('userId');
                 const serviceId = url.searchParams.get('serviceId');
@@ -189,4 +189,4 @@ export class MPPStreamService {
     }
 }
 
-export const mppStreamService = new MPPStreamService();
+export const mppStreamService = new MPPStreamService(4000);

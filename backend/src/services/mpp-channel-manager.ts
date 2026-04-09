@@ -1,6 +1,5 @@
 import {
   Keypair,
-  SorobanRpc,
   Networks,
   TransactionBuilder,
   Address,
@@ -9,22 +8,24 @@ import {
   BASE_FEE,
   xdr,
   Operation,
-} from '@stellar/stellar-sdk';
-import crypto from 'node:crypto';
-import pool from '../db/database.js';
-import { encrypt, decrypt } from '../utils/crypto.js';
-import dotenv from 'dotenv';
+} from "@stellar/stellar-sdk";
+import { Server, Api, assembleTransaction } from "@stellar/stellar-sdk/rpc";
+import crypto from "node:crypto";
+import pool from "../db/database.js";
+import { encrypt, decrypt } from "../utils/crypto.js";
+import dotenv from "dotenv";
 
 dotenv.config();
 
-const RPC_URL = process.env.SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
+const RPC_URL =
+  process.env.SOROBAN_RPC_URL || "https://soroban-testnet.stellar.org";
 const NETWORK_PASSPHRASE = Networks.TESTNET;
 const USDC_CONTRACT = process.env.USDC_ISSUER
-  ? '' // We'll use contract address from env
-  : 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA';
+  ? "" // We'll use contract address from env
+  : "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA";
 
 // The WASM hash of the deployed one-way-channel contract
-const CHANNEL_WASM_HASH = process.env.MPP_CHANNEL_WASM_HASH || '';
+const CHANNEL_WASM_HASH = process.env.MPP_CHANNEL_WASM_HASH || "";
 
 export interface ChannelState {
   channelId: string;
@@ -33,21 +34,27 @@ export interface ChannelState {
   receiverAddress: string;
   commitmentPublicKey: string;
   commitmentSecretKey: string; // ed25519 raw hex seed
-  deposit: number;            // in USDC
-  spent: number;              // cumulative USDC spent via off-chain proofs
+  deposit: number; // in USDC
+  spent: number; // cumulative USDC spent via off-chain proofs
   latestProof: string | null;
   openedAt: Date;
   expiresAt: Date;
   txHashOpen: string;
+  status: string;
 }
 
-async function waitForTransaction(rpc: SorobanRpc.Server, hash: string, timeoutMs = 45000): Promise<void> {
+async function waitForTransaction(
+  rpc: Server,
+  hash: string,
+  timeoutMs = 45000,
+): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     const res = await rpc.getTransaction(hash);
-    if (res.status === 'SUCCESS') return;
-    if (res.status === 'FAILED') throw new Error(`Transaction ${hash} failed on-chain.`);
-    await new Promise(r => setTimeout(r, 3000));
+    if (res.status === "SUCCESS") return;
+    if (res.status === "FAILED")
+      throw new Error(`Transaction ${hash} failed on-chain.`);
+    await new Promise((r) => setTimeout(r, 3000));
   }
   throw new Error(`Transaction ${hash} timed out.`);
 }
@@ -66,26 +73,39 @@ export class MPPChannelManager {
     depositAmount: string;
     durationSeconds: number;
   }): Promise<{ channelId: string; txHash: string }> {
-    const { userId, serviceId, userSecretKey, receiverAddress, depositAmount, durationSeconds } = params;
+    const {
+      userId,
+      serviceId,
+      userSecretKey,
+      receiverAddress,
+      depositAmount,
+      durationSeconds,
+    } = params;
     const channelKey = `${userId}:${serviceId}`;
 
     if (!CHANNEL_WASM_HASH) {
-      throw new Error('MPP_CHANNEL_WASM_HASH not set in environment. Deploy the contract first.');
+      throw new Error(
+        "MPP_CHANNEL_WASM_HASH not set in environment. Deploy the contract first.",
+      );
     }
 
     const senderKeypair = Keypair.fromSecret(userSecretKey);
-    const rpc = new SorobanRpc.Server(RPC_URL);
+    const rpc = new Server(RPC_URL);
 
     // Generate an ed25519 commitment keypair for signing off-chain proofs
     const commitmentKeypair = Keypair.random();
-    const commitmentPubKeyHex = commitmentKeypair.rawPublicKey().toString('hex');
-    const commitmentSecretHex = commitmentKeypair.rawSecretKey().toString('hex');
+    const commitmentPubKeyHex = commitmentKeypair
+      .rawPublicKey()
+      .toString("hex");
+    const commitmentSecretHex = commitmentKeypair
+      .rawSecretKey()
+      .toString("hex");
 
     // Deposit amount in stroops (7 decimal places for USDC-style)
     const depositStroops = Math.round(parseFloat(depositAmount) * 10_000_000);
 
     const salt = crypto.randomBytes(32);
-    const wasmHashBuffer = Buffer.from(CHANNEL_WASM_HASH, 'hex');
+    const wasmHashBuffer = Buffer.from(CHANNEL_WASM_HASH, "hex");
     const expiresAt = new Date(Date.now() + durationSeconds * 1000);
 
     const account = await rpc.getAccount(senderKeypair.publicKey());
@@ -97,7 +117,7 @@ export class MPPChannelManager {
         new xdr.ContractIdPreimageFromAddress({
           address: Address.fromString(senderKeypair.publicKey()).toScAddress(),
           salt,
-        })
+        }),
       ),
       executable: xdr.ContractExecutable.contractExecutableWasm(wasmHashBuffer),
     });
@@ -108,25 +128,31 @@ export class MPPChannelManager {
     });
 
     const createTx = new TransactionBuilder(account, {
-      fee: '100000',
+      fee: "100000",
       networkPassphrase: NETWORK_PASSPHRASE,
     })
       .addOperation(createOp)
       .setTimeout(60)
       .build();
 
-    console.log(`[MPP] Simulating contract creation for channel ${channelKey}...`);
+    console.log(
+      `[MPP] Simulating contract creation for channel ${channelKey}...`,
+    );
     const simResult = await rpc.simulateTransaction(createTx);
-    if (SorobanRpc.Api.isSimulationError(simResult)) {
-      throw new Error(`Contract creation simulation failed: ${JSON.stringify(simResult.error)}`);
+    if (Api.isSimulationError(simResult)) {
+      throw new Error(
+        `Contract creation simulation failed: ${JSON.stringify(simResult.error)}`,
+      );
     }
 
-    const preparedTx = SorobanRpc.assembleTransaction(createTx, simResult).build();
+    const preparedTx = assembleTransaction(createTx, simResult).build();
     preparedTx.sign(senderKeypair);
 
     const sendResult = await rpc.sendTransaction(preparedTx);
-    if (sendResult.status !== 'PENDING') {
-      throw new Error(`Contract creation submission failed: ${JSON.stringify(sendResult)}`);
+    if (sendResult.status !== "PENDING") {
+      throw new Error(
+        `Contract creation submission failed: ${JSON.stringify(sendResult)}`,
+      );
     }
 
     console.log(`[MPP] Contract creation TX submitted: ${sendResult.hash}`);
@@ -137,16 +163,24 @@ export class MPPChannelManager {
       try {
         const computedId = xdr.HashIdPreimage.envelopeTypeContractId(
           new xdr.HashIdPreimageContractId({
-            networkId: xdr.Hash.fromXDR(Buffer.from(NETWORK_PASSPHRASE, 'utf8').slice(0, 32)),
-            contractIdPreimage: xdr.ContractIdPreimage.contractIdPreimageFromAddress(
-              new xdr.ContractIdPreimageFromAddress({
-                address: Address.fromString(senderKeypair.publicKey()).toScAddress(),
-                salt,
-              })
+            networkId: xdr.Hash.fromXDR(
+              Buffer.from(NETWORK_PASSPHRASE, "utf8").slice(0, 32),
             ),
-          })
+            contractIdPreimage:
+              xdr.ContractIdPreimage.contractIdPreimageFromAddress(
+                new xdr.ContractIdPreimageFromAddress({
+                  address: Address.fromString(
+                    senderKeypair.publicKey(),
+                  ).toScAddress(),
+                  salt,
+                }),
+              ),
+          }),
         );
-        const hash = crypto.createHash('sha256').update(computedId.toXDR()).digest();
+        const hash = crypto
+          .createHash("sha256")
+          .update(computedId.toXDR())
+          .digest();
         return Address.contract(hash).toString();
       } catch {
         // Fallback: read from tx result
@@ -159,35 +193,42 @@ export class MPPChannelManager {
     const channelContract = new Contract(contractAddress);
 
     // USDC contract address to use as token
-    const usdcAddress = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA';
+    const usdcAddress =
+      "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA";
 
     const constructorTx = new TransactionBuilder(updatedAccount, {
-      fee: '100000',
+      fee: "100000",
       networkPassphrase: NETWORK_PASSPHRASE,
     })
-      .addOperation(channelContract.call(
-        '__constructor',
-        new Address(usdcAddress).toScVal(),
-        new Address(senderKeypair.publicKey()).toScVal(),
-        new Address(receiverAddress).toScVal(),
-        xdr.ScVal.scvBytes(Buffer.from(commitmentPubKeyHex, 'hex')),
-        nativeToScVal(BigInt(depositStroops), { type: 'i128' }),
-        xdr.ScVal.scvU32(720) // refund_waiting_period: 720 ledgers ≈ ~1 hour
-      ))
+      .addOperation(
+        channelContract.call(
+          "__constructor",
+          new Address(usdcAddress).toScVal(),
+          new Address(senderKeypair.publicKey()).toScVal(),
+          new Address(receiverAddress).toScVal(),
+          xdr.ScVal.scvBytes(Buffer.from(commitmentPubKeyHex, "hex")),
+          nativeToScVal(BigInt(depositStroops), { type: "i128" }),
+          xdr.ScVal.scvU32(720), // refund_waiting_period: 720 ledgers ≈ ~1 hour
+        ),
+      )
       .setTimeout(60)
       .build();
 
     const simCtor = await rpc.simulateTransaction(constructorTx);
-    if (SorobanRpc.Api.isSimulationError(simCtor)) {
-      throw new Error(`Constructor simulation failed: ${JSON.stringify(simCtor.error)}`);
+    if (Api.isSimulationError(simCtor)) {
+      throw new Error(
+        `Constructor simulation failed: ${JSON.stringify(simCtor.error)}`,
+      );
     }
 
-    const preparedCtor = SorobanRpc.assembleTransaction(constructorTx, simCtor).build();
+    const preparedCtor = assembleTransaction(constructorTx, simCtor).build();
     preparedCtor.sign(senderKeypair);
 
     const ctorSend = await rpc.sendTransaction(preparedCtor);
-    if (ctorSend.status !== 'PENDING') {
-      throw new Error(`Constructor TX submission failed: ${JSON.stringify(ctorSend)}`);
+    if (ctorSend.status !== "PENDING") {
+      throw new Error(
+        `Constructor TX submission failed: ${JSON.stringify(ctorSend)}`,
+      );
     }
 
     console.log(`[MPP] Constructor TX submitted: ${ctorSend.hash}`);
@@ -207,12 +248,13 @@ export class MPPChannelManager {
       openedAt: new Date(),
       expiresAt,
       txHashOpen: ctorSend.hash,
+      status: "open",
     };
 
     this.activeChannels.set(channelKey, state);
 
     // Persist to DB with encrypted commitment keys
-    const encryptionKey = process.env.ENCRYPTION_KEY || '';
+    const encryptionKey = process.env.ENCRYPTION_KEY || "";
     const encryptedSecretKey = encrypt(commitmentSecretHex, encryptionKey);
 
     await pool.query(
@@ -221,30 +263,50 @@ export class MPPChannelManager {
         commitment_public_key, commitment_secret_key_encrypted,
         deposit_usdc, spent_usdc, latest_proof, open_tx_hash, expires_at, status)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,0,NULL,$9,$10,'open')`,
-      [channelId, userId, serviceId, senderKeypair.publicKey(), receiverAddress,
-       commitmentPubKeyHex, encryptedSecretKey,
-       parseFloat(depositAmount), ctorSend.hash, expiresAt.toISOString()]
+      [
+        channelId,
+        userId,
+        serviceId,
+        senderKeypair.publicKey(),
+        receiverAddress,
+        commitmentPubKeyHex,
+        encryptedSecretKey,
+        parseFloat(depositAmount),
+        ctorSend.hash,
+        expiresAt.toISOString(),
+      ],
     );
 
-    console.log(`[MPP] OK: Channel opened: ${channelId} | TX: ${ctorSend.hash}`);
+    console.log(
+      `[MPP] OK: Channel opened: ${channelId} | TX: ${ctorSend.hash}`,
+    );
     return { channelId, txHash: ctorSend.hash };
   }
 
   // ----------------------------------------------------
   // Verify Off-Chain Payment Proof
   // ----------------------------------------------------
-  async verifyPaymentProof(channelId: string, proofJson: string, requiredAmountStroops: number): Promise<boolean> {
+  async verifyPaymentProof(
+    channelId: string,
+    proofJson: string,
+    requiredAmountStroops: number,
+  ): Promise<boolean> {
     try {
-      const StateQuery = await pool.query(`SELECT * FROM mpp_channels WHERE channel_id=$1 AND status='open'`, [channelId]);
+      const StateQuery = await pool.query(
+        `SELECT * FROM mpp_channels WHERE channel_id=$1 AND status='open'`,
+        [channelId],
+      );
       if (StateQuery.rows.length === 0) {
-        console.error(`[MPP Verify] Channel ${channelId} not found or not open.`);
+        console.error(
+          `[MPP Verify] Channel ${channelId} not found or not open.`,
+        );
         return false;
       }
-      
+
       const row = StateQuery.rows[0];
       const contractAddress = row.channel_id;
       const commitmentPublicKeyHex = row.commitment_public_key;
-      
+
       const proof = JSON.parse(proofJson);
       if (!proof.amount || !proof.signature) {
         console.error(`[MPP Verify] Invalid proof format.`);
@@ -252,54 +314,76 @@ export class MPPChannelManager {
       }
 
       if (proof.amount < requiredAmountStroops) {
-         console.error(`[MPP Verify] Proof amount ${proof.amount} is less than required ${requiredAmountStroops}.`);
-         return false;
+        console.error(
+          `[MPP Verify] Proof amount ${proof.amount} is less than required ${requiredAmountStroops}.`,
+        );
+        return false;
       }
 
       // Reconstruct the commitment XDR
-      const networkId = crypto.createHash('sha256').update(NETWORK_PASSPHRASE).digest();
+      const networkId = crypto
+        .createHash("sha256")
+        .update(NETWORK_PASSPHRASE)
+        .digest();
       const channelAddress = new Address(contractAddress);
 
       const commitment = xdr.ScVal.scvMap([
-        new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol('amount'),  val: nativeToScVal(BigInt(proof.amount), { type: 'i128' }) }),
-        new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol('channel'), val: channelAddress.toScVal() }),
-        new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol('domain'),  val: xdr.ScVal.scvSymbol('chancmmt') }),
-        new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol('network'), val: xdr.ScVal.scvBytes(networkId) }),
+        new xdr.ScMapEntry({
+          key: xdr.ScVal.scvSymbol("amount"),
+          val: nativeToScVal(BigInt(proof.amount), { type: "i128" }),
+        }),
+        new xdr.ScMapEntry({
+          key: xdr.ScVal.scvSymbol("channel"),
+          val: channelAddress.toScVal(),
+        }),
+        new xdr.ScMapEntry({
+          key: xdr.ScVal.scvSymbol("domain"),
+          val: xdr.ScVal.scvSymbol("chancmmt"),
+        }),
+        new xdr.ScMapEntry({
+          key: xdr.ScVal.scvSymbol("network"),
+          val: xdr.ScVal.scvBytes(networkId),
+        }),
       ]);
 
       const commitmentBytes = commitment.toXDR();
-      
+
       // Verify ed25519 signature via node:crypto
       const publicKey = crypto.createPublicKey({
         key: Buffer.concat([
-          Buffer.from('302a300506032b6570032100', 'hex'), // ed25519 SubjectPublicKeyInfo prefix
-          Buffer.from(commitmentPublicKeyHex, 'hex'),
+          Buffer.from("302a300506032b6570032100", "hex"), // ed25519 SubjectPublicKeyInfo prefix
+          Buffer.from(commitmentPublicKeyHex, "hex"),
         ]),
-        format: 'der',
-        type: 'spki',
+        format: "der",
+        type: "spki",
       });
 
-      const isVerified = crypto.verify(null, commitmentBytes, publicKey, Buffer.from(proof.signature, 'hex'));
-      
+      const isVerified = crypto.verify(
+        null,
+        commitmentBytes,
+        publicKey,
+        Buffer.from(proof.signature, "hex"),
+      );
+
       if (isVerified) {
-         // Update state with the new proof
-         const spentUsdc = proof.amount / 10_000_000;
-          await pool.query(
+        // Update state with the new proof
+        const spentUsdc = proof.amount / 10_000_000;
+        await pool.query(
           `UPDATE mpp_channels SET spent_usdc=$1, latest_proof=$2 WHERE channel_id=$3`,
-          [spentUsdc, proofJson, channelId]
-         );
-         
-         // In-memory update if it exists
-         const activeKeys = [...this.activeChannels.keys()];
-         for (const key of activeKeys) {
-            if (this.activeChannels.get(key)?.channelId === channelId) {
-                const s = this.activeChannels.get(key)!;
-                s.spent = spentUsdc;
-                s.latestProof = proofJson;
-                break;
-            }
-         }
-         return true;
+          [spentUsdc, proofJson, channelId],
+        );
+
+        // In-memory update if it exists
+        const activeKeys = [...this.activeChannels.keys()];
+        for (const key of activeKeys) {
+          if (this.activeChannels.get(key)?.channelId === channelId) {
+            const s = this.activeChannels.get(key)!;
+            s.spent = spentUsdc;
+            s.latestProof = proofJson;
+            break;
+          }
+        }
+        return true;
       }
       return false;
     } catch (e: any) {
@@ -319,7 +403,8 @@ export class MPPChannelManager {
     const { userId, serviceId, amount } = params;
     const channelKey = `${userId}:${serviceId}`;
 
-    let state: ChannelState | null | undefined = this.activeChannels.get(channelKey);
+    let state: ChannelState | null | undefined =
+      this.activeChannels.get(channelKey);
     if (!state) {
       // Try to restore from DB
       state = await this.loadChannelFromDb(userId, serviceId);
@@ -333,30 +418,47 @@ export class MPPChannelManager {
     // Produce XDR-encoded commitment exactly as the contract expects:
     // ScVal::Map { amount: i128, channel: Address, domain: Symbol("chancmmt"), network: BytesN<32> }
     // Sign with ed25519 raw key
-    const networkId = crypto.createHash('sha256').update(NETWORK_PASSPHRASE).digest();
+    const networkId = crypto
+      .createHash("sha256")
+      .update(NETWORK_PASSPHRASE)
+      .digest();
     const channelAddress = new Address(state.contractAddress);
 
     const commitment = xdr.ScVal.scvMap([
-      new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol('amount'),  val: nativeToScVal(BigInt(newSpentStroops), { type: 'i128' }) }),
-      new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol('channel'), val: channelAddress.toScVal() }),
-      new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol('domain'),  val: xdr.ScVal.scvSymbol('chancmmt') }),
-      new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol('network'), val: xdr.ScVal.scvBytes(networkId) }),
+      new xdr.ScMapEntry({
+        key: xdr.ScVal.scvSymbol("amount"),
+        val: nativeToScVal(BigInt(newSpentStroops), { type: "i128" }),
+      }),
+      new xdr.ScMapEntry({
+        key: xdr.ScVal.scvSymbol("channel"),
+        val: channelAddress.toScVal(),
+      }),
+      new xdr.ScMapEntry({
+        key: xdr.ScVal.scvSymbol("domain"),
+        val: xdr.ScVal.scvSymbol("chancmmt"),
+      }),
+      new xdr.ScMapEntry({
+        key: xdr.ScVal.scvSymbol("network"),
+        val: xdr.ScVal.scvBytes(networkId),
+      }),
     ]);
 
     const commitmentBytes = commitment.toXDR();
-    const secretKey = Buffer.from(state.commitmentSecretKey, 'hex');
+    const secretKey = Buffer.from(state.commitmentSecretKey, "hex");
 
     // Sign with ed25519 using the raw 32-byte seed via node crypto
     const privateKey = crypto.createPrivateKey({
       key: Buffer.concat([
-        Buffer.from('302e020100300506032b657004220420', 'hex'),
+        Buffer.from("302e020100300506032b657004220420", "hex"),
         secretKey,
       ]),
-      format: 'der',
-      type: 'pkcs8',
+      format: "der",
+      type: "pkcs8",
     });
 
-    const signature = crypto.sign(null, commitmentBytes, privateKey).toString('hex');
+    const signature = crypto
+      .sign(null, commitmentBytes, privateKey)
+      .toString("hex");
 
     // Update state
     state.spent = newSpent;
@@ -365,10 +467,12 @@ export class MPPChannelManager {
     // Persist
     await pool.query(
       `UPDATE mpp_channels SET spent_usdc=$1, latest_proof=$2 WHERE channel_id=$3`,
-      [newSpent, state.latestProof, state.channelId]
+      [newSpent, state.latestProof, state.channelId],
     );
 
-    console.log(`[MPP] Off-chain proof signed. Cumulative: ${newSpent} USDC (+${amount})`);
+    console.log(
+      `[MPP] Off-chain proof signed. Cumulative: ${newSpent} USDC (+${amount})`,
+    );
     return { proof: state.latestProof, totalSpent: newSpent.toFixed(7) };
   }
 
@@ -382,51 +486,62 @@ export class MPPChannelManager {
     const { userId, serviceId } = params;
     const channelKey = `${userId}:${serviceId}`;
 
-    let state: ChannelState | null | undefined = this.activeChannels.get(channelKey);
+    let state: ChannelState | null | undefined =
+      this.activeChannels.get(channelKey);
     if (!state) {
       state = await this.loadChannelFromDb(userId, serviceId);
       if (!state) throw new Error(`No active channel for ${channelKey}`);
     }
 
     if (!state.latestProof) {
-      throw new Error('No proof available to close channel with');
+      throw new Error("No proof available to close channel with");
     }
 
-    const proof = JSON.parse(state.latestProof) as { amount: number; signature: string };
-    const rpc = new SorobanRpc.Server(RPC_URL);
+    const proof = JSON.parse(state.latestProof) as {
+      amount: number;
+      signature: string;
+    };
+    const rpc = new Server(RPC_URL);
 
     // We need the receiver's secret key to call close — in production this
     // would be on the receiver's side. For Flare, receiver is the operator.
     const receiverSecret = process.env.OPERATOR_SECRET;
-    if (!receiverSecret) throw new Error('OPERATOR_SECRET required to close channel');
+    if (!receiverSecret)
+      throw new Error("OPERATOR_SECRET required to close channel");
     const receiverKeypair = Keypair.fromSecret(receiverSecret);
 
     const account = await rpc.getAccount(receiverKeypair.publicKey());
     const channelContract = new Contract(state.contractAddress);
 
     const closeTx = new TransactionBuilder(account, {
-      fee: '100000',
+      fee: "100000",
       networkPassphrase: NETWORK_PASSPHRASE,
     })
-      .addOperation(channelContract.call(
-        'close',
-        nativeToScVal(BigInt(proof.amount), { type: 'i128' }),
-        xdr.ScVal.scvBytes(Buffer.from(proof.signature, 'hex')),
-      ))
+      .addOperation(
+        channelContract.call(
+          "close",
+          nativeToScVal(BigInt(proof.amount), { type: "i128" }),
+          xdr.ScVal.scvBytes(Buffer.from(proof.signature, "hex")),
+        ),
+      )
       .setTimeout(60)
       .build();
 
     const simResult = await rpc.simulateTransaction(closeTx);
-    if (SorobanRpc.Api.isSimulationError(simResult)) {
-      throw new Error(`Close simulation failed: ${JSON.stringify(simResult.error)}`);
+    if (Api.isSimulationError(simResult)) {
+      throw new Error(
+        `Close simulation failed: ${JSON.stringify(simResult.error)}`,
+      );
     }
 
-    const preparedTx = SorobanRpc.assembleTransaction(closeTx, simResult).build();
+    const preparedTx = assembleTransaction(closeTx, simResult).build();
     preparedTx.sign(receiverKeypair);
 
     const sendResult = await rpc.sendTransaction(preparedTx);
-    if (sendResult.status !== 'PENDING') {
-      throw new Error(`Close TX submission failed: ${JSON.stringify(sendResult)}`);
+    if (sendResult.status !== "PENDING") {
+      throw new Error(
+        `Close TX submission failed: ${JSON.stringify(sendResult)}`,
+      );
     }
 
     console.log(`[MPP] Close TX submitted: ${sendResult.hash}`);
@@ -438,19 +553,24 @@ export class MPPChannelManager {
     // Update DB
     await pool.query(
       `UPDATE mpp_channels SET status='closed', close_tx_hash=$1 WHERE channel_id=$2`,
-      [sendResult.hash, state.channelId]
+      [sendResult.hash, state.channelId],
     );
 
     this.activeChannels.delete(channelKey);
 
-    console.log(`[MPP] OK: Channel closed: ${state.channelId} | Settled: ${settled} USDC | Returned: ${returned} USDC`);
+    console.log(
+      `[MPP] OK: Channel closed: ${state.channelId} | Settled: ${settled} USDC | Returned: ${returned} USDC`,
+    );
     return { txHash: sendResult.hash, settled, returned };
   }
 
   // ----------------------------------------------------
   // Get Channel Status
   // ----------------------------------------------------
-  async getChannelStatus(userId: string, serviceId: string): Promise<ChannelState | null> {
+  async getChannelStatus(
+    userId: string,
+    serviceId: string,
+  ): Promise<ChannelState | null> {
     const channelKey = `${userId}:${serviceId}`;
     if (this.activeChannels.has(channelKey)) {
       return this.activeChannels.get(channelKey)!;
@@ -465,19 +585,27 @@ export class MPPChannelManager {
     const tenMinsFromNow = new Date(Date.now() + 10 * 60 * 1000);
     const { rows } = await pool.query(
       `SELECT * FROM mpp_channels WHERE status='open' AND expires_at <= $1`,
-      [tenMinsFromNow.toISOString()]
+      [tenMinsFromNow.toISOString()],
     );
 
     for (const row of rows) {
-      console.log(`[MPP] Auto-closing expiring channel: ${row.channel_id} for user: ${row.user_id}`);
+      console.log(
+        `[MPP] Auto-closing expiring channel: ${row.channel_id} for user: ${row.user_id}`,
+      );
       try {
-        await this.closeChannel({ userId: row.user_id, serviceId: row.service_id });
+        await this.closeChannel({
+          userId: row.user_id,
+          serviceId: row.service_id,
+        });
       } catch (err) {
-        console.error(`[MPP] Failed to auto-close channel ${row.channel_id}:`, err);
+        console.error(
+          `[MPP] Failed to auto-close channel ${row.channel_id}:`,
+          err,
+        );
         // Mark as expired in DB anyway
         await pool.query(
           `UPDATE mpp_channels SET status='expired' WHERE channel_id=$1`,
-          [row.channel_id]
+          [row.channel_id],
         );
       }
     }
@@ -486,23 +614,32 @@ export class MPPChannelManager {
   // ----------------------------------------------------
   // Internal: Load from DB
   // ----------------------------------------------------
-  private async loadChannelFromDb(userId: string, serviceId: string): Promise<ChannelState | null> {
+  private async loadChannelFromDb(
+    userId: string,
+    serviceId: string,
+  ): Promise<ChannelState | null> {
     const { rows } = await pool.query(
       `SELECT * FROM mpp_channels WHERE user_id=$1 AND service_id=$2 AND status='open' LIMIT 1`,
-      [userId, serviceId]
+      [userId, serviceId],
     );
     if (!rows.length) return null;
 
     const row = rows[0];
-    
+
     // Decrypt commitment secret key
-    const encryptionKey = process.env.ENCRYPTION_KEY || '';
-    let commitmentSecretKey = '';
+    const encryptionKey = process.env.ENCRYPTION_KEY || "";
+    let commitmentSecretKey = "";
     if (row.commitment_secret_key_encrypted) {
       try {
-        commitmentSecretKey = decrypt(row.commitment_secret_key_encrypted, encryptionKey);
+        commitmentSecretKey = decrypt(
+          row.commitment_secret_key_encrypted,
+          encryptionKey,
+        );
       } catch (err) {
-        console.error(`[MPP] Failed to decrypt commitment secret key for channel ${row.channel_id}:`, err);
+        console.error(
+          `[MPP] Failed to decrypt commitment secret key for channel ${row.channel_id}:`,
+          err,
+        );
       }
     }
 
@@ -511,7 +648,7 @@ export class MPPChannelManager {
       contractAddress: row.channel_id,
       senderAddress: row.sender_address,
       receiverAddress: row.receiver_address,
-      commitmentPublicKey: row.commitment_public_key || '',
+      commitmentPublicKey: row.commitment_public_key || "",
       commitmentSecretKey: commitmentSecretKey,
       deposit: parseFloat(row.deposit_usdc),
       spent: parseFloat(row.spent_usdc),
@@ -519,6 +656,7 @@ export class MPPChannelManager {
       openedAt: new Date(row.opened_at),
       expiresAt: new Date(row.expires_at),
       txHashOpen: row.open_tx_hash,
+      status: row.status,
     };
   }
 }
