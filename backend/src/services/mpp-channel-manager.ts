@@ -55,9 +55,9 @@ async function waitForTransaction(rpc: SorobanRpc.Server, hash: string, timeoutM
 export class MPPChannelManager {
   private activeChannels: Map<string, ChannelState> = new Map();
 
-  // ────────────────────────────────────────────────────
+  // ----------------------------------------------------
   // Open Channel
-  // ────────────────────────────────────────────────────
+  // ----------------------------------------------------
   async openChannel(params: {
     userId: string;
     serviceId: string;
@@ -226,13 +226,91 @@ export class MPPChannelManager {
        parseFloat(depositAmount), ctorSend.hash, expiresAt.toISOString()]
     );
 
-    console.log(`[MPP] ✅ Channel opened: ${channelId} | TX: ${ctorSend.hash}`);
+    console.log(`[MPP] OK: Channel opened: ${channelId} | TX: ${ctorSend.hash}`);
     return { channelId, txHash: ctorSend.hash };
   }
 
-  // ────────────────────────────────────────────────────
+  // ----------------------------------------------------
+  // Verify Off-Chain Payment Proof
+  // ----------------------------------------------------
+  async verifyPaymentProof(channelId: string, proofJson: string, requiredAmountStroops: number): Promise<boolean> {
+    try {
+      const StateQuery = await pool.query(`SELECT * FROM mpp_channels WHERE channel_id=$1 AND status='open'`, [channelId]);
+      if (StateQuery.rows.length === 0) {
+        console.error(`[MPP Verify] Channel ${channelId} not found or not open.`);
+        return false;
+      }
+      
+      const row = StateQuery.rows[0];
+      const contractAddress = row.channel_id;
+      const commitmentPublicKeyHex = row.commitment_public_key;
+      
+      const proof = JSON.parse(proofJson);
+      if (!proof.amount || !proof.signature) {
+        console.error(`[MPP Verify] Invalid proof format.`);
+        return false;
+      }
+
+      if (proof.amount < requiredAmountStroops) {
+         console.error(`[MPP Verify] Proof amount ${proof.amount} is less than required ${requiredAmountStroops}.`);
+         return false;
+      }
+
+      // Reconstruct the commitment XDR
+      const networkId = crypto.createHash('sha256').update(NETWORK_PASSPHRASE).digest();
+      const channelAddress = new Address(contractAddress);
+
+      const commitment = xdr.ScVal.scvMap([
+        new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol('amount'),  val: nativeToScVal(BigInt(proof.amount), { type: 'i128' }) }),
+        new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol('channel'), val: channelAddress.toScVal() }),
+        new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol('domain'),  val: xdr.ScVal.scvSymbol('chancmmt') }),
+        new xdr.ScMapEntry({ key: xdr.ScVal.scvSymbol('network'), val: xdr.ScVal.scvBytes(networkId) }),
+      ]);
+
+      const commitmentBytes = commitment.toXDR();
+      
+      // Verify ed25519 signature via node:crypto
+      const publicKey = crypto.createPublicKey({
+        key: Buffer.concat([
+          Buffer.from('302a300506032b6570032100', 'hex'), // ed25519 SubjectPublicKeyInfo prefix
+          Buffer.from(commitmentPublicKeyHex, 'hex'),
+        ]),
+        format: 'der',
+        type: 'spki',
+      });
+
+      const isVerified = crypto.verify(null, commitmentBytes, publicKey, Buffer.from(proof.signature, 'hex'));
+      
+      if (isVerified) {
+         // Update state with the new proof
+         const spentUsdc = proof.amount / 10_000_000;
+          await pool.query(
+          `UPDATE mpp_channels SET spent_usdc=$1, latest_proof=$2 WHERE channel_id=$3`,
+          [spentUsdc, proofJson, channelId]
+         );
+         
+         // In-memory update if it exists
+         const activeKeys = [...this.activeChannels.keys()];
+         for (const key of activeKeys) {
+            if (this.activeChannels.get(key)?.channelId === channelId) {
+                const s = this.activeChannels.get(key)!;
+                s.spent = spentUsdc;
+                s.latestProof = proofJson;
+                break;
+            }
+         }
+         return true;
+      }
+      return false;
+    } catch (e: any) {
+      console.error(`[MPP Verify] Error verifying proof:`, e.message);
+      return false;
+    }
+  }
+
+  // ----------------------------------------------------
   // Make Off-Chain Payment
-  // ────────────────────────────────────────────────────
+  // ----------------------------------------------------
   async makePayment(params: {
     userId: string;
     serviceId: string;
@@ -241,7 +319,7 @@ export class MPPChannelManager {
     const { userId, serviceId, amount } = params;
     const channelKey = `${userId}:${serviceId}`;
 
-    let state = this.activeChannels.get(channelKey);
+    let state: ChannelState | null | undefined = this.activeChannels.get(channelKey);
     if (!state) {
       // Try to restore from DB
       state = await this.loadChannelFromDb(userId, serviceId);
@@ -290,13 +368,13 @@ export class MPPChannelManager {
       [newSpent, state.latestProof, state.channelId]
     );
 
-    console.log(`[MPP] 💸 Off-chain proof signed. Cumulative: ${newSpent} USDC (+${amount})`);
+    console.log(`[MPP] Off-chain proof signed. Cumulative: ${newSpent} USDC (+${amount})`);
     return { proof: state.latestProof, totalSpent: newSpent.toFixed(7) };
   }
 
-  // ────────────────────────────────────────────────────
+  // ----------------------------------------------------
   // Close Channel
-  // ────────────────────────────────────────────────────
+  // ----------------------------------------------------
   async closeChannel(params: {
     userId: string;
     serviceId: string;
@@ -304,7 +382,7 @@ export class MPPChannelManager {
     const { userId, serviceId } = params;
     const channelKey = `${userId}:${serviceId}`;
 
-    let state = this.activeChannels.get(channelKey);
+    let state: ChannelState | null | undefined = this.activeChannels.get(channelKey);
     if (!state) {
       state = await this.loadChannelFromDb(userId, serviceId);
       if (!state) throw new Error(`No active channel for ${channelKey}`);
@@ -365,13 +443,13 @@ export class MPPChannelManager {
 
     this.activeChannels.delete(channelKey);
 
-    console.log(`[MPP] ✅ Channel closed: ${state.channelId} | Settled: ${settled} USDC | Returned: ${returned} USDC`);
+    console.log(`[MPP] OK: Channel closed: ${state.channelId} | Settled: ${settled} USDC | Returned: ${returned} USDC`);
     return { txHash: sendResult.hash, settled, returned };
   }
 
-  // ────────────────────────────────────────────────────
+  // ----------------------------------------------------
   // Get Channel Status
-  // ────────────────────────────────────────────────────
+  // ----------------------------------------------------
   async getChannelStatus(userId: string, serviceId: string): Promise<ChannelState | null> {
     const channelKey = `${userId}:${serviceId}`;
     if (this.activeChannels.has(channelKey)) {
@@ -380,9 +458,9 @@ export class MPPChannelManager {
     return await this.loadChannelFromDb(userId, serviceId);
   }
 
-  // ────────────────────────────────────────────────────
+  // ----------------------------------------------------
   // Auto-close Expired Channels
-  // ────────────────────────────────────────────────────
+  // ----------------------------------------------------
   async autoCloseExpiredChannels(): Promise<void> {
     const tenMinsFromNow = new Date(Date.now() + 10 * 60 * 1000);
     const { rows } = await pool.query(
@@ -405,9 +483,9 @@ export class MPPChannelManager {
     }
   }
 
-  // ────────────────────────────────────────────────────
+  // ----------------------------------------------------
   // Internal: Load from DB
-  // ────────────────────────────────────────────────────
+  // ----------------------------------------------------
   private async loadChannelFromDb(userId: string, serviceId: string): Promise<ChannelState | null> {
     const { rows } = await pool.query(
       `SELECT * FROM mpp_channels WHERE user_id=$1 AND service_id=$2 AND status='open' LIMIT 1`,

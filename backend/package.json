@@ -26,6 +26,7 @@
     "node-cron": "*",
     "pg": "^8.20.0",
     "uuid": "*",
+    "ws": "^8.20.0",
     "x402-stellar": "*"
   },
   "devDependencies": {
@@ -34,6 +35,7 @@
     "@types/node": "*",
     "@types/pg": "^8.20.0",
     "@types/uuid": "*",
+    "@types/ws": "^8.18.1",
     "nodemon": "*",
     "ts-node": "*",
     "typescript": "*"

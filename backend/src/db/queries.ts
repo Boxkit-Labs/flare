@@ -115,13 +115,14 @@ export const getActiveWatchers = async () => {
 
 export const createCheck = async (check: any) => {
   const query = `
-    INSERT INTO checks (check_id, watcher_id, user_id, service_name, request_payload, response_data, cost_usdc, stellar_tx_hash, finding_detected, finding_id, agent_reasoning)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    INSERT INTO checks (check_id, watcher_id, user_id, service_name, request_payload, response_data, cost_usdc, stellar_tx_hash, finding_detected, finding_id, agent_reasoning, payment_method, channel_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
   `;
   return pool.query(query, [
     check.checkId, check.watcherId, check.userId, check.serviceName,
     JSON.stringify(check.requestPayload), JSON.stringify(check.responseData),
-    check.costUsdc, check.stellarTxHash, check.findingDetected, check.findingId, check.agentReasoning
+    check.costUsdc, check.stellarTxHash, check.findingDetected, check.findingId, check.agentReasoning,
+    check.paymentMethod || 'x402', check.channelId || null
   ]);
 };
 
@@ -274,12 +275,13 @@ export const getBriefingByDate = async (userId: string, date: string) => {
 
 export const createTransaction = async (tx: any) => {
   const query = `
-    INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, tx_type)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, tx_type, payment_method, channel_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
   `;
   return pool.query(query, [
     tx.txId, tx.userId, tx.watcherId, tx.checkId || null, 
-    tx.amountUsdc, tx.serviceName, tx.stellarTxHash, tx.txType || 'check'
+    tx.amountUsdc, tx.serviceName, tx.stellarTxHash, tx.txType || 'check',
+    tx.paymentMethod || 'x402', tx.channelId || null
   ]);
 };
 

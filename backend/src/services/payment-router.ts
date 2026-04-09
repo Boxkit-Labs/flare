@@ -93,7 +93,7 @@ export class PaymentRouter {
       });
 
       openTxHash = txHash;
-      console.log(`[PaymentRouter] ✅ MPP channel opened: ${channelId} | TX: ${txHash}`);
+      console.log(`[PaymentRouter] OK: MPP channel opened: ${channelId} | TX: ${txHash}`);
 
       channelState = await mppChannelManager.getChannelStatus(userId, serviceId);
     }
@@ -151,7 +151,7 @@ export class PaymentRouter {
     }
 
     const txHash = openTxHash ?? 'mpp-offchain';
-    console.log(`[PaymentRouter] 💳 MPP payment complete. Total spent: ${totalSpent} USDC | TX: ${txHash}`);
+    console.log(`[PaymentRouter] MPP payment complete. Total spent: ${totalSpent} USDC | TX: ${txHash}`);
 
     return {
       data,

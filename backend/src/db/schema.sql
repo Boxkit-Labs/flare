@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS checks (
   finding_detected BOOLEAN DEFAULT false,
   finding_id TEXT,
   agent_reasoning TEXT,
+  payment_method TEXT DEFAULT 'x402',
+  channel_id TEXT,
   checked_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -108,6 +110,8 @@ CREATE TABLE IF NOT EXISTS transactions (
   service_name TEXT NOT NULL,
   stellar_tx_hash TEXT NOT NULL,
   tx_type TEXT DEFAULT 'check' CHECK (tx_type IN ('check', 'verification', 'collaboration')),
+  payment_method TEXT DEFAULT 'x402',
+  channel_id TEXT,
   timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 

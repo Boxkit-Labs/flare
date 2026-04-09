@@ -1,4 +1,4 @@
-# 🌟 Flare: AI Agent Monitoring App on Stellar
+# Flare: AI Agent Monitoring App on Stellar
 
 > **Built for Stellar Hacks: Agents | 8 Intelligence Categories | Real USDC Micropayments on Stellar Testnet**
 
@@ -6,13 +6,13 @@
 
 Flare transforms real-time monitoring from a passive, subscription-based experience into an active, **pay-per-query** mesh. By leveraging the Stellar network, Flare can hire specialized AI agents to monitor, verify, and cross-verify findings with near-zero friction.
 
-### 🎥 Demo & Links
+### Demo & Links
 
 - **Demo Video**: [Click here to watch the demo](#[placeholder])
 - **Live Backend**: [https://flare-f9yk.onrender.com](https://flare-f9yk.onrender.com)
 - **Status**: Live on Stellar Testnet
 
-### 📸 Screenshots
+### Screenshots
 
 ![Splash Screen](#[placeholder]) ![Home Dashboard](#[placeholder])
 ![Watcher List](#[placeholder]) ![Stellar Payments](#[placeholder])
@@ -21,7 +21,7 @@ Flare transforms real-time monitoring from a passive, subscription-based experie
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Mobile**: Flutter + Dart (BLoC Pattern, Dio, fl_chart, GetIt)
 - **Backend**: Node.js + Express + TypeScript
@@ -33,7 +33,7 @@ Flare transforms real-time monitoring from a passive, subscription-based experie
 
 ---
 
-## 🌌 Stellar Integration
+## Stellar Integration
 
 Flare is built with a **"Pay-per-Intelligence"** philosophy. Every data query performed by an agent is an on-chain event.
 
@@ -51,7 +51,7 @@ For high-confidence findings, Flare executes a multi-transaction pipeline:
 - **Double-Check**: After 60 seconds, a 2nd transaction is triggered to verify the "Finding" still exists (preventing "dead findings").
 - **Agent-to-Agent Collaboration**: A 3rd transaction is used to hire a _different_ agent (e.g., a News agent) to cross-verify the event from another angle.
 
-### 🔗 Real Transaction Proofs (Testnet)
+### Real Transaction Proofs (Testnet)
 
 Below are real transactions generated during our demo runs:
 
@@ -62,7 +62,7 @@ Below are real transactions generated during our demo runs:
 
 ---
 
-## 🧬 How It Works
+## How It Works
 
 1. **Deployment**: User creates a "Watcher" for a specific intent (e.g., "Paris Flights under $400").
 2. **Smart Check**: Flare's scheduler triggers the check based on your chosen interval.
@@ -75,7 +75,7 @@ Below are real transactions generated during our demo runs:
 
 ---
 
-## 🧪 What's Real vs Simulated
+## What's Real vs Simulated
 
 Flare is a fully functional prototype designed for the **Stellar Hacks: Agents** hackathon. Here is the breakdown:
 
@@ -94,32 +94,32 @@ Flare is a fully functional prototype designed for the **Stellar Hacks: Agents**
 
 ---
 
-## 💼 Working Use Cases (Demo Ready)
+## Working Use Cases (Demo Ready)
 
 Flare agents are demo-ready with specific cost-structures:
 
-- **✈️ Flight Lows**: Detects historic price drops on specific routes.
+- **Flight Lows**: Detects historic price drops on specific routes.
   - _Cost_: 0.008 USDC per check.
-- **💰 Crypto Volatility**: Monitoring for whale movements and technical price breakouts.
+- **Crypto Volatility**: Monitoring for whale movements and technical price breakouts.
   - _Cost_: 0.005 USDC per check.
-- **📊 Stock Alerts**: Real-time intraday volatility and dividend news.
+- **Stock Alerts**: Real-time intraday volatility and dividend news.
   - _Cost_: 0.0035 USDC per check.
-- **💼 Job Hunters**: Monitors for high-value senior roles with salary rank detection.
+- **Job Hunters**: Monitors for high-value senior roles with salary rank detection.
   - _Cost_: 0.006 USDC per check.
-- **📰 News Monitoring**: Real-time keyword matching across intelligence feeds.
+- **News Monitoring**: Real-time keyword matching across intelligence feeds.
   - _Cost_: 0.003 USDC per check.
-- **🛍️ Flash Deals**: Tracking "All-Time Low" prices for targeted electronics.
+- **Flash Deals**: Tracking "All-Time Low" prices for targeted electronics.
   - _Cost_: 0.004 USDC per check.
-- **🏠 Real Estate**: Identifying 10%+ price drops in high-value neighborhoods.
+- **Real Estate**: Identifying 10%+ price drops in high-value neighborhoods.
   - _Cost_: 0.009 USDC per check.
-- **⚽ Sports & Leisure**: Detecting ticket price crashes before major events.
+- **Sports & Leisure**: Detecting ticket price crashes before major events.
   - _Cost_: 0.0045 USDC per check.
 
 _Aspirational scenarios (Whale movements, RSI divergences, and Supply Chain hits) are on the [Future Roadmap](#future-roadmap)._
 
 ---
 
-## ✨ Features
+## Features
 
 - **8 Intelligence Categories**: Flight, Crypto, News, Product, Job, Stock, Real Estate, Sports.
 - **Voice-Powered Watchers**: Create complex watchers using simple voice commands.
@@ -135,7 +135,7 @@ _Aspirational scenarios (Whale movements, RSI divergences, and Supply Chain hits
 
 ---
 
-## ⚙️ Setup Instructions
+## Setup Instructions
 
 ### Prerequisites
 
@@ -173,7 +173,7 @@ npx tsx src/scripts/setup-wallets.ts
 
 ---
 
-## 🚀 Next Features
+## Next Features
 
 - **Agentic Virtual Cards**: Allowing agents to issue temporary cards via Stellar anchors to act on findings (e.g., book the flight).
 - **Local Currency Funding**: Direct fiat-to-USDC onramps using Stellar's global anchor network.
@@ -181,7 +181,7 @@ npx tsx src/scripts/setup-wallets.ts
 
 ---
 
-## 🏆 Submission
+## Submission
 
 - **Hackathon**: [Stellar Hacks: Agents](https://stellar.org/hacks)
 - **Team**: Boxkit Labs
@@ -189,8 +189,8 @@ npx tsx src/scripts/setup-wallets.ts
 
 ---
 
-_Built with ❤️ on Stellar._
+_Built on Stellar._
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.

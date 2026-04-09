@@ -103,10 +103,13 @@ class _WalletScreenState extends State<WalletScreen> {
             const SizedBox(height: 32),
             _buildSavingsDashboard(context, state),
             const SizedBox(height: 32),
+            _buildEfficiencyCard(state.transactions ?? []),
+            const SizedBox(height: 32),
             _buildHeatmap(context, state),
             const SizedBox(height: 32),
             _buildTransactionHistory(state.transactions),
             const SizedBox(height: 100),
+
           ],
         ),
       );
@@ -456,6 +459,58 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
 
+
+  Widget _buildEfficiencyCard(List<TransactionModel> txs) {
+    if (txs.isEmpty) return const SizedBox.shrink();
+    
+    final offChainCount = txs.where((t) => t.isOffChain).length;
+    final onChainCount = txs.where((t) => !t.isOffChain).length;
+    final total = txs.length;
+    final offChainPercent = (offChainCount / total) * 100;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Payment Methods',
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
+          ),
+          child: Column(
+            children: [
+              _buildWatcherRow('⚡ Off-chain (MPP)', '\$${(offChainCount * 0.0005).toStringAsFixed(3)}', offChainPercent, Colors.purple),
+              const Divider(height: 24, color: AppTheme.background),
+              _buildWatcherRow('🌐 On-chain (Stellar)', '\$${(onChainCount * 0.0005).toStringAsFixed(3)}', 100 - offChainPercent, Colors.blue),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12)),
+                child: Row(
+                  children: [
+                    const Icon(Icons.bolt_rounded, size: 16, color: Colors.purple),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'MPP streams bypass consensus, saving ~${(offChainCount * 0.0001).toStringAsFixed(4)} XLM in network fees.',
+                        style: const TextStyle(fontSize: 10, color: Colors.purple, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildTransactionHistory(List<TransactionModel>? transactions) {
     return Column(

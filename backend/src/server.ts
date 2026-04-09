@@ -15,6 +15,7 @@ import { CheckExecutor } from './services/check-executor.js';
 import { SchedulerService } from './services/scheduler.js';
 import { briefingGenerator } from './services/briefing-generator.js';
 import { MppService } from './services/mpp-service.js';
+import './services/mpp-stream.js';
 
 dotenv.config();
 

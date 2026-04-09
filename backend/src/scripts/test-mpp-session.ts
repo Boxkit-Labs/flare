@@ -39,7 +39,7 @@ async function testImports() {
   ];
 
   checks.forEach(c => {
-    console.log(`${c.name}: ${typeof c.fn === 'function' ? '✅ FOUND' : '❌ NOT FOUND'}`);
+    console.log(`${c.name}: ${typeof c.fn === 'function' ? 'FOUND' : 'NOT FOUND'}`);
   });
 
 }
