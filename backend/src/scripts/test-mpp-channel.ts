@@ -173,7 +173,7 @@ async function main() {
   const topUpAccount = await getAccount(senderKp.publicKey());
   const topUpOp = new Contract(CONTRACT_ID).call(
       'top_up',
-      nativeToScVal(10_000_000n, { type: 'i128' })
+      nativeToScVal(10_000_000n)
   );
   
   await simulateAndSend(topUpAccount, topUpOp, senderKp);
@@ -192,7 +192,7 @@ async function main() {
     // Simulate prepare_commitment to get the bytes
     const prepOp = new Contract(CONTRACT_ID).call(
       'prepare_commitment',
-      nativeToScVal(cumulative, { type: 'i128' })
+      nativeToScVal(cumulative)
     );
     const tempTx = new TransactionBuilder(await getAccount(senderKp.publicKey()), { fee: '100000', networkPassphrase: NETWORK_PASSPHRASE })
       .addOperation(prepOp)
@@ -218,7 +218,7 @@ async function main() {
   const closeAccount = await getAccount(receiverKp.publicKey());
   const closeOp = new Contract(CONTRACT_ID).call(
       'close',
-      nativeToScVal(lastProof.amount, { type: 'i128' }),
+      nativeToScVal(lastProof.amount),
       xdr.ScVal.scvBytes(Buffer.from(lastProof.signature, 'hex')),
   );
 

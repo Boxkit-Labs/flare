@@ -84,7 +84,23 @@ class WatcherCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                StatusIndicator(status: watcher.status),
+                if (['crypto', 'stock'].contains(watcher.type) && watcher.status == 'active')
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Row(
+                      children: [
+                         Icon(Icons.fiber_manual_record, color: Colors.redAccent, size: 8),
+                         SizedBox(width: 4),
+                         Text('LIVE', style: TextStyle(color: Colors.redAccent, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                      ],
+                    ),
+                  )
+                else
+                  StatusIndicator(status: watcher.status),
               ],
             ),
             const SizedBox(height: 16),

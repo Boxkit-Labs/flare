@@ -342,6 +342,18 @@ class _WalletScreenState extends State<WalletScreen> {
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Container(width: 8, height: 8, decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(4))),
+            const SizedBox(width: 6),
+            const Text('On-chain', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.bold)),
+            const SizedBox(width: 16),
+            Container(width: 8, height: 8, decoration: BoxDecoration(color: Colors.purple, borderRadius: BorderRadius.circular(4))),
+            const SizedBox(width: 6),
+            const Text('MPP Channels', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.bold)),
+          ],
+        ),
         const SizedBox(height: 24),
         Container(
           height: 220,
@@ -367,14 +379,21 @@ class _WalletScreenState extends State<WalletScreen> {
   List<BarChartGroupData> _generateBarGroups(SpendingStatsModel? stats) {
     return List.generate(_chartDays, (index) {
       final isLast = index == _chartDays - 1;
+      final blueValue = 0.03 + (index % 3) * 0.010;
+      final purpleValue = 0.01 + (index % 5) * 0.015;
+      final totalY = blueValue + purpleValue;
       return BarChartGroupData(
         x: index,
         barRods: [
           BarChartRodData(
-            toY: 0.05 + (index % 5) * 0.015,
-            color: isLast ? AppTheme.primary : AppTheme.primary.withValues(alpha: 0.2),
+            toY: totalY,
             width: 14,
             borderRadius: BorderRadius.circular(4),
+            color: Colors.transparent,
+            rodStackItems: [
+               BarChartRodStackItem(0.0, blueValue, isLast ? Colors.blue : Colors.blue.withValues(alpha: 0.4)),
+               BarChartRodStackItem(blueValue, totalY, isLast ? Colors.purple : Colors.purple.withValues(alpha: 0.4)),
+            ],
           ),
         ],
       );
@@ -401,7 +420,7 @@ class _WalletScreenState extends State<WalletScreen> {
             children: [
               _buildWatcherRow('✈️ Tokyo Trip', '\$0.42', 45, Colors.blue),
               const Divider(height: 24, color: AppTheme.background),
-              _buildWatcherRow('💰 Bitcoin Alert', '\$0.28', 30, Colors.green),
+              _buildWatcherRow('💰 Bitcoin Alert', '\$0.28', 30, Colors.purple),
               const Divider(height: 24, color: AppTheme.background),
               _buildWatcherRow('🛍️ iPhone Watch', '\$0.15', 25, Colors.orange),
             ],
@@ -465,14 +484,22 @@ class _WalletScreenState extends State<WalletScreen> {
     
     final offChainCount = txs.where((t) => t.isOffChain).length;
     final onChainCount = txs.where((t) => !t.isOffChain).length;
-    final total = txs.length;
-    final offChainPercent = (offChainCount / total) * 100;
+    
+    // Derived mockup statistics for visual analytics based on the requirements
+    final withMppTx = onChainCount;
+    final withoutMppTx = onChainCount + offChainCount;
+    final savedPercent = withoutMppTx > 0 ? ((offChainCount / withoutMppTx) * 100).round() : 0;
+    
+    // Simulate channel stats based on tx data
+    final channelsOpened = txs.where((t) => t.txType == 'channel_open' || (t.channelId != null && t.channelId!.isNotEmpty)).map((t) => t.channelId).toSet().length;
+    final activeChannels = channelsOpened > 0 ? 1 : 0;
+    final settledChannels = channelsOpened > 0 ? channelsOpened - activeChannels : 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Payment Methods',
+          'Payment Efficiency',
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
         ),
         const SizedBox(height: 20),
@@ -484,26 +511,63 @@ class _WalletScreenState extends State<WalletScreen> {
             border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildWatcherRow('⚡ Off-chain (MPP)', '\$${(offChainCount * 0.0005).toStringAsFixed(3)}', offChainPercent, Colors.purple),
-              const Divider(height: 24, color: AppTheme.background),
-              _buildWatcherRow('🌐 On-chain (Stellar)', '\$${(onChainCount * 0.0005).toStringAsFixed(3)}', 100 - offChainPercent, Colors.blue),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12)),
-                child: Row(
-                  children: [
-                    const Icon(Icons.bolt_rounded, size: 16, color: Colors.purple),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'MPP streams bypass consensus, saving ~${(offChainCount * 0.0001).toStringAsFixed(4)} XLM in network fees.',
-                        style: const TextStyle(fontSize: 10, color: Colors.purple, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Without MPP:', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text('$withoutMppTx transactions', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('With MPP:', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text('$withMppTx transactions', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.blue)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Saved:', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text('$savedPercent% fewer tx', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.purple)),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Progress Bar
+              Stack(
+                children: [
+                   Container(
+                     height: 14,
+                     width: double.infinity,
+                     decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(7)),
+                   ),
+                   Container(
+                     height: 14,
+                     width: (MediaQuery.of(context).size.width - 88) * (withMppTx / (withoutMppTx > 0 ? withoutMppTx : 1)),
+                     decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(7)),
+                   ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text('$withMppTx/$withoutMppTx on-chain', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+              ),
+              const SizedBox(height: 24),
+              const Divider(color: AppTheme.background),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildChannelStat('Opened', channelsOpened.toString()),
+                  _buildChannelStat('Settled', settledChannels.toString()),
+                  _buildChannelStat('Active', activeChannels.toString(), isHighlight: true),
+                ],
               ),
             ],
           ),
@@ -512,10 +576,92 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
+  Widget _buildChannelStat(String label, String value, {bool isHighlight = false}) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: isHighlight ? Colors.purple : Colors.black)),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+      ],
+    );
+  }
+
+  Widget _buildChannelHistorySection(List<TransactionModel>? transactions) {
+     if (transactions == null || transactions.isEmpty) return const SizedBox.shrink();
+     
+     // Group txs by channelId to build history view
+     final offChain = transactions.where((t) => t.isOffChain && t.channelId != null).toList();
+     if (offChain.isEmpty) return const SizedBox.shrink();
+
+     final Map<String, List<TransactionModel>> channelGroups = {};
+     for (var tx in offChain) {
+        if (!channelGroups.containsKey(tx.channelId!)) {
+           channelGroups[tx.channelId!] = [];
+        }
+        channelGroups[tx.channelId!]!.add(tx);
+     }
+
+     return Column(
+       crossAxisAlignment: CrossAxisAlignment.start,
+       children: [
+         const Text(
+            'Channel History',
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5),
+         ),
+         const SizedBox(height: 16),
+         ...channelGroups.entries.map((entry) {
+             final channelId = entry.key;
+             final channelTxs = entry.value;
+             final depositAmount = (channelTxs.length * 0.005).toStringAsFixed(3);
+             final totalSpent = channelTxs.fold(0.0, (sum, tx) => sum + tx.amountUsdc);
+             // ignore: dead_code
+             const isClosed = false; // Mock channel open/close status
+
+             return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.purple.withValues(alpha: 0.1), width: 1.5),
+                ),
+                child: ExpansionTile(
+                   collapsedIconColor: Colors.purple,
+                   iconColor: Colors.purple,
+                   shape: const RoundedRectangleBorder(side: BorderSide.none),
+                   title: Text(
+                     channelTxs.first.watcherName ?? 'MPP Channel',
+                     style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                   ),
+                   subtitle: Text('${channelTxs.length} checks · $channelId', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
+                   children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                           crossAxisAlignment: CrossAxisAlignment.start,
+                           children: [
+                              _buildDetailRow('STATUS', isClosed ? 'CLOSED' : 'OPEN', isCopyable: false),
+                              _buildDetailRow('DEPOSIT', '\$$depositAmount USDC'),
+                              _buildDetailRow('DURATION', 'Open for 1h 22m'),
+                              _buildDetailRow('EFFICIENCY', '${channelTxs.length} checks via 2 on-chain tx'),
+                              _buildDetailRow('TOTAL SPENT', '\$${totalSpent.toStringAsFixed(3)} USDC'),
+                              _buildDetailRow('OPEN TX', 'Loading...', isCopyable: true),
+                           ]
+                        )
+                      )
+                   ],
+                )
+             );
+         }),
+         const SizedBox(height: 32),
+       ],
+     );
+  }
+
   Widget _buildTransactionHistory(List<TransactionModel>? transactions) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _buildChannelHistorySection(transactions),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -547,7 +693,7 @@ class _WalletScreenState extends State<WalletScreen> {
             ),
           )
         else
-          ...transactions.map((tx) => _buildTransactionTile(tx)),
+          ...transactions.where((t) => !t.isOffChain).map((tx) => _buildTransactionTile(tx)),
       ],
     );
   }
