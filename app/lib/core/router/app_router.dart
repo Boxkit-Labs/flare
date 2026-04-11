@@ -42,6 +42,7 @@ class AppRouter {
     }
 
     _router = GoRouter(
+      navigatorKey: navigatorKey,
       initialLocation: '/',
       refreshListenable: _AuthRefreshListenable(authBloc.stream),
       redirect: (context, state) {
@@ -102,33 +103,6 @@ class AppRouter {
           builder: (context, state) => const WatcherTemplatesScreen(),
         ),
         GoRoute(
-          path: '/watchers/:id',
-          name: 'watcherDetail',
-          pageBuilder: (context, state) {
-            final id = state.pathParameters['id']!;
-            return CustomTransitionPage(
-              key: state.pageKey,
-              child: WatcherDetailScreen(watcherId: id),
-              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-            );
-          },
-        ),
-        GoRoute(
-          path: '/watchers/:id/edit',
-          name: 'editWatcher',
-          builder: (context, state) {
-             final id = state.pathParameters['id']!;
-             return EditWatcherScreen(watcherId: id);
-          },
-        ),
-        GoRoute(
-          path: '/findings/:id',
-          name: 'findingDetail',
-          builder: (context, state) => FindingDetailScreen(findingId: state.pathParameters['id']!),
-        ),
-        GoRoute(
           path: '/payment-stream',
           name: 'paymentStream',
           pageBuilder: (context, state) => CustomTransitionPage(
@@ -174,6 +148,8 @@ class AppRouter {
                   path: '/watchers',
                   name: 'watchers',
                   builder: (context, state) => const WatchersListScreen(),
+                  routes: [
+                  ],
                 ),
               ],
             ),
@@ -183,6 +159,8 @@ class AppRouter {
                   path: '/findings',
                   name: 'findings',
                   builder: (context, state) => const FindingsListScreen(),
+                  routes: [
+                  ],
                 ),
               ],
             ),
@@ -205,6 +183,36 @@ class AppRouter {
               ],
             ),
           ],
+        ),
+        GoRoute(
+          path: '/watchers/:id',
+          name: 'watcherDetail',
+          parentNavigatorKey: navigatorKey,
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: WatcherDetailScreen(watcherId: state.pathParameters['id']!),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
+        ),
+        GoRoute(
+          path: '/watchers/:id/edit',
+          name: 'editWatcher',
+          parentNavigatorKey: navigatorKey,
+          builder: (context, state) => EditWatcherScreen(watcherId: state.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/findings/:id',
+          name: 'findingDetail',
+          parentNavigatorKey: navigatorKey,
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: FindingDetailScreen(findingId: state.pathParameters['id']!),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
         ),
       ],
     );

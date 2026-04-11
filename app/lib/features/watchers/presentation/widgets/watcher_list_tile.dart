@@ -57,6 +57,7 @@ class WatcherListTile extends StatelessWidget {
   void _showOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: AppTheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),

@@ -14,6 +14,30 @@ class FlareApp extends StatefulWidget {
 }
 
 class _FlareAppState extends State<FlareApp> {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp.router(
+      title: 'Flare',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      routerConfig: AppRouter.router,
+      scaffoldMessengerKey: AppRouter.scaffoldMessengerKey,
+      builder: (context, child) {
+        return NotificationOverlayManager(child: child!);
+      },
+    );
+  }
+}
+
+class NotificationOverlayManager extends StatefulWidget {
+  final Widget child;
+  const NotificationOverlayManager({super.key, required this.child});
+
+  @override
+  State<NotificationOverlayManager> createState() => _NotificationOverlayManagerState();
+}
+
+class _NotificationOverlayManagerState extends State<NotificationOverlayManager> {
   int _lastKnownUnreadCount = 0;
   OverlayEntry? _currentBanner;
 
@@ -39,13 +63,13 @@ class _FlareAppState extends State<FlareApp> {
         onTap: () {
           _currentBanner?.remove();
           _currentBanner = null;
-          AppRouter.router.push('/findings/$findingId');
+          AppRouter.router.go('/findings/$findingId');
         },
       ),
     );
     Overlay.of(context).insert(_currentBanner!);
     Future.delayed(const Duration(seconds: 5), () {
-      if (_currentBanner != null) {
+      if (mounted && _currentBanner != null) {
         _currentBanner?.remove();
         _currentBanner = null;
       }
@@ -55,22 +79,18 @@ class _FlareAppState extends State<FlareApp> {
   @override
   Widget build(BuildContext context) {
     return BlocListener<FindingsBloc, FindingsState>(
+      listenWhen: (previous, current) {
+        if (current is! FindingsLoaded) return false;
+        if (previous is! FindingsLoaded) return current.unreadCount > 0;
+        return current.unreadCount > previous.unreadCount;
+      },
       listener: (context, state) {
         if (state is FindingsLoaded && state.findings.isNotEmpty) {
-           if (state.unreadCount > _lastKnownUnreadCount) {
-             final latest = state.findings.first;
-             _showNotification(latest.headline, _getEmoji(latest.type), latest.findingId);
-           }
-           _lastKnownUnreadCount = state.unreadCount;
+           final latest = state.findings.first;
+           _showNotification(latest.headline, _getEmoji(latest.type), latest.findingId);
         }
       },
-      child: MaterialApp.router(
-        title: 'Flare',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        routerConfig: AppRouter.router,
-        scaffoldMessengerKey: AppRouter.scaffoldMessengerKey,
-      ),
+      child: widget.child,
     );
   }
 }

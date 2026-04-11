@@ -36,12 +36,14 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _refresh();
-    startAutoRefresh(const Duration(seconds: 30), _refresh);
+    startAutoRefresh(const Duration(seconds: 30), _onAutoRefresh);
   }
 
-  void _refresh() {
-    context.read<WatchersBloc>().add(LoadWatcherDetail(widget.watcherId));
+  void _refresh({bool silent = false}) {
+    context.read<WatchersBloc>().add(LoadWatcherDetail(widget.watcherId, isRefresh: silent));
   }
+
+  void _onAutoRefresh() => _refresh(silent: true);
 
   @override
   void dispose() {
@@ -455,6 +457,7 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
   void _showOptions(BuildContext context, WatcherModel watcher) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: AppTheme.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => SafeArea(

@@ -26,8 +26,8 @@ const USDC_CONTRACT = process.env.USDC_ISSUER
   ? "" // We'll use contract address from env
   : "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA";
 
-const CHANNEL_WASM_HASH = process.env.MPP_CHANNEL_WASM_HASH || "";
-const MPP_CHANNEL_CONTRACT_ID = "CCF6KCSVWEWOVTFNA24Y2JLFPVZJ6TIF5UDDVGUINBZIW6BAZG4KYE5R";
+const CHANNEL_WASM_HASH = process.env.MPP_CHANNEL_WASM_HASH || "d1d0de5b1688c820b71d0c43e844fcfe3d2fb135108df005537c20a3a039effc";
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "c8275b57fea5a09a2f964825b0f43b2d48d441e200f8176bbec17146d20715ca";
 
 export interface ChannelState {
   channelId: string;
@@ -250,7 +250,7 @@ export class MPPChannelManager {
     this.activeChannels.set(channelKey, state);
 
     // Persist to DB with encrypted commitment keys
-    const encryptionKey = process.env.ENCRYPTION_KEY || "";
+    const encryptionKey = ENCRYPTION_KEY;
     const encryptedSecretKey = encrypt(commitmentSecretHex, encryptionKey);
 
     await pool.query(
@@ -623,7 +623,7 @@ export class MPPChannelManager {
     const row = rows[0];
 
     // Decrypt commitment secret key
-    const encryptionKey = process.env.ENCRYPTION_KEY || "";
+    const encryptionKey = ENCRYPTION_KEY;
     let commitmentSecretKey = "";
     if (row.commitment_secret_key_encrypted) {
       try {

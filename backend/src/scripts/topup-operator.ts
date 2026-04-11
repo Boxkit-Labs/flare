@@ -26,10 +26,10 @@ async function topUpOperator() {
         })
         .addOperation(Operation.pathPaymentStrictSend({
             sendAsset: Asset.native(),
-            sendAmount: '100', // 100 XLM
+            sendAmount: '3000', // 3000 XLM
             destination: pk,
             destAsset: usdcAsset,
-            destMin: '10', // Minimum 10 USDC
+            destMin: '250', // Minimum 250 USDC
             path: []
         }))
         .setTimeout(30)
