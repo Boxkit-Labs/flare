@@ -112,14 +112,16 @@ router.post('/:id/fund', async (req: Request, res: Response) => {
         await new Promise(resolve => setTimeout(resolve, 2000));
         console.log('[FUND] Finalizing Step 3...');
 
-        // 3. Transfer 1.0 USDC from Operator
+        const FUNDING_AMOUNT = '100.0';
+
+        // 3. Transfer USDC from Operator
         if (process.env.OPERATOR_SECRET) {
-            console.log('[FUND] Step 3: Sending 1.0 USDC...');
+            console.log(`[FUND] Step 3: Sending ${FUNDING_AMOUNT} USDC...`);
             let attempts = 0;
             let success = false;
             while (attempts < 3 && !success) {
                 try {
-                    await stellarService.fundNewUserWithUsdc(publicKey, '1.0');
+                    await stellarService.fundNewUserWithUsdc(publicKey, FUNDING_AMOUNT);
                     success = true;
                     console.log(`[FUND] Step 3: Success (Attempt ${attempts + 1})`);
                 } catch (e: any) {
@@ -133,16 +135,29 @@ router.post('/:id/fund', async (req: Request, res: Response) => {
             console.warn('[FUND] Step 3: Skipped (OPERATOR_SECRET missing)');
         }
 
-        // Fetch final balances
-        console.log('[FUND] Fetching final balances...');
-        const balances = await stellarService.getBalances(publicKey);
-        console.log(`[FUND] Done. Balances: XLM=${balances.xlm}, USDC=${balances.usdc}`);
+         // Fetch final balances and verify
+         console.log('[FUND] Fetching final balances for verification...');
+         const balances = await stellarService.getBalances(publicKey);
+         console.log(`[FUND] Done. Final Balances: XLM=${balances.xlm}, USDC=${balances.usdc}`);
 
-        res.json({
-            funded: true,
-            xlm_balance: balances.xlm,
-            usdc_balance: balances.usdc
-        });
+         // Verification check
+         const usdcBalance = parseFloat(balances.usdc || '0');
+         if (usdcBalance < 100.0) {
+             console.error(`[FUND] CRITICAL: USDC balance mismatch. Expected 100.0, got ${usdcBalance}`);
+             // If it's 0.1, maybe an old cached version of code was running? 
+             // Or maybe there is a limit on the transfer?
+             if (usdcBalance === 0.1) {
+                throw new Error('[FUND] Detected suspicious 0.1 USDC balance. Possible code version mismatch.');
+             }
+         }
+
+         res.json({
+             status: 'success',
+             user_id: userId,
+             stellar_public_key: publicKey,
+             xlm_balance: balances.xlm,
+             usdc_balance: balances.usdc
+         });
     } catch (error: any) {
         console.error('[FUND] Error during funding process:', error);
         res.status(500).json({ 

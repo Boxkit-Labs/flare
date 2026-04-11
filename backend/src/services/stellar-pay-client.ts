@@ -6,11 +6,44 @@ import {
     Address,
     Contract,
     nativeToScVal,
+    scValToNative,
     BASE_FEE
 } from '@stellar/stellar-sdk';
 import { MppService } from './mpp-service.js';
 
 const USDC_CONTRACT = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA';
+
+/**
+ * Fetches the user's USDC balance from the Soroban contract.
+ */
+export async function getUsdcBalance(publicKey: string, rpcUrl: string): Promise<number> {
+    const rpc = new SorobanRpc.Server(rpcUrl);
+    const contract = new Contract(USDC_CONTRACT);
+    
+    try {
+        const balanceOp = contract.call('balance', new Address(publicKey).toScVal());
+        const account = await rpc.getAccount(publicKey);
+        const tx = new TransactionBuilder(account, {
+            fee: '100',
+            networkPassphrase: Networks.TESTNET,
+        })
+        .addOperation(balanceOp)
+        .setTimeout(30)
+        .build();
+
+        const sim = await rpc.simulateTransaction(tx);
+        if (SorobanRpc.Api.isSimulationSuccess(sim) && sim.result) {
+            const stroops = BigInt(scValToNative(sim.result.retval));
+            return Number(stroops) / 10_000_000;
+        }
+        return 0;
+    } catch (e) {
+        console.error('[StellarPay] Failed to fetch balance:', e);
+        return 0;
+    }
+}
+
+
 
 export interface PayParams {
     serviceUrl: string;

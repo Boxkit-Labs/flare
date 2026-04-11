@@ -74,7 +74,7 @@ export const getWatcherById = async (id: string) => {
 
 export const getWatchersByUserId = async (userId: string) => {
   const res = await pool.query('SELECT * FROM watchers WHERE user_id = $1', [userId]);
-  return res.rows.map(row => ({
+  return res.rows.map((row: any) => ({
     ...row,
     parameters: typeof row.parameters === 'string' ? JSON.parse(row.parameters) : row.parameters,
     alert_conditions: typeof row.alert_conditions === 'string' ? JSON.parse(row.alert_conditions) : row.alert_conditions
@@ -104,7 +104,7 @@ export const deleteWatcher = async (id: string) => {
 
 export const getActiveWatchers = async () => {
     const res = await pool.query("SELECT * FROM watchers WHERE status = 'active'");
-    return res.rows.map(row => ({
+    return res.rows.map((row: any) => ({
       ...row,
       parameters: typeof row.parameters === 'string' ? JSON.parse(row.parameters) : row.parameters,
       alert_conditions: typeof row.alert_conditions === 'string' ? JSON.parse(row.alert_conditions) : row.alert_conditions
@@ -128,7 +128,7 @@ export const createCheck = async (check: any) => {
 
 export const getChecksByWatcherId = async (watcherId: string, limit: number = 10, offset: number = 0) => {
   const res = await pool.query('SELECT * FROM checks WHERE watcher_id = $1 ORDER BY checked_at DESC LIMIT $2 OFFSET $3', [watcherId, limit, offset]);
-  return res.rows.map(row => ({
+  return res.rows.map((row: any) => ({
     ...row,
     request_payload: typeof row.request_payload === 'string' ? JSON.parse(row.request_payload) : row.request_payload,
     response_data: typeof row.response_data === 'string' ? JSON.parse(row.response_data) : row.response_data
@@ -137,7 +137,7 @@ export const getChecksByWatcherId = async (watcherId: string, limit: number = 10
 
 export const getChecksSince = async (userId: string, since: string) => {
   const res = await pool.query('SELECT * FROM checks WHERE user_id = $1 AND checked_at > $2', [userId, since]);
-  return res.rows.map(row => ({
+  return res.rows.map((row: any) => ({
     ...row,
     request_payload: typeof row.request_payload === 'string' ? JSON.parse(row.request_payload) : row.request_payload,
     response_data: typeof row.response_data === 'string' ? JSON.parse(row.response_data) : row.response_data
@@ -195,7 +195,7 @@ export const getFindingsByUserId = async (userId: string, limit: number = 50, of
     WHERE f.user_id = $1 
     ORDER BY f.found_at DESC LIMIT $2 OFFSET $3
   `, [userId, limit, offset]);
-  return res.rows.map(row => ({ ...row, data: typeof row.data === 'string' ? JSON.parse(row.data) : row.data }));
+  return res.rows.map((row: any) => ({ ...row, data: typeof row.data === 'string' ? JSON.parse(row.data) : row.data }));
 };
 
 export const getFindingDetail = async (id: string) => {
@@ -216,7 +216,7 @@ export const getFindingDetail = async (id: string) => {
 
 export const getFindingsByWatcherId = async (watcherId: string) => {
   const res = await pool.query('SELECT * FROM findings WHERE watcher_id = $1 ORDER BY found_at DESC', [watcherId]);
-  return res.rows.map(row => ({ ...row, data: typeof row.data === 'string' ? JSON.parse(row.data) : row.data }));
+  return res.rows.map((row: any) => ({ ...row, data: typeof row.data === 'string' ? JSON.parse(row.data) : row.data }));
 };
 
 export const markFindingRead = async (id: string) => {
@@ -243,7 +243,7 @@ export const createBriefing = async (briefing: any) => {
 
 export const getBriefingsByUserId = async (userId: string, limit: number = 10) => {
   const res = await pool.query('SELECT * FROM briefings WHERE user_id = $1 ORDER BY generated_at DESC LIMIT $2', [userId, limit]);
-  return res.rows.map(row => ({
+  return res.rows.map((row: any) => ({
     ...row,
     findings_json: typeof row.findings_json === 'string' ? JSON.parse(row.findings_json) : row.findings_json,
     watcher_summaries_json: typeof row.watcher_summaries_json === 'string' ? JSON.parse(row.watcher_summaries_json) : row.watcher_summaries_json
