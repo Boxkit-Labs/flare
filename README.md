@@ -99,6 +99,9 @@ When a watcher checks infrequently (every 6 hours or more), Flare uses a direct 
 
 When a watcher checks frequently (more than once every 6 hours), Flare opens an MPP payment channel. This involves deploying a one-way-channel Soroban contract, depositing USDC into it, and then executing all subsequent checks off-chain using Ed25519 signed cumulative commitments. The data service verifies each proof locally without touching the blockchain. When the session ends or the budget runs low, the channel closes with a single on-chain transaction that settles the total amount owed. This means two Stellar transactions total (open and close), regardless of how many checks were executed in between.
 
+**Security & Anti-Cheat Channel Settlement:**
+To resolve the vulnerability where a user could rapidly stream off-chain data and delete the watcher before the payment channel hits its expiry/settles, we’ve directly hooked into the `DELETE /api/watchers/:id` route in `backend/src/routes/watchers.ts`. Now, immediately before deleting a watcher from the database, the server will intentionally look for an active, off-chain state. If found, it immediately forces the smart contract to settle and finalize the payment for all the data used up until the millisecond the watcher was deleted. The funds are legally extracted to the operator wallet, ensuring complete transactional security.
+
 ### How the Router Decides
 
 The payment router automatically selects the right protocol based on the watcher's check interval. If the interval is 6 hours or more, it uses X402. If the interval is under 6 hours, it opens an MPP channel. Users never need to know or care about the underlying payment rail.
