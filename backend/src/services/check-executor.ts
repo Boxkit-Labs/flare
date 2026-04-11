@@ -72,7 +72,7 @@ export class CheckExecutor {
 
       // Local service resolution
       const port = process.env.PORT || '3000';
-      const baseUrl = `http://localhost:${port}/services`;
+      const baseUrl = `http://127.0.0.1:${port}/services`;
       
       let serviceUrl = '';
       let method: 'GET' | 'POST' = 'POST';
@@ -352,7 +352,7 @@ export class CheckExecutor {
    */
   private async runCollaborationCheck(watcher: WatcherRow, finding: any, payerSecretKey: string): Promise<any> {
     const port = process.env.PORT || '3000';
-    const baseUrl = `http://localhost:${port}/services`;
+    const baseUrl = `http://127.0.0.1:${port}/services`;
     
     let targetUrl = '';
     let query = '';
@@ -477,9 +477,8 @@ export class CheckExecutor {
       console.log(`[CheckExecutor] Starting stream for ${watcher.type} watcher: ${watcher.watcher_id}`);
 
       // We need an open channel to pass to the stream server. 
-      // The router creates/loads channels.
       const port = process.env.PORT || '3000';
-      const baseUrl = "http://localhost:" + port + "/services";
+      const baseUrl = "http://127.0.0.1:" + port + "/services";
       
       let serviceUrl = `${baseUrl}/${watcher.type}/api/${watcher.type}`;
       
