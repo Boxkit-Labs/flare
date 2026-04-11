@@ -149,16 +149,6 @@ class AppRouter {
                   name: 'watchers',
                   builder: (context, state) => const WatchersListScreen(),
                   routes: [
-                    GoRoute(
-                      path: ':id',
-                      name: 'watcherDetail',
-                      builder: (context, state) => WatcherDetailScreen(watcherId: state.pathParameters['id']!),
-                    ),
-                    GoRoute(
-                      path: ':id/edit',
-                      name: 'editWatcher',
-                      builder: (context, state) => EditWatcherScreen(watcherId: state.pathParameters['id']!),
-                    ),
                   ],
                 ),
               ],
@@ -170,11 +160,6 @@ class AppRouter {
                   name: 'findings',
                   builder: (context, state) => const FindingsListScreen(),
                   routes: [
-                    GoRoute(
-                      path: ':id',
-                      name: 'findingDetail',
-                      builder: (context, state) => FindingDetailScreen(findingId: state.pathParameters['id']!),
-                    ),
                   ],
                 ),
               ],
@@ -198,6 +183,36 @@ class AppRouter {
               ],
             ),
           ],
+        ),
+        GoRoute(
+          path: '/watchers/:id',
+          name: 'watcherDetail',
+          parentNavigatorKey: navigatorKey,
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: WatcherDetailScreen(watcherId: state.pathParameters['id']!),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
+        ),
+        GoRoute(
+          path: '/watchers/:id/edit',
+          name: 'editWatcher',
+          parentNavigatorKey: navigatorKey,
+          builder: (context, state) => EditWatcherScreen(watcherId: state.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/findings/:id',
+          name: 'findingDetail',
+          parentNavigatorKey: navigatorKey,
+          pageBuilder: (context, state) => CustomTransitionPage(
+            key: state.pageKey,
+            child: FindingDetailScreen(findingId: state.pathParameters['id']!),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
         ),
       ],
     );

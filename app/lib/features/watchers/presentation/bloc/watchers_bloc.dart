@@ -70,12 +70,12 @@ class WatchersBloc extends Bloc<WatchersEvent, WatchersState> {
     });
 
     on<LoadWatcherDetail>((event, emit) async {
-      emit(WatchersLoading());
+      if (!event.isRefresh) emit(WatchersLoading());
       try {
         final watcher = await apiService.getWatcher(event.watcherId);
         emit(WatcherDetailLoaded(watcher));
       } catch (e) {
-        emit(WatchersError(ErrorFormatter.format(e)));
+        if (!event.isRefresh) emit(WatchersError(ErrorFormatter.format(e)));
       }
     });
   }

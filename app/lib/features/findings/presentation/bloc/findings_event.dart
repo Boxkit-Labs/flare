@@ -28,8 +28,9 @@ class MarkFindingAsRead extends FindingsEvent {
 
 class LoadFindingDetail extends FindingsEvent {
   final String findingId;
-  const LoadFindingDetail(this.findingId);
+  final bool isRefresh;
+  const LoadFindingDetail(this.findingId, {this.isRefresh = false});
 
   @override
-  List<Object?> get props => [findingId];
+  List<Object?> get props => [findingId, isRefresh];
 }

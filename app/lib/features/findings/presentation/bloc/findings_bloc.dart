@@ -36,12 +36,12 @@ class FindingsBloc extends Bloc<FindingsEvent, FindingsState> {
     });
 
     on<LoadFindingDetail>((event, emit) async {
-      emit(FindingsLoading());
+      if (!event.isRefresh) emit(FindingsLoading());
       try {
         final finding = await apiService.getFinding(event.findingId);
         emit(FindingDetailLoaded(finding));
       } catch (e) {
-        emit(FindingsError(ErrorFormatter.format(e)));
+        if (!event.isRefresh) emit(FindingsError(ErrorFormatter.format(e)));
       }
     });
   }

@@ -11,31 +11,34 @@ class AnalyticsChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-         Row(
-           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-           children: [
-             Text(_getChartTitle(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-             _buildTypeBadge(),
-           ],
-         ),
-         const SizedBox(height: 16),
-         AspectRatio(
-            aspectRatio: 1.7,
-            child: _buildMainChart(),
-         ),
-         const SizedBox(height: 32),
-         const Text('Ghost Consumption (USDC)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-         const SizedBox(height: 16),
-         AspectRatio(
-            aspectRatio: 2.2,
-            child: BarChart(
-               _buildConsumptionData(),
-            ),
-         ),
-      ],
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+           Row(
+             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+             children: [
+               Text(_getChartTitle(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+               _buildTypeBadge(),
+             ],
+           ),
+           const SizedBox(height: 16),
+           AspectRatio(
+              aspectRatio: 1.7,
+              child: _buildMainChart(),
+           ),
+           const SizedBox(height: 32),
+           const Text('Ghost Consumption (USDC)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+           const SizedBox(height: 16),
+           AspectRatio(
+              aspectRatio: 2.2,
+              child: BarChart(
+                 _buildConsumptionData(),
+              ),
+           ),
+           const SizedBox(height: 32),
+        ],
+      ),
     );
   }
 

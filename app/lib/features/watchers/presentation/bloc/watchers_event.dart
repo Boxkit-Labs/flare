@@ -45,7 +45,8 @@ class DeleteWatcher extends WatchersEvent {
 
 class LoadWatcherDetail extends WatchersEvent {
   final String watcherId;
-  const LoadWatcherDetail(this.watcherId);
+  final bool isRefresh;
+  const LoadWatcherDetail(this.watcherId, {this.isRefresh = false});
   @override
-  List<Object?> get props => [watcherId];
+  List<Object?> get props => [watcherId, isRefresh];
 }
