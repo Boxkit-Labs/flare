@@ -1,32 +1,23 @@
 import 'dart:async';
-import 'dart:ui';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:flare_app/core/widgets/shimmer_utilities.dart';
 import 'package:flare_app/core/widgets/status_indicator.dart';
-import 'package:flare_app/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:flare_app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flare_app/features/watchers/presentation/bloc/watchers_bloc.dart';
-import 'package:flare_app/features/watchers/presentation/bloc/watchers_event.dart';
 import 'package:flare_app/features/watchers/presentation/bloc/watchers_state.dart';
 import 'package:flare_app/features/watchers/presentation/widgets/watcher_card.dart';
 import 'package:flare_app/features/findings/presentation/bloc/findings_bloc.dart';
-import 'package:flare_app/features/findings/presentation/bloc/findings_event.dart';
 import 'package:flare_app/features/findings/presentation/bloc/findings_state.dart';
 import 'package:flare_app/features/findings/presentation/widgets/finding_card.dart';
 import 'package:flare_app/features/briefing/presentation/bloc/briefing_bloc.dart';
 import 'package:flare_app/features/briefing/presentation/bloc/briefing_state.dart';
-import 'package:flare_app/features/briefing/presentation/bloc/briefing_event.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
-import 'package:flare_app/features/wallet/presentation/bloc/wallet_event.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_state.dart';
 import 'package:flare_app/features/home/domain/services/ghost_score_service.dart';
-import 'package:flare_app/features/home/presentation/widgets/ghost_score_card.dart';
 import 'package:flare_app/features/notifications/presentation/widgets/notification_badge_icon.dart';
-import 'package:flare_app/features/notifications/presentation/bloc/notifications_bloc.dart';
-import 'package:flare_app/features/notifications/presentation/bloc/notifications_event.dart';
 
 class HomeContent extends StatelessWidget {
   const HomeContent({super.key});
@@ -38,236 +29,403 @@ class HomeContent extends StatelessWidget {
     return 'Good evening';
   }
 
-  void _onRetry(BuildContext context) {
-    final authState = context.read<AuthBloc>().state;
-    if (authState is AuthAuthenticated) {
-      final userId = authState.user.userId;
-      context.read<WalletBloc>().add(LoadAllWalletData(userId));
-      context.read<WatchersBloc>().add(LoadWatchers(userId));
-      context.read<FindingsBloc>().add(LoadFindings(userId));
-      context.read<BriefingBloc>().add(LoadTodayBriefing(userId));
-      context.read<NotificationsBloc>().add(LoadUnreadCount(userId));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(vertical: 24),
+      physics: const BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ─── TOP SECTION: Greeting + Wallet ───
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _getGreeting().toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: AppTheme.textSecondary,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Ready to hunt',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 28,
-                          letterSpacing: -1.0,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                BlocBuilder<WalletBloc, WalletState>(
-                  builder: (context, state) {
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        BlocBuilder<WatchersBloc, WatchersState>(
-                          builder: (context, matchersState) {
-                            if (matchersState is WatchersLoaded) {
-                               final liveCount = matchersState.watchers.where((w) => ['crypto', 'stock'].contains(w.type) && w.status == 'active').length;
-                               if (liveCount > 0) {
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                    margin: const EdgeInsets.only(right: 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle)),
-                                        const SizedBox(width: 4),
-                                        Text('$liveCount live streams active', style: const TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold)),
-                                      ]
-                                    )
-                                  );
-                               }
-                            }
-                            return const SizedBox.shrink();
-                          }
-                        ),
-                        _buildLiveButton(context),
-                        const SizedBox(width: 8),
-                        const NotificationBadgeIcon(),
-                        const SizedBox(width: 8),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          child: _buildWalletCapsule(context, state),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-
+          _buildAtmosphericHeader(context),
+          const SizedBox(height: 24),
+          _buildBentoStatsGrid(context),
           const SizedBox(height: 32),
-
-          // ─── MORNING BRIEFING BANNER ───
-          BlocBuilder<BriefingBloc, BriefingState>(
-            builder: (context, state) {
-              return AnimatedSwitcher(
-                duration: const Duration(milliseconds: 400),
-                child: _buildBriefingBanner(context, state),
-              );
-            },
-          ),
-
-          // ─── GHOST SCORE ───
-          BlocBuilder<WatchersBloc, WatchersState>(
-            builder: (context, watchersState) {
-              return BlocBuilder<FindingsBloc, FindingsState>(
-                builder: (context, findingsState) {
-                  if (watchersState is WatchersLoaded && findingsState is FindingsLoaded) {
-                    final walletState = context.read<WalletBloc>().state;
-                    double totalSpent = 0;
-                    if (walletState is WalletLoaded) totalSpent = walletState.stats?.totalSpentAllTime ?? 0;
-
-                    final scoreData = GhostScoreService.calculate(
-                      findingsState.findings,
-                      watchersState.watchers,
-                      totalSpent,
-                      3, // Mock streak
-                    );
-
-                    final tier = scoreData['tier'];
-                    return GhostScoreCard(
-                      score: scoreData['score'],
-                      tier: tier['name'],
-                      color: _getTierColor(tier['color']),
-                      icon: tier['icon'],
-                      breakdown: Map<String, double>.from(scoreData['breakdown']),
-                      onTap: () => _showScoreBreakdown(context, scoreData),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              );
-            },
-          ),
-
-          // ─── ACTIVE WATCHERS ───
+          _buildMorningBriefing(context),
           const SizedBox(height: 32),
-          _buildSectionHeader(context, 'Your Watchers', '/watchers'),
-          const SizedBox(height: 20),
-          BlocBuilder<WatchersBloc, WatchersState>(
-            builder: (context, state) {
-              return AnimatedSwitcher(
-                duration: const Duration(milliseconds: 500),
-                child: _buildWatchersSection(context, state),
-              );
-            },
-          ),
-
-          // ─── RECENT FINDINGS ───
-          const SizedBox(height: 48),
-          _buildSectionHeader(context, 'Recent Findings', '/findings'),
-          const SizedBox(height: 20),
-          BlocBuilder<FindingsBloc, FindingsState>(
-            builder: (context, state) {
-              return AnimatedSwitcher(
-                duration: const Duration(milliseconds: 500),
-                child: _buildFindingsSection(context, state),
-              );
-            },
-          ),
-
-          // ─── AGENT ACTIVITY INDICATOR ───
-          const SizedBox(height: 60),
-          const Center(child: AgentActivityIndicator()),
-
-          // ─── SAVINGS FOOTER ───
-          const SizedBox(height: 48),
-          _buildSavingsFooter(context),
-          const SizedBox(height: 100), // Extra space for the floating-effect navbar
+          _buildSectionHeader(context, 'Your Systems', '/watchers'),
+          _buildWatchersCarousel(context),
+          const SizedBox(height: 32),
+          _buildSectionHeader(context, 'Intelligence Feed', '/findings'),
+          _buildFindingsFeed(context),
+          const SizedBox(height: 40),
+          _buildStatusFooter(context),
+          const SizedBox(height: 120),
         ],
       ),
     );
   }
 
-  Widget _buildSavingsFooter(BuildContext context) {
-    return BlocBuilder<WalletBloc, WalletState>(
-      builder: (context, state) {
-        double totalSaved = 0;
-        double totalCost = 0;
-        if (state is WalletLoaded) {
-          totalCost = state.stats?.totalSpentAllTime ?? 0;
-          // Simplified ROI: $45 per finding (same as briefing)
-          final findingsState = context.read<FindingsBloc>().state;
-          if (findingsState is FindingsLoaded) {
-            totalSaved = findingsState.findings.length * 45.0;
-          }
-        }
-
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: const Color(0xFF10B981).withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.2)),
-          ),
-          child: Row(
+  Widget _buildAtmosphericHeader(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(top: 20, bottom: 40, left: 24, right: 24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.primary.withValues(alpha: 0.05),
+            AppTheme.primary.withValues(alpha: 0.0),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                width: 48, height: 48,
-                decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle),
-                child: const Icon(Icons.show_chart_rounded, color: Colors.white),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _getGreeting().toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      color: AppTheme.primary.withValues(alpha: 0.6),
+                      letterSpacing: 2.0,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  ShaderMask(
+                    shaderCallback: (bounds) =>
+                        AppTheme.primaryGradient.createShader(bounds),
+                    child: Text(
+                      'Flare',
+                      style: GoogleFonts.outfit(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1.0,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('TOTAL SAVINGS (ROI)', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF065F46), letterSpacing: 1.0)),
-                    const SizedBox(height: 4),
-                    Text('\$${totalSaved.toStringAsFixed(0)}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF065F46))),
-                  ],
+              Row(
+                children: [
+                  _buildHeaderAction(
+                    context,
+                    Icons.sensors_rounded,
+                    '/payment-stream',
+                    isLive: true,
+                  ),
+                  const SizedBox(width: 12),
+                  const NotificationBadgeIcon(),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderAction(
+    BuildContext context,
+    IconData icon,
+    String route, {
+    bool isLive = false,
+  }) {
+    return InkWell(
+      onTap: () => context.push(route),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isLive ? Colors.red.withValues(alpha: 0.08) : AppTheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isLive
+                ? Colors.red.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.05),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isLive ? Colors.redAccent : AppTheme.secondary,
+            ),
+            if (isLive) ...[
+              const SizedBox(width: 8),
+              Text(
+                'LIVE',
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.0,
                 ),
               ),
-              Column(
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBentoStatsGrid(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          // Top Row
+          Row(
+            children: [
+              Expanded(flex: 3, child: _buildGhostScoreBento(context)),
+              const SizedBox(width: 16),
+              Expanded(flex: 2, child: _buildSavingsBento(context)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Bottom Row
+          Row(
+            children: [
+              Expanded(child: _buildActiveAgentsBento(context)),
+              const SizedBox(width: 16),
+              Expanded(child: _buildWalletBento(context)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGhostScoreBento(BuildContext context) {
+    return BlocBuilder<WatchersBloc, WatchersState>(
+      builder: (context, watchersState) {
+        return BlocBuilder<FindingsBloc, FindingsState>(
+          builder: (context, findingsState) {
+            double score = 0;
+            String tier = '...';
+            Map<String, dynamic>? scoreData;
+
+            if (watchersState is WatchersLoaded &&
+                findingsState is FindingsLoaded) {
+              final walletState = context.read<WalletBloc>().state;
+              double totalSpent = 0;
+              if (walletState is WalletLoaded)
+                totalSpent = walletState.stats?.totalSpentAllTime ?? 0;
+
+              scoreData = GhostScoreService.calculate(
+                findingsState.findings,
+                watchersState.watchers,
+                totalSpent,
+                3,
+              );
+              score = (scoreData['score'] as num).toDouble();
+              tier = scoreData['tier']['name'];
+            }
+
+            return _buildBentoCard(
+              onTap: scoreData != null
+                  ? () => _showFlareScoreDetails(context, scoreData!)
+                  : null,
+              color: AppTheme.secondary,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'FLARE SCORE',
+                        style: TextStyle(
+                          color: Colors.white60,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: Colors.white.withValues(alpha: 0.3),
+                        size: 14,
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${score.round()}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 48,
+                          fontWeight: FontWeight.w900,
+                          height: 1.0,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        '%',
+                        style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    tier.toUpperCase(),
+                    style: const TextStyle(
+                      color: AppTheme.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSavingsBento(BuildContext context) {
+    return BlocBuilder<WatchersBloc, WatchersState>(
+      builder: (context, watchersState) {
+        return BlocBuilder<FindingsBloc, FindingsState>(
+          builder: (context, findingsState) {
+            double saved = 0;
+            double spent = 0;
+
+            if (findingsState is FindingsLoaded &&
+                watchersState is WatchersLoaded) {
+              final walletState = context.read<WalletBloc>().state;
+              if (walletState is WalletLoaded)
+                spent = walletState.stats?.totalSpentAllTime ?? 0;
+
+              final scoreData = GhostScoreService.calculate(
+                findingsState.findings,
+                watchersState.watchers,
+                spent,
+                3,
+              );
+              saved = (scoreData['stats']['totalSavings'] as num).toDouble();
+            }
+
+            return _buildBentoCard(
+              onTap: () => _showROIDetails(context, saved, spent),
+              color: const Color(0xFF10B981),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'ROI',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      Icon(
+                        Icons.arrow_outward_rounded,
+                        color: Colors.white.withValues(alpha: 0.3),
+                        size: 14,
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Text(
+                    '\$${saved >= 1000 ? (saved / 1000).toStringAsFixed(1) + 'k' : saved.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -1.0,
+                    ),
+                  ),
+                  const Text(
+                    'SAVED',
+                    style: TextStyle(
+                      color: Colors.white60,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildActiveAgentsBento(BuildContext context) {
+    return BlocBuilder<WatchersBloc, WatchersState>(
+      builder: (context, state) {
+        int active = 0;
+        if (state is WatchersLoaded)
+          active = state.watchers.where((w) => w.status == 'active').length;
+
+        return _buildBentoCard(
+          onTap: () => context.go('/watchers'),
+          color: AppTheme.surface,
+          bordered: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'AGENTS',
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    color: AppTheme.textSecondary.withValues(alpha: 0.3),
+                    size: 14,
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text('GHOST COST', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF065F46), letterSpacing: 1.0)),
-                  const SizedBox(height: 4),
-                  Text('\$${totalCost.toStringAsFixed(3)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF065F46))),
+                  Text(
+                    '$active',
+                    style: const TextStyle(
+                      color: AppTheme.secondary,
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      height: 1.0,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  StatusIndicator(
+                    status: active > 0 ? 'active' : 'paused',
+                    size: 10,
+                  ),
                 ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'ACTIVE NOW',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -276,234 +434,307 @@ class HomeContent extends StatelessWidget {
     );
   }
 
-  Widget _buildWalletCapsule(BuildContext context, WalletState state) {
-    if (state is WalletLoaded) {
-      final balance = state.wallet?.balanceUsdc ?? 0.0;
-      return InkWell(
-        onTap: () => context.push('/wallet'),
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppTheme.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
-            boxShadow: [
-               BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.account_balance_wallet_rounded, size: 14, color: AppTheme.primary),
-              const SizedBox(width: 8),
-              TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0, end: balance),
-                duration: const Duration(milliseconds: 1500),
-                curve: Curves.easeOutQuart,
-                builder: (context, value, child) {
-                  return Text(
-                    '\$${value.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: AppTheme.textPrimary,
-                      fontSize: 14,
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-    if (state is WalletError) {
-      return IconButton(
-        icon: const Icon(Icons.refresh_rounded, color: AppTheme.error),
-        onPressed: () => _onRetry(context),
-      );
-    }
-    return const ShimmerPlaceholder(
-      width: 80,
-      height: 36,
-      borderRadius: 18,
-    );
-  }
+  Widget _buildWalletBento(BuildContext context) {
+    return BlocBuilder<WalletBloc, WalletState>(
+      builder: (context, state) {
+        double balance = 0;
+        if (state is WalletLoaded) balance = state.wallet?.balanceUsdc ?? 0;
 
-  Widget _buildBriefingBanner(BuildContext context, BriefingState state) {
-    if (state is BriefingLoaded && state.todayBriefing != null && !state.todayBriefing!.isRead) {
-      final briefing = state.todayBriefing!;
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: Dismissible(
-            key: Key(briefing.briefingId),
-            direction: DismissDirection.endToStart,
-            onDismissed: (_) {
-               // Optimistically mark as read on UI to prevent jumpiness
-               context.read<BriefingBloc>().add(MarkBriefingRead(briefing.briefingId));
-            },
-            child: InkWell(
-              onTap: () => context.push('/briefing'),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(color: const Color(0xFF6366F1).withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10)),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: const Center(child: Text('☀️', style: TextStyle(fontSize: 28))),
-                    ),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Morning Briefing',
-                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: -0.5),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            briefing.generatedSummary ?? '',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w500, height: 1.4),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Icon(Icons.arrow_forward_ios_rounded, color: Colors.white.withValues(alpha: 0.5), size: 16),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-    return const SizedBox.shrink();
-  }
-
-  Widget _buildWatchersSection(BuildContext context, WatchersState state) {
-    if (state is WatchersLoaded) {
-      final watchers = state.watchers;
-      return SizedBox(
-        height: 180,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          itemCount: watchers.length + 1,
-          itemBuilder: (context, index) {
-            if (index < watchers.length) {
-              return Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: WatcherCard(watcher: watchers[index]),
-              );
-            }
-            return Row(
-              children: [
-                _buildAddButton(context),
-                _buildTemplatesButton(context),
-              ],
-            );
-          },
-        ),
-      );
-    }
-    if (state is WatchersError) {
-      return Center(
-        child: TextButton.icon(
-          onPressed: () => _onRetry(context),
-          icon: const Icon(Icons.refresh_rounded),
-          label: const Text('Try Again', style: TextStyle(fontWeight: FontWeight.w900)),
-        ),
-      );
-    }
-    return const ShimmerGrid(itemCount: 3);
-  }
-
-  Widget _buildFindingsSection(BuildContext context, FindingsState state) {
-    if (state is FindingsLoaded) {
-      final findings = state.findings;
-      if (findings.isEmpty) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+        return _buildBentoCard(
+          onTap: () => context.push('/wallet'),
+          color: AppTheme.surface,
+          bordered: true,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('👻', style: const TextStyle(fontSize: 48)),
-              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'BALANCE',
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  Icon(
+                    Icons.account_balance_wallet_rounded,
+                    color: AppTheme.primary.withValues(alpha: 0.3),
+                    size: 14,
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                '\$${balance.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  color: AppTheme.primary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
               const Text(
-                'No findings yet. Your agents are hunting...',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+                'USDC',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
         );
-      }
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: findings.length.clamp(0, 5),
-          itemBuilder: (context, index) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: FindingCard(finding: findings[index]),
-          ),
+      },
+    );
+  }
+
+  Widget _buildBentoCard({
+    required Widget child,
+    required Color color,
+    bool bordered = false,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        height: 140,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(24),
+          border: bordered
+              ? Border.all(color: Colors.black.withValues(alpha: 0.05))
+              : null,
+          boxShadow: color == AppTheme.surface
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
-      );
-    }
-    if (state is FindingsError) {
-      return Center(
-        child: TextButton.icon(
-          onPressed: () => _onRetry(context),
-          icon: const Icon(Icons.refresh_rounded),
-          label: const Text('Try Again', style: TextStyle(fontWeight: FontWeight.w900)),
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildMorningBriefing(BuildContext context) {
+    return BlocBuilder<BriefingBloc, BriefingState>(
+      builder: (context, state) {
+        if (state is BriefingLoaded &&
+            state.todayBriefing != null &&
+            !state.todayBriefing!.isRead) {
+          final briefing = state.todayBriefing!;
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(32),
+                gradient: const LinearGradient(
+                  colors: [AppTheme.primary, AppTheme.primaryLight],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withValues(alpha: 0.25),
+                    blurRadius: 25,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => context.push('/briefing'),
+                  borderRadius: BorderRadius.circular(32),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Center(
+                            child: Text('🌤️', style: TextStyle(fontSize: 24)),
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Morning Briefing',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 18,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                briefing.generatedSummary ?? '',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: Colors.white54,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildWatchersCarousel(BuildContext context) {
+    return BlocBuilder<WatchersBloc, WatchersState>(
+      builder: (context, state) {
+        if (state is WatchersLoaded) {
+          final watchers = state.watchers;
+          return SizedBox(
+            height: 200,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              itemCount: watchers.length + 1,
+              itemBuilder: (context, index) {
+                if (index < watchers.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 16),
+                    child: WatcherCard(watcher: watchers[index]),
+                  );
+                }
+                return _buildAddWatcherButton(context);
+              },
+            ),
+          );
+        }
+        return const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24),
+          child: ShimmerGrid(itemCount: 2),
+        );
+      },
+    );
+  }
+
+  Widget _buildAddWatcherButton(BuildContext context) {
+    return InkWell(
+      onTap: () => context.push('/watchers/create'),
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        width: 140,
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
         ),
-      );
-    }
-    return const ShimmerList(itemCount: 3);
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.add_circle_outline_rounded,
+              color: AppTheme.primary,
+              size: 32,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Add Agent',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFindingsFeed(BuildContext context) {
+    return BlocBuilder<FindingsBloc, FindingsState>(
+      builder: (context, state) {
+        if (state is FindingsLoaded) {
+          final findings = state.findings;
+          if (findings.isEmpty) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: findings
+                  .take(4)
+                  .map(
+                    (f) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: FindingCard(finding: f),
+                    ),
+                  )
+                  .toList(),
+            ),
+          );
+        }
+        return const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24),
+          child: ShimmerList(itemCount: 2),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatusFooter(BuildContext context) {
+    return const Center(child: AgentActivityIndicator());
   }
 
   Widget _buildSectionHeader(BuildContext context, String title, String route) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.only(left: 24, right: 12, bottom: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.8,
+            ),
           ),
-          InkWell(
-            onTap: () => context.go(route),
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: const Row(
-                children: [
-                  Text('See All', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w900, fontSize: 13)),
-                  SizedBox(width: 4),
-                  Icon(Icons.arrow_forward_rounded, color: AppTheme.primary, size: 14),
-                ],
+          TextButton(
+            onPressed: () => context.go(route),
+            child: const Text(
+              'SEE ALL',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: AppTheme.primary,
+                letterSpacing: 1.0,
               ),
             ),
           ),
@@ -524,7 +755,11 @@ class HomeContent extends StatelessWidget {
           borderRadius: BorderRadius.circular(28),
           border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
           boxShadow: [
-             BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         child: Column(
@@ -537,12 +772,20 @@ class HomeContent extends StatelessWidget {
                 color: AppTheme.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.add_rounded, size: 28, color: AppTheme.primary),
+              child: const Icon(
+                Icons.add_rounded,
+                size: 28,
+                color: AppTheme.primary,
+              ),
             ),
             const SizedBox(height: 12),
             const Text(
               'Add Watcher',
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.textSecondary),
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+                color: AppTheme.textSecondary,
+              ),
             ),
           ],
         ),
@@ -562,7 +805,11 @@ class HomeContent extends StatelessWidget {
           borderRadius: BorderRadius.circular(28),
           border: Border.all(color: AppTheme.primary.withValues(alpha: 0.1)),
           boxShadow: [
-             BoxShadow(color: AppTheme.primary.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+            BoxShadow(
+              color: AppTheme.primary.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         child: Column(
@@ -575,13 +822,21 @@ class HomeContent extends StatelessWidget {
                 color: Colors.white,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.auto_awesome_rounded, size: 24, color: AppTheme.primary),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                size: 24,
+                color: AppTheme.primary,
+              ),
             ),
             const SizedBox(height: 12),
             const Text(
               'Try Templates',
               textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.primary),
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+                color: AppTheme.primary,
+              ),
             ),
           ],
         ),
@@ -604,14 +859,22 @@ class HomeContent extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-               width: 6,
-               height: 6,
-               decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
             ),
             const SizedBox(width: 6),
             const Text(
               'LIVE',
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.red, letterSpacing: 0.5),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                color: Colors.red,
+                letterSpacing: 0.5,
+              ),
             ),
           ],
         ),
@@ -621,15 +884,20 @@ class HomeContent extends StatelessWidget {
 
   Color _getTierColor(String color) {
     switch (color) {
-      case 'purple': return Colors.purpleAccent;
-      case 'gold': return Colors.amber;
-      case 'blue': return Colors.blueAccent;
-      case 'green': return Colors.greenAccent;
-      default: return Colors.grey;
+      case 'purple':
+        return Colors.purpleAccent;
+      case 'gold':
+        return Colors.amber;
+      case 'blue':
+        return Colors.blueAccent;
+      case 'green':
+        return Colors.greenAccent;
+      default:
+        return Colors.grey;
     }
   }
 
-  void _showScoreBreakdown(BuildContext context, Map<String, dynamic> data) {
+  void _showFlareScoreDetails(BuildContext context, Map<String, dynamic> data) {
     showModalBottomSheet(
       context: context,
       useRootNavigator: true,
@@ -646,83 +914,363 @@ class HomeContent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-               child: Container(
-                 width: 40, height: 4,
-                 decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(2)),
-               ),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
             const SizedBox(height: 32),
             Row(
               children: [
-                Text(data['tier']['icon'], style: const TextStyle(fontSize: 32)),
+                Text(
+                  data['tier']['icon'],
+                  style: const TextStyle(fontSize: 32),
+                ),
                 const SizedBox(width: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${data['score']}% Efficiency',
-                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -1.0),
+                      '${data['score']}% Flare Efficiency',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1.0,
+                      ),
                     ),
                     Text(
                       'Rank: ${data['tier']['name']}',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: _getTierColor(data['tier']['color'])),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: _getTierColor(data['tier']['color']),
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 32),
-            ... (data['breakdown'] as Map<String, double>).entries.map((e) {
-               return Padding(
-                 padding: const EdgeInsets.only(bottom: 20),
-                 child: Column(
-                   crossAxisAlignment: CrossAxisAlignment.start,
-                   children: [
-                     Row(
-                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                       children: [
-                         Text(e.key, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-                         Text('${(e.value * 100).round()}%', style: const TextStyle(fontWeight: FontWeight.w900, color: AppTheme.textSecondary)),
-                       ],
-                     ),
-                     const SizedBox(height: 8),
-                     ClipRRect(
-                       borderRadius: BorderRadius.circular(4),
-                       child: LinearProgressIndicator(
-                         value: e.value,
-                         backgroundColor: AppTheme.background,
-                         color: _getTierColor(data['tier']['color']),
-                         minHeight: 6,
-                       ),
-                     ),
-                   ],
-                 ),
-               );
+            ...(data['breakdown'] as Map<String, double>).entries.map((e) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          e.key.toUpperCase(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 10,
+                            letterSpacing: 1.0,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          '${(e.value * 100).round()}%',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: LinearProgressIndicator(
+                        value: e.value,
+                        backgroundColor: AppTheme.background,
+                        color: _getTierColor(data['tier']['color']),
+                        minHeight: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              );
             }),
             const SizedBox(height: 12),
             Container(
-               padding: const EdgeInsets.all(20),
-               decoration: BoxDecoration(
-                 color: AppTheme.background,
-                 borderRadius: BorderRadius.circular(24),
-               ),
-               child: Row(
-                 children: [
-                   const Icon(Icons.lightbulb_outline_rounded, color: Colors.orangeAccent),
-                   const SizedBox(width: 16),
-                   const Expanded(
-                     child: Text(
-                       'Tip: Add a Crypto watcher to improve your Coverage score',
-                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
-                     ),
-                   ),
-                 ],
-               ),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppTheme.background,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: AppTheme.primary,
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Text(
+                      'Your Flare Score is a composite of find quality, spending efficiency, and agent network coverage.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 32),
           ],
         ),
       ),
+    );
+  }
+
+  void _showROIDetails(
+    BuildContext context,
+    double totalSaved,
+    double totalSpent,
+  ) {
+    final netGain = totalSaved - totalSpent;
+
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        padding: const EdgeInsets.only(
+          top: 12,
+          bottom: 40,
+          left: 24,
+          right: 24,
+        ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 32,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            const Text(
+              'ROI Performance',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -1.0,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Real-time financial analysis of your agent network.',
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // Performance Card
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: netGain >= 0
+                    ? const Color(0xFF10B981)
+                    : Colors.redAccent,
+                borderRadius: BorderRadius.circular(32),
+                boxShadow: [
+                  BoxShadow(
+                    color:
+                        (netGain >= 0
+                                ? const Color(0xFF10B981)
+                                : Colors.redAccent)
+                            .withValues(alpha: 0.25),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'NET HARVEST VALUE',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '\$${netGain.abs().toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 36,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1.0,
+                          ),
+                        ),
+                        Text(
+                          netGain >= 0 ? 'Surplus Generated' : 'Pending Return',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      netGain >= 0
+                          ? Icons.trending_up_rounded
+                          : Icons.trending_down_rounded,
+                      color: Colors.white,
+                      size: 32,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 40),
+
+            // Detailed Breakdown
+            _buildROIMetricItem(
+              icon: Icons.rocket_launch_rounded,
+              label: 'AGENT ENERGY COST',
+              value: '-\$${totalSpent.toStringAsFixed(2)}',
+              subtitle: 'Total platform compute spent',
+              color: Colors.redAccent,
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: const Divider(height: 1, color: Color(0xFFF3F4F6)),
+            ),
+            _buildROIMetricItem(
+              icon: Icons.savings_rounded,
+              label: 'LOCKED VALUE RECOVERED',
+              value: '+\$${totalSaved.toStringAsFixed(2)}',
+              subtitle: 'Savings found across all watchers',
+              color: const Color(0xFF10B981),
+            ),
+
+            const SizedBox(height: 48),
+
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.background,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.verified_user_rounded,
+                    color: AppTheme.primary,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Text(
+                      'Historical values are updated as your agents close findings and verify price drops.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildROIMetricItem({
+    required IconData icon,
+    required String label,
+    required String value,
+    required String subtitle,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Icon(icon, color: color, size: 22),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.textSecondary,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -766,22 +1314,30 @@ class _AgentActivityIndicatorState extends State<AgentActivityIndicator> {
       listener: (context, state) {
         // Sync actual next check minutes from network data
         if (state is WatchersLoaded) {
-           final activeWatchers = state.watchers.where((w) => w.status == 'active').toList();
-           if (activeWatchers.isNotEmpty) {
-             activeWatchers.sort((a, b) => a.checkIntervalMinutes.compareTo(b.checkIntervalMinutes));
-             final next = (activeWatchers.first.checkIntervalMinutes / 2).floor();
-             if (next != _nextCheckMinutes) {
-               setState(() {
-                 _nextCheckMinutes = next < 1 ? 1 : next;
-               });
-             }
-           }
+          final activeWatchers = state.watchers
+              .where((w) => w.status == 'active')
+              .toList();
+          if (activeWatchers.isNotEmpty) {
+            activeWatchers.sort(
+              (a, b) =>
+                  a.checkIntervalMinutes.compareTo(b.checkIntervalMinutes),
+            );
+            final next = (activeWatchers.first.checkIntervalMinutes / 2)
+                .floor();
+            if (next != _nextCheckMinutes) {
+              setState(() {
+                _nextCheckMinutes = next < 1 ? 1 : next;
+              });
+            }
+          }
         }
       },
       builder: (context, state) {
         int activeCount = 0;
         if (state is WatchersLoaded) {
-          activeCount = state.watchers.where((w) => w.status == 'active').length;
+          activeCount = state.watchers
+              .where((w) => w.status == 'active')
+              .length;
         }
 
         return Container(
@@ -798,14 +1354,22 @@ class _AgentActivityIndicatorState extends State<AgentActivityIndicator> {
               const SizedBox(width: 12),
               Text(
                 '$activeCount Agents Active',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: AppTheme.textPrimary),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.textPrimary,
+                ),
               ),
               const SizedBox(width: 8),
-              const Text('·', style: TextStyle(color: AppTheme.textSecondary)),
+              Text('·', style: TextStyle(color: AppTheme.textSecondary)),
               const SizedBox(width: 8),
               Text(
                 'Next check in ${_nextCheckMinutes}m',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppTheme.textSecondary),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.textSecondary,
+                ),
               ),
             ],
           ),
@@ -814,4 +1378,3 @@ class _AgentActivityIndicatorState extends State<AgentActivityIndicator> {
     );
   }
 }
-
