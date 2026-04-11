@@ -89,7 +89,7 @@ Every transaction below is real. Click any link to verify on Stellar Explorer.
 
 ## How Flare's Payment System Works
 
-Flare runs a hybrid payment architecture, the first of its kind in this hackathon. It combines two Stellar payment protocols to optimize for both cost and speed.
+Flare runs a hybrid payment architecture. It combines two Stellar payment protocols to optimize for both cost and speed.
 
 ### X402 Flow (for low-frequency watchers such as flights, real estate, jobs)
 
@@ -244,23 +244,9 @@ npx tsx src/scripts/test-mpp-integration.ts
 - **Self-Healing Watchers**: agents optimize their own check intervals based on hit rate
 - **Real Data Integrations**: Skyscanner, CoinGecko, NewsAPI, Indeed, Zillow, StubHub
 - **Mainnet Deployment**: transition from testnet to production USDC
+- **Enhanced User Experience**: a ground-up interface redesign focused on smooth navigation and intuitive user flows to ensure perfect ease of use
 
 ---
-
-## In the Demo Video You Will See
-
-- Voice-powered watcher creation ("Watch ANA flights to Tokyo under $800")
-- Live Stellar payment stream visualization
-- Agent reasoning: "Price $789 is below $800 threshold, ALERT"
-- Double-check: "Re-verifying... Confirmed" (2nd Stellar tx)
-- Agent-to-agent: "Cross-checked travel advisories, all clear" (3rd Stellar tx)
-- Push notification with 94% confidence score
-- Finding detail with 3 Stellar transaction proofs
-- Morning briefing: 22 checks overnight, $0.058 cost, $629 estimated savings
-- Ghost Score: 87 out of 100, Agent Pro
-- Savings dashboard: "$0.85 per month vs $58 in subscriptions"
-- Spending heatmap showing 45 days of agent activity
-- Stellar explorer showing real verified transactions
 
 ---
 
