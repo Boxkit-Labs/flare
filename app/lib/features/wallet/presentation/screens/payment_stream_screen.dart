@@ -1,8 +1,13 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
+import 'package:flare_app/features/wallet/presentation/bloc/wallet_state.dart';
+import 'package:flare_app/features/watchers/presentation/bloc/watchers_bloc.dart';
+import 'package:flare_app/features/watchers/presentation/bloc/watchers_state.dart';
 
 class PaymentStreamScreen extends StatefulWidget {
   const PaymentStreamScreen({super.key});
@@ -16,8 +21,9 @@ class _PaymentStreamScreenState extends State<PaymentStreamScreen> with SingleTi
   final List<StreamParticle> _particles = [];
   final Random _random = Random();
   Timer? _spawnTimer;
-  int _txCount = 142;
-  double _totalStreamed = 2.481;
+  int _txCount = 0;
+  double _totalStreamed = 0.0;
+  bool _initialized = false;
 
   @override
   void initState() {
@@ -57,9 +63,44 @@ class _PaymentStreamScreenState extends State<PaymentStreamScreen> with SingleTi
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
+    return BlocBuilder<WalletBloc, WalletState>(
+      builder: (context, walletState) {
+        return BlocBuilder<WatchersBloc, WatchersState>(
+          builder: (context, watchersState) {
+            int activeAgents = 0;
+            int nextCheckSeconds = 42;
+
+            if (watchersState is WatchersLoaded) {
+              final active = watchersState.watchers.where((w) => w.status == 'active').toList();
+              activeAgents = active.length;
+              if (active.isNotEmpty) {
+                final now = DateTime.now();
+                DateTime? nearest;
+                for (var w in active) {
+                  if (w.nextCheckAt != null) {
+                    try {
+                      final parsed = DateTime.parse(w.nextCheckAt!).toLocal();
+                      if (nearest == null || parsed.isBefore(nearest)) {
+                        nearest = parsed;
+                      }
+                    } catch (_) {}
+                  }
+                }
+                if (nearest != null) {
+                  nextCheckSeconds = nearest.difference(now).inSeconds.clamp(0, 3600);
+                }
+              }
+            }
+
+            if (!_initialized && walletState is WalletLoaded) {
+              _totalStreamed = walletState.stats?.totalSpentAllTime ?? 0.0;
+              _txCount = walletState.stats?.totalChecksToday ?? 0;
+              _initialized = true;
+            }
+
+            return Scaffold(
+              backgroundColor: Colors.black,
+              body: Stack(
         children: [
           // Background Animation
           Positioned.fill(
@@ -155,15 +196,19 @@ class _PaymentStreamScreenState extends State<PaymentStreamScreen> with SingleTi
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildFooterStat('ACTIVE AGENTS', '8'),
+                  _buildFooterStat('ACTIVE AGENTS', '$activeAgents'),
                   _buildFooterStat('TX CONFIRMED', '$_txCount'),
-                  _buildFooterStat('NEXT BATCH', '42s'),
+                  _buildFooterStat('NEXT BATCH', '${nextCheckSeconds}s'),
                 ],
               ),
             ),
           ),
         ],
       ),
+    );
+      },
+    );
+      },
     );
   }
 
