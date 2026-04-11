@@ -455,6 +455,7 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
   void _showOptions(BuildContext context, WatcherModel watcher) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: AppTheme.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (context) => SafeArea(

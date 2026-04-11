@@ -765,6 +765,7 @@ class _WalletScreenState extends State<WalletScreen> {
   void _showTransactionDetail(TransactionModel tx) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         padding: const EdgeInsets.all(28),
@@ -986,6 +987,7 @@ class _WalletScreenState extends State<WalletScreen> {
   void _showDayDetail(BuildContext context, Map<String, dynamic> day) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         padding: const EdgeInsets.all(32),

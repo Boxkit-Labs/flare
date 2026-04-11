@@ -632,6 +632,7 @@ class HomeContent extends StatelessWidget {
   void _showScoreBreakdown(BuildContext context, Map<String, dynamic> data) {
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => Container(
