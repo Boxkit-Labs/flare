@@ -266,6 +266,9 @@ export class CheckExecutor {
               vFinding.confidence_tier = confidence.tier;
               vFinding.headline = `[${confidence.score}%] ${vFinding.headline}`;
               
+              // Ensure finding is linked to the ORIGINAL check_id
+              vFinding.check_id = checkId;
+              
               await createFinding(vFinding);
               findingDetected = true;
               findingId = vFinding.finding_id;

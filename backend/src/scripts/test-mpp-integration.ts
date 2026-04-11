@@ -73,7 +73,7 @@ async function setup(): Promise<{ userId: string; publicKey: string }> {
       console.log(`  → Stellar Key: ${publicKey}`);
 
       // 1.3 Fund wallet
-      console.log("  → Funding testnet wallet (Friendbot + USDC trustline + 20 USDC)...");
+      console.log("  → Funding testnet wallet (Friendbot + USDC trustline + 100 USDC)...");
       const fundRes = await fetch(`${BASE_URL}/api/users/${userId}/fund`, { method: "POST" });
       if (!fundRes.ok) {
         const errorJson = await fundRes.json().catch(() => ({}));
@@ -103,7 +103,7 @@ async function setup(): Promise<{ userId: string; publicKey: string }> {
 async function testX402Flow(userId: string): Promise<string> {
   console.log("");
   console.log("─────────────────────────────────────────────────");
-  console.log("[2] Test X402 flow (existing — verify it still works)");
+  console.log("[2] Test X402 flow");
   console.log("─────────────────────────────────────────────────");
 
   // Create a Flight watcher (interval: 6 hours → X402)
@@ -265,7 +265,15 @@ async function testMppFlow(userId: string): Promise<MppResult> {
   let offChainCount = 0;
   if (history.recent_checks) {
     for (const ck of history.recent_checks) {
-      if (ck.payment_method === "mpp" && !ck.stellar_tx_hash) {
+      // Recognized MPP formats: 
+      // 1. channelId:cumulativeAmount (from PaymentRouter)
+      // 2. mpp-offchain (from Paywall middleware fallback)
+      const isMpp = ck.payment_method === "mpp";
+      const isOffChain = !ck.stellar_tx_hash || 
+                          ck.stellar_tx_hash.startsWith("mpp-offchain") || 
+                          ck.stellar_tx_hash.includes(":"); // the channelId:amount format
+      
+      if (isMpp && isOffChain) {
         offChainCount++;
       }
     }

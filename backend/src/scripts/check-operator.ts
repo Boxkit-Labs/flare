@@ -1,34 +1,45 @@
-import { Keypair, Horizon, Asset } from '@stellar/stellar-sdk';
-import 'dotenv/config';
+import pool from '../db/database.js';
+import { stellarService } from '../services/stellar.js';
+import { getUsdcBalance } from '../services/stellar-pay-client.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
-async function checkOperator() {
-    const operatorSecret = process.env.OPERATOR_SECRET;
-    if (!operatorSecret) {
-        console.error("No OPERATOR_SECRET in .env");
-        process.exit(1);
+const SOROBAN_RPC_URL = 'https://soroban-testnet.stellar.org';
+const OPERATOR_PUBLIC = 'GDKU2DY4TTRRSQ6BBFYTDV2GEWREHCIDUM5FFXLIF66PDOO3HYJ2YZIF';
+
+async function main() {
+    console.log("--- Operator Status Report ---");
+    
+    // 1. Check Balance
+    try {
+        const balances = await stellarService.getBalances(OPERATOR_PUBLIC);
+        console.log(`Current Operator Balances: XLM=${balances.xlm}, USDC=${balances.usdc}`);
+        
+        const sorobanBalance = await getUsdcBalance(OPERATOR_PUBLIC, SOROBAN_RPC_URL);
+        console.log(`Soroban USDC Balance: ${sorobanBalance} USDC`);
+    } catch (e: any) {
+        console.error("Failed to fetch balance:", e.message);
     }
 
-    const kp = Keypair.fromSecret(operatorSecret);
-    const pk = kp.publicKey();
-    console.log(`Operator Public Key: ${pk}`);
-
-    const server = new Horizon.Server('https://horizon-testnet.stellar.org');
+    // 2. Find refundable channels
     try {
-        const account = await server.loadAccount(pk);
-        console.log("Balances:");
-        account.balances.forEach(b => {
-             const asset = b.asset_type === 'native' ? 'XLM' : (b as any).asset_code;
-             console.log(` - ${asset}: ${b.balance}`);
-        });
-
-        const usdcIssuer = process.env.USDC_ISSUER || 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5';
-        const hasUsdc = account.balances.some(b => (b as any).asset_code === 'USDC' && (b as any).asset_issuer === usdcIssuer);
-        if (!hasUsdc) {
-            console.warn("!! Operator lacks USDC trustline or issuer is different.");
+        const { rows } = await pool.query(
+            "SELECT channel_id, user_id, deposit_usdc, spent_usdc FROM mpp_channels WHERE status='open' AND deposit_usdc > spent_usdc ORDER BY (deposit_usdc - spent_usdc) DESC LIMIT 10"
+        );
+        console.log("\nTop 10 Potential Refundable Channels:");
+        if (rows.length === 0) {
+            console.log("No open channels with remaining balance found.");
+        } else {
+            rows.forEach((r: any) => {
+                const remaining = parseFloat(r.deposit_usdc) - parseFloat(r.spent_usdc);
+                console.log(`Channel ${r.channel_id} (User ${r.user_id}): ${remaining.toFixed(7)} USDC remaining`);
+            });
         }
     } catch (e: any) {
-        console.error("Error loading account:", e.message);
+        console.error("Failed to query DB:", e.message);
     }
+    
+    process.exit(0);
 }
 
-checkOperator();
+main();

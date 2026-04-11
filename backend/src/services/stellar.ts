@@ -43,7 +43,7 @@ export class StellarService {
                     // Cap wait time at 30 seconds
                     const actualWait = Math.min(waitTime, 30000);
                     console.warn(`[STELLAR] ${label} attempt ${i + 1} failed. Retrying in ${Math.round(actualWait)}ms... (${error.message})`);
-                    await new Promise(r => setTimeout(r, actualWait));
+                    await new Promise(resolve => setTimeout(resolve, actualWait));
                     continue;
                 }
                 

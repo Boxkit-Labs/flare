@@ -136,4 +136,10 @@ export default {
     const p = await getPool();
     return p.query(text, params);
   },
+  end: async () => {
+    const p = await getPool();
+    if (p && typeof p.end === 'function') {
+      return p.end();
+    }
+  }
 };
