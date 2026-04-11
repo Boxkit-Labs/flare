@@ -1,8 +1,10 @@
-import pg from 'pg';
-import { readFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import dotenv from 'dotenv';
+import pg from "pg";
+import sqlite3 from "sqlite3";
+import { promisify } from "node:util";
+import { readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -10,109 +12,128 @@ const __dirname = dirname(__filename);
 dotenv.config();
 
 const { Pool } = pg;
+const defaultConnectionString =
+  "postgresql://postgres:postgres@localhost:5432/postgres";
 
-const defaultConnectionString = 'postgresql://postgres:postgres@localhost:5432/postgres';
+let pool: any;
+let isSqlite = false;
 
-if (!process.env.DATABASE_URL) {
-    console.warn("WARNING: DATABASE_URL not set. Falling back to local development defaults.");
+// ─────────────────────────────────────────────────────────────────────────────
+// Database Initialization
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function getPool() {
+  if (pool) return pool;
+
+  try {
+    console.log("[Database] Attempting PostgreSQL connection...");
+    const p = new Pool({
+      connectionString: process.env.DATABASE_URL || defaultConnectionString,
+      ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+      connectionTimeoutMillis: 10000,
+    });
+
+    // Test connection immediately
+    await p.query("SELECT 1");
+    console.log("[Database] Connected to PostgreSQL.");
+
+    p.on("error", (err: any) =>
+      console.error("[Database] Postgres Pool Error:", err),
+    );
+    pool = p;
+    return pool;
+  } catch (e: any) {
+    console.warn(
+      `[Database] PostgreSQL connection failed: ${e.message}. Falling back to SQLite.`,
+    );
+    isSqlite = true;
+
+    const dbPath = process.env.DB_PATH || "flare.sqlite";
+    const db = new sqlite3.Database(dbPath);
+
+    // Promisify sqlite methods
+    const run = promisify(db.run.bind(db)) as any;
+    const all = promisify(db.all.bind(db)) as any;
+    const get = promisify(db.get.bind(db)) as any;
+    const exec = promisify(db.exec.bind(db)) as any;
+
+    console.log(`[Database] Connected to SQLite at ${dbPath}`);
+
+    pool = {
+      isSqlite: true,
+      query: async (text: string, params?: any[]) => {
+        const sql = text
+          .replace(/\$(\d+)/g, "?")
+          .replace(/TIMESTAMPTZ/g, "TEXT")
+          .replace(/NOW\(\)/g, "CURRENT_TIMESTAMP")
+          .replace(/SERIAL PRIMARY KEY/g, "INTEGER PRIMARY KEY AUTOINCREMENT");
+
+        try {
+          if (sql.includes(';') && (sql.match(/;/g) || []).length > 1) {
+            // Multi-statement query (e.g. schema loading)
+            await exec(sql);
+            return { rows: [], rowCount: 1 };
+          } else if (sql.trim().toUpperCase().startsWith("SELECT")) {
+            const rows = (await all(sql, params || [])) as any[];
+            return { rows, rowCount: rows.length };
+          } else {
+            await run(sql, params || []);
+            return { rows: [], rowCount: 1 };
+          }
+        } catch (err: any) {
+          // Silently ignore 'already exists' errors during migration fallbacks
+          if (
+            err.message.includes("already exists") ||
+            err.message.includes("duplicate column")
+          ) {
+            return { rows: [], rowCount: 0 };
+          }
+          throw err;
+        }
+      },
+      on: () => {},
+      end: async () => new Promise((resolve) => db.close(() => resolve(null))),
+    };
+    return pool;
+  }
 }
 
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || defaultConnectionString,
-    ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
-});
-
 export const initializeDatabase = async () => {
-    try {
-        const tableCheck = await pool.query(`
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_name = 'users'
-            );
-        `);
-
-        if (!tableCheck.rows[0].exists) {
-            console.log('Initializing database schema for the first time...');
-            const schemaPath = join(__dirname, 'schema.sql');
-            const schema = readFileSync(schemaPath, 'utf8');
-            await pool.query(schema);
-            console.log('Database schema initialized successfully.');
-        } else {
-            // Existing DB: Ensure all columns from recent schema updates are present
-            console.log('Checking for database schema updates...');
-            
-            // Add tx_type to transactions if missing
-            await pool.query(`
-                ALTER TABLE transactions 
-                ADD COLUMN IF NOT EXISTS tx_type TEXT 
-                DEFAULT 'check' 
-                CHECK (tx_type IN ('check', 'verification', 'collaboration'));
-            `);
-
-            // Add error_message to watchers if missing
-            await pool.query(`
-                ALTER TABLE watchers 
-                ADD COLUMN IF NOT EXISTS error_message TEXT;
-            `);
-
-            // Create notifications table if missing
-            console.log('Ensuring notifications table exists...');
-            await pool.query(`
-                CREATE TABLE IF NOT EXISTS notifications (
-                    notification_id TEXT PRIMARY KEY,
-                    user_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-                    title TEXT NOT NULL,
-                    body TEXT NOT NULL,
-                    type TEXT NOT NULL,
-                    data_id TEXT,
-                    read BOOLEAN DEFAULT false,
-                    created_at TIMESTAMPTZ DEFAULT NOW()
+  const p = await getPool();
+  try {
+    let exists = false;
+    if (p.isSqlite) {
+      const tableCheck = await p.query(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='users'",
+      );
+      exists = tableCheck.rows.length > 0;
+    } else {
+      const tableCheck = await p.query(`
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'users'
                 );
             `);
-
-            await pool.query(`
-                CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
-            `);
-            console.log('Notifications table check complete.');
-
-            console.log('Ensuring mpp_channels table exists...');
-            await pool.query(`
-                CREATE TABLE IF NOT EXISTS mpp_channels (
-                  channel_id TEXT PRIMARY KEY,
-                  user_id TEXT NOT NULL,
-                  service_id TEXT NOT NULL,
-                  sender_address TEXT NOT NULL,
-                  receiver_address TEXT NOT NULL,
-                  commitment_public_key TEXT,
-                  commitment_secret_key_encrypted TEXT,
-                  deposit_usdc REAL NOT NULL,
-                  spent_usdc REAL NOT NULL DEFAULT 0,
-                  latest_proof TEXT,
-                  open_tx_hash TEXT NOT NULL,
-                  opened_at TIMESTAMPTZ DEFAULT NOW(),
-                  expires_at TIMESTAMPTZ NOT NULL,
-                  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed', 'expired')),
-                  close_tx_hash TEXT
-                );
-            `);
-
-            // Add new columns to existing table if needed
-            await pool.query(`
-                ALTER TABLE mpp_channels 
-                ADD COLUMN IF NOT EXISTS commitment_public_key TEXT;
-            `);
-            await pool.query(`
-                ALTER TABLE mpp_channels 
-                ADD COLUMN IF NOT EXISTS commitment_secret_key_encrypted TEXT;
-            `);
-
-            console.log('Database schema updates verified.');
-        }
-    } catch (error) {
-        console.error('Failed to initialize database schema:', error);
-        // We don't exit(1) on migration failure if it might be a 'column already exists' error 
-        // that IF NOT EXISTS didn't catch, but pg is generally good with IF NOT EXISTS.
+      exists = tableCheck.rows[0].exists;
     }
+
+    if (!exists) {
+      console.log("Initializing database schema for the first time...");
+      const schemaPath = join(__dirname, "schema.sql");
+      const schema = readFileSync(schemaPath, "utf8");
+      await p.query(schema);
+      console.log("Database schema initialized successfully.");
+    } else {
+      console.log("Database schema already exists.");
+    }
+  } catch (error) {
+    console.error("Failed to initialize database schema:", error);
+  }
 };
 
-export default pool;
+export default {
+  query: async (text: string, params?: any[]) => {
+    const p = await getPool();
+    return p.query(text, params);
+  },
+};

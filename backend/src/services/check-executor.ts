@@ -117,6 +117,8 @@ export class CheckExecutor {
       let responseData: any;
       let txHash: string;
       let costPaid: number;
+      let paymentMethod: 'x402' | 'mpp';
+      let channelId: string | undefined;
 
       try {
           console.log(`Executing check for ${watcher.type} watcher: ${watcherId} ...`);
@@ -137,6 +139,8 @@ export class CheckExecutor {
           responseData = result.data;
           txHash = result.txHash;
           costPaid = result.costPaid;
+          paymentMethod = result.paymentMethod;
+          channelId = result.channelId;
           console.log(`[CheckExecutor] Payment via ${result.paymentMethod.toUpperCase()}`);
       } catch (payError: any) {
           // 8. If X402 Payment Fails
@@ -183,7 +187,9 @@ export class CheckExecutor {
         amountUsdc: costUsdc,
         serviceName: watcher.type,
         stellarTxHash: txHash,
-        txType: 'check'
+        txType: 'check',
+        paymentMethod: paymentMethod,
+        channelId: channelId
       });
 
       // 11. Run Finding Detector
@@ -230,7 +236,9 @@ export class CheckExecutor {
               amountUsdc: vResult.costPaid / 10000000,
               serviceName: `${watcher.type} (verify)`,
               stellarTxHash: vResult.txHash,
-              txType: 'verification'
+              txType: 'verification',
+              paymentMethod: vResult.paymentMethod,
+              channelId: vResult.channelId
             });
             
             if (vFinding) {
@@ -280,6 +288,7 @@ export class CheckExecutor {
           console.log(`No finding: ${agentReasoning}`);
       }
 
+      console.log(`[CheckExecutor] Saving check record: ID=${checkId}, Method=${paymentMethod}, Channel=${channelId}, TX=${txHash}`);
       await createCheck({
         checkId: checkId,
         watcherId: watcherId,
@@ -291,7 +300,9 @@ export class CheckExecutor {
         stellarTxHash: txHash,
         findingDetected: findingDetected,
         findingId: findingId,
-        agentReasoning: agentReasoning
+        agentReasoning: agentReasoning,
+        paymentMethod: paymentMethod,
+        channelId: channelId
       });
 
       // 15. Update Watcher Details

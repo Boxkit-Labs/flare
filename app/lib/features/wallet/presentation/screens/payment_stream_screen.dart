@@ -38,9 +38,9 @@ class _PaymentStreamScreenState extends State<PaymentStreamScreen> with SingleTi
             id: _txCount++,
             x: 0.1 + _random.nextDouble() * 0.8,
             y: 0.0,
-            speed: 0.002 + _random.nextDouble() * 0.005,
+            speed: 0.004 + _random.nextDouble() * 0.004,
             amount: 0.001 + _random.nextDouble() * 0.008,
-            color: _random.nextBool() ? AppTheme.primary : Colors.blueAccent,
+            color: _random.nextBool() ? Colors.purpleAccent : AppTheme.primary,
           ));
           _totalStreamed += 0.008;
         });
@@ -94,11 +94,11 @@ class _PaymentStreamScreenState extends State<PaymentStreamScreen> with SingleTi
                       children: [
                         Container(
                           width: 8, height: 8,
-                          decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                          decoration: const BoxDecoration(color: Colors.purpleAccent, shape: BoxShape.circle),
                         ),
                         const SizedBox(width: 8),
                         const Text(
-                          'CONNECTED TO STELLAR',
+                          'MPP OFF-CHAIN ACTIVE',
                           style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -218,24 +218,27 @@ class StreamPainter extends CustomPainter {
     for (var p in particles) {
       final pos = Offset(p.x * size.width, p.y * size.height);
       
-      // Draw tail
+      // Draw continuous stream tail
       final tailPaint = Paint()
         ..shader = LinearGradient(
-          colors: [p.color.withValues(alpha: 0.0), p.color.withValues(alpha: 0.3)],
+          colors: [p.color.withValues(alpha: 0.0), p.color.withValues(alpha: 0.4), p.color.withValues(alpha: 0.8)],
+          stops: const [0.0, 0.7, 1.0],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-        ).createShader(Rect.fromLTWH(pos.dx, pos.dy - 60, 2, 60))
-        ..strokeWidth = 2.0;
+        ).createShader(Rect.fromLTWH(pos.dx, 0, 4, pos.dy))
+        ..strokeWidth = 3.0;
       
-      canvas.drawLine(Offset(pos.dx, pos.dy - 60), pos, tailPaint);
+      canvas.drawLine(Offset(pos.dx, 0), pos, tailPaint);
 
-      // Draw head
-      paint.color = p.color;
+      // Draw shiny head core
+      paint.color = Colors.white;
       canvas.drawCircle(pos, 3, paint);
       
-      // Draw Glow
+      // Draw strong Glow
+      paint.color = p.color.withValues(alpha: 0.6);
+      canvas.drawCircle(pos, 10, paint);
       paint.color = p.color.withValues(alpha: 0.2);
-      canvas.drawCircle(pos, 8, paint);
+      canvas.drawCircle(pos, 20, paint);
 
       // Draw Text (TX id)
       if (p.y > 0.2 && p.y < 0.8) {

@@ -15,6 +15,9 @@ import 'package:flare_app/features/watchers/presentation/widgets/analytics_chart
 import 'package:flare_app/features/watchers/presentation/widgets/animated_budget_bar.dart';
 import 'package:flare_app/features/findings/presentation/widgets/finding_card.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class WatcherDetailScreen extends StatefulWidget {
   final String watcherId;
@@ -31,7 +34,7 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _refresh();
     startAutoRefresh(const Duration(seconds: 30), _refresh);
   }
@@ -211,6 +214,22 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
                   ],
                 ),
               ),
+              if (['crypto', 'stock'].contains(watcher.type) && isActive)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Row(
+                    children: [
+                       Icon(Icons.fiber_manual_record, color: Colors.redAccent, size: 10),
+                       SizedBox(width: 4),
+                       Text('LIVE', style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
+                    ],
+                  ),
+                ),
+              const SizedBox(width: 8),
               if (isError)
                  TextButton.icon(
                    onPressed: _refresh, 
@@ -354,6 +373,7 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
         labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
         unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
         tabs: const [
+          Tab(text: 'Live Feed'),
           Tab(text: 'Findings'),
           Tab(text: 'History'),
           Tab(text: 'Charts'),
@@ -368,6 +388,7 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
       child: TabBarView(
         controller: _tabController,
         children: [
+           _LiveFeedTab(watcher: watcher),
            _buildFindingsTab(watcher),
            _buildHistoryTab(watcher),
            _buildAnalyticsTab(watcher),
@@ -496,4 +517,205 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
   }
 }
 
+class _LiveFeedTab extends StatefulWidget {
+  final WatcherModel watcher;
+  const _LiveFeedTab({required this.watcher});
+
+  @override
+  State<_LiveFeedTab> createState() => _LiveFeedTabState();
+}
+
+class _LiveFeedTabState extends State<_LiveFeedTab> {
+  WebSocketChannel? _channel;
+  final List<double> _prices = [];
+  Map<String, dynamic>? _latestFrame;
+  bool _isConnected = false;
+  bool _isReconnecting = false;
+  int _proofsSent = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (['crypto', 'stock'].contains(widget.watcher.type)) {
+       _connect();
+    }
+  }
+
+  void _connect() {
+    try {
+      if (!mounted) return;
+      setState(() {
+        _isReconnecting = true;
+      });
+      _channel = WebSocketChannel.connect(
+        Uri.parse('ws://127.0.0.1:4000/ws/stream?watcherId=${widget.watcher.watcherId}'),
+      );
+      
+      _channel!.stream.listen((message) {
+        final data = jsonDecode(message);
+        if (data['type'] == 'data') {
+           if (!mounted) return;
+           setState(() {
+              _isConnected = true;
+              _isReconnecting = false;
+              _latestFrame = data;
+              final num val = data['payload']['price'] ?? 0.0;
+              _prices.add(val.toDouble());
+              if (_prices.length > 20) _prices.removeAt(0);
+              _proofsSent++;
+           });
+        }
+      }, onDone: () {
+         if (mounted) {
+           setState(() {
+             _isConnected = false;
+             _isReconnecting = true;
+           });
+           Future.delayed(const Duration(seconds: 3), _connect);
+         }
+      }, onError: (error) {
+         if (mounted) {
+           setState(() {
+             _isConnected = false;
+             _isReconnecting = true;
+           });
+           Future.delayed(const Duration(seconds: 3), _connect);
+         }
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isConnected = false;
+          _isReconnecting = true;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _channel?.sink.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!['crypto', 'stock'].contains(widget.watcher.type)) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.waves, size: 40, color: AppTheme.textSecondary),
+            const SizedBox(height: 12),
+            const Text('Live Stream Unavailable', style: TextStyle(fontWeight: FontWeight.w900)),
+            const SizedBox(height: 8),
+            const Text(
+              'High-frequency WebSocket streams are\ncurrently only supported for crypto/stocks.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final price = _latestFrame != null ? _latestFrame!['payload']['price'].toString() : '---';
+    final timestamp = _latestFrame != null ? DateFormat('HH:mm:ss.SS').format(DateTime.now()) : '--:--:--';
+    final sessionCost = (_proofsSent * 0.0005).toStringAsFixed(4);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8, height: 8,
+                    decoration: BoxDecoration(
+                      color: _isConnected ? Colors.green : Colors.amber,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                         BoxShadow(color: (_isConnected ? Colors.green : Colors.amber).withValues(alpha: 0.3), blurRadius: 4),
+                      ]
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(_isConnected ? 'Connected' : 'Reconnecting...', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.textSecondary)),
+                ],
+              ),
+              Text(timestamp, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, color: AppTheme.textSecondary)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Container(
+             padding: const EdgeInsets.all(24),
+             decoration: BoxDecoration(
+               color: Colors.black,
+               borderRadius: BorderRadius.circular(24),
+             ),
+             child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                   const Text('LATEST FRAME', style: TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
+                   const SizedBox(height: 8),
+                   Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('\$$price', style: const TextStyle(color: Colors.greenAccent, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: -1.0)),
+                        const SizedBox(width: 8),
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 6.0),
+                          child: Text('USD', style: TextStyle(color: Colors.white38, fontSize: 14, fontWeight: FontWeight.bold)),
+                        ),
+                      ]
+                   ),
+                   const SizedBox(height: 32),
+                   SizedBox(
+                     height: 100,
+                     child: _prices.isEmpty ? const Center(child: CircularProgressIndicator(color: Colors.white24)) : LineChart(
+                        LineChartData(
+                          gridData: const FlGridData(show: false),
+                          titlesData: const FlTitlesData(show: false),
+                          borderData: FlBorderData(show: false),
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: _prices.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
+                              isCurved: true,
+                              color: Colors.greenAccent,
+                              barWidth: 3,
+                              isStrokeCapRound: true,
+                              dotData: const FlDotData(show: false),
+                              belowBarData: BarAreaData(
+                                show: true,
+                                color: Colors.greenAccent.withValues(alpha: 0.1),
+                              ),
+                            ),
+                          ],
+                        ),
+                     ),
+                   )
+                ]
+             )
+          ),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16)),
+            child: Row(
+               mainAxisAlignment: MainAxisAlignment.center,
+               children: [
+                 const Icon(Icons.link, color: Colors.purple, size: 16),
+                 const SizedBox(width: 8),
+                 Text('Proofs sent: $_proofsSent  |  Session cost: \$$sessionCost', style: const TextStyle(color: Colors.purple, fontWeight: FontWeight.w900, fontSize: 12)),
+               ]
+            )
+          )
+        ],
+      ),
+    );
+  }
+}
 

@@ -196,7 +196,7 @@ export class X402Client {
             args: [
               nativeToScVal(publicKey, { type: "address" }),
               nativeToScVal(parsed.payTo, { type: "address" }),
-              nativeToScVal(BigInt(parsed.amount), { type: "i128" }),
+              nativeToScVal(BigInt(parsed.amount)),
             ],
             networkPassphrase: passphrase,
             rpcUrl: this.rpcUrl,

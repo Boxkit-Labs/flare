@@ -95,6 +95,32 @@ class HomeContent extends StatelessWidget {
                     return Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        BlocBuilder<WatchersBloc, WatchersState>(
+                          builder: (context, matchersState) {
+                            if (matchersState is WatchersLoaded) {
+                               final liveCount = matchersState.watchers.where((w) => ['crypto', 'stock'].contains(w.type) && w.status == 'active').length;
+                               if (liveCount > 0) {
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    margin: const EdgeInsets.only(right: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle)),
+                                        const SizedBox(width: 4),
+                                        Text('$liveCount live streams active', style: const TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                                      ]
+                                    )
+                                  );
+                               }
+                            }
+                            return const SizedBox.shrink();
+                          }
+                        ),
                         _buildLiveButton(context),
                         const SizedBox(width: 8),
                         const NotificationBadgeIcon(),

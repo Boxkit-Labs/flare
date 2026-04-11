@@ -11,6 +11,8 @@ import {
 } from "@stellar/stellar-sdk";
 import { Server, Api, assembleTransaction } from "@stellar/stellar-sdk/rpc";
 import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import pool from "../db/database.js";
 import { encrypt, decrypt } from "../utils/crypto.js";
 import dotenv from "dotenv";
@@ -24,8 +26,8 @@ const USDC_CONTRACT = process.env.USDC_ISSUER
   ? "" // We'll use contract address from env
   : "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA";
 
-// The WASM hash of the deployed one-way-channel contract
 const CHANNEL_WASM_HASH = process.env.MPP_CHANNEL_WASM_HASH || "";
+const MPP_CHANNEL_CONTRACT_ID = "CCF6KCSVWEWOVTFNA24Y2JLFPVZJ6TIF5UDDVGUINBZIW6BAZG4KYE5R";
 
 export interface ChannelState {
   channelId: string;
@@ -47,11 +49,11 @@ async function waitForTransaction(
   rpc: Server,
   hash: string,
   timeoutMs = 45000,
-): Promise<void> {
+): Promise<Api.GetTransactionResponse> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     const res = await rpc.getTransaction(hash);
-    if (res.status === "SUCCESS") return;
+    if (res.status === "SUCCESS") return res;
     if (res.status === "FAILED")
       throw new Error(`Transaction ${hash} failed on-chain.`);
     await new Promise((r) => setTimeout(r, 3000));
@@ -110,9 +112,12 @@ export class MPPChannelManager {
 
     const account = await rpc.getAccount(senderKeypair.publicKey());
 
-    // Build CreateContract using wasm hash — the one-way-channel constructor needs:
-    // token, from (funder), to (recipient), commitment_key (bytes32), amount (i128), refund_waiting_period (u32)
-    const createContractArgs = new xdr.CreateContractArgs({
+    // USDC contract address to use as token
+    const usdcAddress =
+      "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA";
+
+    // 1. Deploy contract with empty constructor args (new WASM requires separate init)
+    const createContractArgs = new xdr.CreateContractArgsV2({
       contractIdPreimage: xdr.ContractIdPreimage.contractIdPreimageFromAddress(
         new xdr.ContractIdPreimageFromAddress({
           address: Address.fromString(senderKeypair.publicKey()).toScAddress(),
@@ -120,10 +125,11 @@ export class MPPChannelManager {
         }),
       ),
       executable: xdr.ContractExecutable.contractExecutableWasm(wasmHashBuffer),
+      constructorArgs: [],
     });
 
     const createOp = Operation.invokeHostFunction({
-      func: xdr.HostFunction.hostFunctionTypeCreateContract(createContractArgs),
+      func: xdr.HostFunction.hostFunctionTypeCreateContractV2(createContractArgs),
       auth: [],
     });
 
@@ -135,9 +141,7 @@ export class MPPChannelManager {
       .setTimeout(60)
       .build();
 
-    console.log(
-      `[MPP] Simulating contract creation for channel ${channelKey}...`,
-    );
+    console.log(`[MPP] Deploying channel contract (empty ctor)...`);
     const simResult = await rpc.simulateTransaction(createTx);
     if (Api.isSimulationError(simResult)) {
       throw new Error(
@@ -156,85 +160,77 @@ export class MPPChannelManager {
     }
 
     console.log(`[MPP] Contract creation TX submitted: ${sendResult.hash}`);
-    await waitForTransaction(rpc, sendResult.hash);
+    const createTxRes = await waitForTransaction(rpc, sendResult.hash);
+    console.log(`[MPP] Contract creation TX successful: ${sendResult.hash}`);
 
-    // Derive the contract address from the salt + deployer
-    const contractAddress = (() => {
-      try {
-        const computedId = xdr.HashIdPreimage.envelopeTypeContractId(
-          new xdr.HashIdPreimageContractId({
-            networkId: xdr.Hash.fromXDR(
-              Buffer.from(NETWORK_PASSPHRASE, "utf8").slice(0, 32),
-            ),
-            contractIdPreimage:
-              xdr.ContractIdPreimage.contractIdPreimageFromAddress(
-                new xdr.ContractIdPreimageFromAddress({
-                  address: Address.fromString(
-                    senderKeypair.publicKey(),
-                  ).toScAddress(),
-                  salt,
-                }),
-              ),
-          }),
-        );
-        const hash = crypto
-          .createHash("sha256")
-          .update(computedId.toXDR())
-          .digest();
-        return Address.contract(hash).toString();
-      } catch {
-        // Fallback: read from tx result
-        return `UNKNOWN_${Date.now()}`;
-      }
-    })();
+    // Extract the contract address from the transaction result (it's the return value of CreateContract)
+    const successRes = createTxRes as Api.GetSuccessfulTransactionResponse;
+    const contractAddress = successRes.returnValue ? Address.fromScVal(successRes.returnValue).toString() : null;
+    if (!contractAddress || typeof contractAddress !== 'string') {
+      throw new Error(`Failed to extract contract address string from deployment result. Got: ${JSON.stringify(contractAddress)}`);
+    }
+    console.log(`[MPP] Deployed contract address: ${contractAddress}`);
 
-    // Now call __constructor on the deployed contract
+
+
+    // 2. Initialize the channel contract
     const updatedAccount = await rpc.getAccount(senderKeypair.publicKey());
     const channelContract = new Contract(contractAddress);
 
-    // USDC contract address to use as token
-    const usdcAddress =
-      "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA";
-
-    const constructorTx = new TransactionBuilder(updatedAccount, {
+    const initTx = new TransactionBuilder(updatedAccount, {
       fee: "100000",
       networkPassphrase: NETWORK_PASSPHRASE,
     })
       .addOperation(
         channelContract.call(
-          "__constructor",
-          new Address(usdcAddress).toScVal(),
+          "init",
+          xdr.ScVal.scvBytes(Buffer.from(commitmentPubKeyHex, "hex")),
           new Address(senderKeypair.publicKey()).toScVal(),
           new Address(receiverAddress).toScVal(),
-          xdr.ScVal.scvBytes(Buffer.from(commitmentPubKeyHex, "hex")),
-          nativeToScVal(BigInt(depositStroops), { type: "i128" }),
-          xdr.ScVal.scvU32(720), // refund_waiting_period: 720 ledgers ≈ ~1 hour
+          new Address(usdcAddress).toScVal(),
         ),
       )
       .setTimeout(60)
       .build();
 
-    const simCtor = await rpc.simulateTransaction(constructorTx);
-    if (Api.isSimulationError(simCtor)) {
-      throw new Error(
-        `Constructor simulation failed: ${JSON.stringify(simCtor.error)}`,
-      );
+    console.log(`[MPP] Initializing channel ${contractAddress}...`);
+    const simInit = await rpc.simulateTransaction(initTx);
+    if (Api.isSimulationError(simInit)) {
+      throw new Error(`Init simulation failed: ${JSON.stringify(simInit.error)}`);
     }
+    const preparedInit = assembleTransaction(initTx, simInit).build();
+    preparedInit.sign(senderKeypair);
+    const initRes = await rpc.sendTransaction(preparedInit);
+    await waitForTransaction(rpc, initRes.hash);
 
-    const preparedCtor = assembleTransaction(constructorTx, simCtor).build();
-    preparedCtor.sign(senderKeypair);
+    // 3. Top up (Fund) the channel
+    const accountForTopup = await rpc.getAccount(senderKeypair.publicKey());
+    const topupTx = new TransactionBuilder(accountForTopup, {
+      fee: "100000",
+      networkPassphrase: NETWORK_PASSPHRASE,
+    })
+      .addOperation(
+        channelContract.call(
+          "top_up",
+          nativeToScVal(BigInt(depositStroops), { type: 'i128' }),
+        ),
+      )
+      .setTimeout(60)
+      .build();
 
-    const ctorSend = await rpc.sendTransaction(preparedCtor);
-    if (ctorSend.status !== "PENDING") {
-      throw new Error(
-        `Constructor TX submission failed: ${JSON.stringify(ctorSend)}`,
-      );
+    console.log(`[MPP] Funding channel with ${depositStroops} stroops...`);
+    const simTopup = await rpc.simulateTransaction(topupTx);
+    if (Api.isSimulationError(simTopup)) {
+      throw new Error(`Top-up simulation failed: ${JSON.stringify(simTopup.error)}`);
     }
-
-    console.log(`[MPP] Constructor TX submitted: ${ctorSend.hash}`);
-    await waitForTransaction(rpc, ctorSend.hash);
+    const preparedTopup = assembleTransaction(topupTx, simTopup).build();
+    preparedTopup.sign(senderKeypair);
+    const topupRes = await rpc.sendTransaction(preparedTopup);
+    await waitForTransaction(rpc, topupRes.hash);
 
     const channelId = contractAddress;
+    const finalTxHash = topupRes.hash;
+
     const state: ChannelState = {
       channelId,
       contractAddress,
@@ -247,7 +243,7 @@ export class MPPChannelManager {
       latestProof: null,
       openedAt: new Date(),
       expiresAt,
-      txHashOpen: ctorSend.hash,
+      txHashOpen: finalTxHash,
       status: "open",
     };
 
@@ -272,15 +268,15 @@ export class MPPChannelManager {
         commitmentPubKeyHex,
         encryptedSecretKey,
         parseFloat(depositAmount),
-        ctorSend.hash,
+        finalTxHash,
         expiresAt.toISOString(),
       ],
     );
 
     console.log(
-      `[MPP] OK: Channel opened: ${channelId} | TX: ${ctorSend.hash}`,
+      `[MPP] OK: Channel opened: ${channelId} | TX: ${finalTxHash}`,
     );
-    return { channelId, txHash: ctorSend.hash };
+    return { channelId, txHash: finalTxHash };
   }
 
   // ----------------------------------------------------
@@ -330,7 +326,7 @@ export class MPPChannelManager {
       const commitment = xdr.ScVal.scvMap([
         new xdr.ScMapEntry({
           key: xdr.ScVal.scvSymbol("amount"),
-          val: nativeToScVal(BigInt(proof.amount), { type: "i128" }),
+          val: nativeToScVal(BigInt(proof.amount), { type: 'i128' }),
         }),
         new xdr.ScMapEntry({
           key: xdr.ScVal.scvSymbol("channel"),
@@ -427,7 +423,7 @@ export class MPPChannelManager {
     const commitment = xdr.ScVal.scvMap([
       new xdr.ScMapEntry({
         key: xdr.ScVal.scvSymbol("amount"),
-        val: nativeToScVal(BigInt(newSpentStroops), { type: "i128" }),
+        val: nativeToScVal(BigInt(newSpentStroops), { type: 'i128' }),
       }),
       new xdr.ScMapEntry({
         key: xdr.ScVal.scvSymbol("channel"),
@@ -520,7 +516,7 @@ export class MPPChannelManager {
       .addOperation(
         channelContract.call(
           "close",
-          nativeToScVal(BigInt(proof.amount), { type: "i128" }),
+          nativeToScVal(BigInt(proof.amount), { type: 'i128' }),
           xdr.ScVal.scvBytes(Buffer.from(proof.signature, "hex")),
         ),
       )

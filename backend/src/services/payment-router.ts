@@ -32,6 +32,7 @@ export interface PayForCheckResult {
   txHash: string;
   costPaid: number;
   paymentMethod: 'x402' | 'mpp';
+  channelId?: string;
 }
 
 export class PaymentRouter {
@@ -119,7 +120,6 @@ export class PaymentRouter {
 
     let data: any;
     try {
-      // First try: some services accept the proof directly
       const res = await fetch(serviceUrl, fetchOptions);
       if (res.ok) {
         data = await res.json();
@@ -158,6 +158,7 @@ export class PaymentRouter {
       txHash,
       costPaid: priceStroops,
       paymentMethod: 'mpp',
+      channelId: channelState!.channelId,
     };
   }
 }

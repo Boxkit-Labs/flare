@@ -96,7 +96,10 @@ router.post('/:id/fund', async (req: Request, res: Response) => {
         // 1. Friendbot Funding (XLM)
         if (!hasXlm) {
             console.log(`[FUND] Step 1: Calling friendbot for ${publicKey}...`);
-            await stellarService.fundWithFriendbot(publicKey);
+            const success = await stellarService.fundWithFriendbot(publicKey);
+            if (!success) {
+                throw new Error("Friendbot funding failed after all retries");
+            }
             console.log('[FUND] Step 1: Success');
         } else {
             console.log('[FUND] Step 1: Already has XLM, skipping.');
@@ -105,13 +108,27 @@ router.post('/:id/fund', async (req: Request, res: Response) => {
         // 2. Add USDC Trustline
         console.log('[FUND] Step 2: Ensuring USDC trustline exists...');
         await stellarService.addUsdcTrustline(decryptedSecret);
-        console.log('[FUND] Step 2: Success');
+        console.log('[FUND] Step 2: Success. Waiting for ledger...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log('[FUND] Finalizing Step 3...');
 
-        // 3. Transfer 10 USDC from Operator
+        // 3. Transfer 1.0 USDC from Operator
         if (process.env.OPERATOR_SECRET) {
-            console.log('[FUND] Step 3: Sending 10.0 USDC...');
-            await stellarService.fundNewUserWithUsdc(publicKey, '10.0');
-            console.log('[FUND] Step 3: Success');
+            console.log('[FUND] Step 3: Sending 1.0 USDC...');
+            let attempts = 0;
+            let success = false;
+            while (attempts < 3 && !success) {
+                try {
+                    await stellarService.fundNewUserWithUsdc(publicKey, '1.0');
+                    success = true;
+                    console.log(`[FUND] Step 3: Success (Attempt ${attempts + 1})`);
+                } catch (e: any) {
+                    attempts++;
+                    console.warn(`[FUND] Step 3: Attempt ${attempts} failed: ${e.message}. Retrying in 3s...`);
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    if (attempts >= 3) throw e;
+                }
+            }
         } else {
             console.warn('[FUND] Step 3: Skipped (OPERATOR_SECRET missing)');
         }
@@ -130,6 +147,9 @@ router.post('/:id/fund', async (req: Request, res: Response) => {
         console.error('[FUND] Error during funding process:', error);
         res.status(500).json({ 
             error: error.message,
+            stack: error.stack,
+            detail: error.response?.data || null,
+            full_error: JSON.stringify(error, Object.getOwnPropertyNames(error)),
             step_failed: error.message.includes('friendbot') ? 1 : 
                         error.message.includes('trustline') ? 2 : 3
         });
