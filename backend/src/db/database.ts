@@ -1,5 +1,5 @@
 import pg from "pg";
-import sqlite3 from "sqlite3";
+// sqlite3 removed from top-level to avoid GLIBC errors on Render
 import { promisify } from "node:util";
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -47,6 +47,7 @@ async function getPool() {
       `[Database] PostgreSQL connection failed: ${e.message}. Falling back to SQLite.`,
     );
     isSqlite = true;
+    const { default: sqlite3 } = await import("sqlite3");
 
     const dbPath = process.env.DB_PATH || "flare.sqlite";
     const db = new sqlite3.Database(dbPath);
