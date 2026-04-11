@@ -199,6 +199,7 @@ export class CheckExecutor {
       let findingDetected = false;
       let findingId = null;
       let agentReasoning = '';
+      let finalFindingToSave: Finding | null = null;
 
       if (finding) {
           // --- DEAD FINDING PREVENTION: RE-VERIFICATION LOOP ---
@@ -269,12 +270,10 @@ export class CheckExecutor {
               // Ensure finding is linked to the ORIGINAL check_id
               vFinding.check_id = checkId;
               
-              await createFinding(vFinding);
               findingDetected = true;
               findingId = vFinding.finding_id;
               agentReasoning = vFinding.agent_reasoning || 'Finding cross-verified and scored.';
-              
-              await notificationService.sendFindingNotification(watcher.user_id, vFinding as any, watcher);
+              finalFindingToSave = vFinding as Finding;
             } else {
               console.log(`[Re-Verify] FAILED. Finding no longer valid. Suppressing alert.`);
               findingDetected = false;
@@ -307,6 +306,12 @@ export class CheckExecutor {
         paymentMethod: paymentMethod,
         channelId: channelId
       });
+
+      // 14b. Save Finding and Alert User if Confirmed
+      if (findingDetected && finalFindingToSave) {
+          await createFinding(finalFindingToSave);
+          await notificationService.sendFindingNotification(watcher.user_id, finalFindingToSave as any, watcher);
+      }
 
       // 15. Update Watcher Details
       const newTotalChecks = ((watcher as any).total_checks || 0) + 1;

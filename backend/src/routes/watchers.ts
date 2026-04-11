@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import * as queries from '../db/queries.js';
 import { scheduler } from '../server.js';
+import { mppChannelManager } from '../services/mpp-channel-manager.js';
 
 const router = Router();
 
@@ -237,6 +238,24 @@ router.post('/:id/toggle', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
     try {
         const watcherId = req.params.id as string;
+        
+        const watcher = await queries.getWatcherById(watcherId) as WatcherRow | undefined;
+        if (watcher) {
+            try {
+                // If there's an active off-chain MPP channel, close it to settle funds before deletion.
+                await mppChannelManager.closeChannel({
+                    userId: watcher.user_id,
+                    serviceId: `${watcher.type}-service`
+                });
+                console.log(`[MPP] Channel closed and settled successfully for deleted watcher: ${watcherId} - deducting used funds.`);
+            } catch (closeErr: any) {
+                // Ignore errors related to not finding a channel or proof, since non-MPP watchers won't have one
+                if (!closeErr.message.includes('No active channel') && !closeErr.message.includes('No proof')) {
+                    console.error(`[MPP] Warning: Could not close channel for deleted watcher (${watcherId}):`, closeErr.message);
+                }
+            }
+        }
+
         const result = await queries.deleteWatcher(watcherId);
         if (result.rowCount === 0) return res.status(404).json({ error: 'Watcher not found' });
         
