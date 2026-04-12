@@ -14,7 +14,7 @@ import { CheckExecutor } from './services/check-executor.js';
 import { SchedulerService } from './services/scheduler.js';
 import { briefingGenerator } from './services/briefing-generator.js';
 import { MppService } from './services/mpp-service.js';
-import './services/mpp-stream.js';
+import { MPPStreamService } from './services/mpp-stream.js';
 
 dotenv.config();
 
@@ -54,8 +54,10 @@ async function main() {
 
     await MppService.init();
 
-    app.listen(port, '0.0.0.0', () => {
+    const server = app.listen(port, '0.0.0.0', () => {
       console.log(`Server is running on 0.0.0.0:${port}`);
+
+      new MPPStreamService({ server });
 
       scheduler.start().catch(e => console.error("Scheduler failed to start:", e));
     });

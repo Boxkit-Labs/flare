@@ -6,54 +6,62 @@ class SavingsService {
     Map<String, double> categorySavings = {};
 
     for (var finding in findings) {
-       double savings = 0;
-       final data = finding.data ?? {};
+      double savings = 0;
+      final data = finding.data ?? {};
+      final type = (finding.watcherType ?? finding.type).toLowerCase();
 
-       switch (finding.type.toLowerCase()) {
-         case 'flights':
-         case 'flight':
-           final prev = data['previous_price'] ?? data['previous_value'] ?? data['old_price'];
-           final curr = data['price'] ?? data['current_value'] ?? data['new_price'];
-           if (prev != null && curr != null) {
-              savings = (prev - curr).toDouble().clamp(0, double.infinity);
-           }
-           break;
-         case 'products':
-         case 'product':
-           final prev = data['previous_price'] ?? data['previous_value'] ?? data['target_price'];
-           final curr = data['price'] ?? data['current_value'] ?? data['found_price'];
-           if (prev != null && curr != null) {
-              savings = (prev - curr).toDouble().clamp(0, double.infinity);
-           }
-           break;
-         case 'crypto':
-         case 'stock':
-         case 'stocks':
+      switch (type) {
+        case 'flight':
+        case 'flights':
+          final prev = data['previous_price'] ?? 800.0;
+          final curr = data['cheapest_price'] ?? data['price'] ?? 0.0;
+          if (curr > 0) {
+            savings = (prev.toDouble() - curr.toDouble()).clamp(0.0, 1000.0);
+          }
+          break;
 
-           final change = data['change_percent'] ?? 0.0;
-           if (change > 0) {
+        case 'crypto':
+        case 'stock':
+        case 'stocks':
+          final assets = data['assets'] as Map<String, dynamic>?;
+          if (assets != null && assets.isNotEmpty) {
+            final firstAsset = assets.values.first;
+            final change = (firstAsset['change_24h'] ?? 0.0).toDouble().abs();
+            if (change > 0) {
               savings = (change / 100.0) * 1000;
-           }
-           break;
-         case 'sports':
-           final prev = data['previous_price'] ?? 250.0;
-           final curr = data['price'] ?? 150.0;
-           savings = (prev - curr).toDouble().clamp(0, double.infinity);
-           break;
-          default:
-           savings = 0;
-       }
+            }
+          } else {
+            final change = (data['change_percent'] ?? data['change'] ?? 0.0).toDouble().abs();
+            if (change > 0) {
+              savings = (change / 100.0) * 1000;
+            }
+          }
+          break;
 
-       if (savings > 0) {
-         total += savings;
-         categorySavings[finding.type] = (categorySavings[finding.type] ?? 0) + savings;
-       }
+        case 'product':
+        case 'products':
+          final prev = data['previous_price'] ?? data['target_price'] ?? 0.0;
+          final curr = data['found_price'] ?? data['price'] ?? 0.0;
+          if (prev > 0 && curr > 0) {
+            savings = (prev.toDouble() - curr.toDouble()).clamp(0.0, double.infinity);
+          }
+          break;
+
+        default:
+          savings = 0;
+      }
+
+      if (savings > 0) {
+        total += savings;
+        final catKey = type.isNotEmpty ? type : 'other';
+        categorySavings[catKey] = (categorySavings[catKey] ?? 0) + savings;
+      }
     }
 
     return {
-       'total': total,
-       'byCategory': categorySavings,
-       'findingsCount': findings.length,
+      'total': total,
+      'byCategory': categorySavings,
+      'findingsCount': findings.length,
     };
   }
 

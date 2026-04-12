@@ -5,9 +5,11 @@ class AppConstants {
       'https://stellar.expert/explorer/testnet/tx/';
 
   static String get baseWsUrl {
-    if (apiBaseUrl.contains('onrender.com')) {
-      return 'wss://flare-f9yk.onrender.com';
-    }
-    return 'ws://10.0.2.2:4000';
+    final uri = Uri.parse(apiBaseUrl);
+    final scheme = uri.isScheme('https') ? 'wss' : 'ws';
+    final host = uri.host;
+    final port = uri.hasPort ? ':${uri.port}' : '';
+    
+    return '$scheme://$host$port/ws/stream';
   }
 }

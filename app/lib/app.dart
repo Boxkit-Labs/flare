@@ -34,21 +34,28 @@ class NotificationOverlayManager extends StatefulWidget {
   const NotificationOverlayManager({super.key, required this.child});
 
   @override
-  State<NotificationOverlayManager> createState() => _NotificationOverlayManagerState();
+  State<NotificationOverlayManager> createState() =>
+      _NotificationOverlayManagerState();
 }
 
-class _NotificationOverlayManagerState extends State<NotificationOverlayManager> {
-  int _lastKnownUnreadCount = 0;
+class _NotificationOverlayManagerState
+    extends State<NotificationOverlayManager> {
   OverlayEntry? _currentBanner;
 
   String _getEmoji(String type) {
     switch (type.toLowerCase()) {
-      case 'flights': return '✈️';
-      case 'crypto': return '💰';
-      case 'news': return '📰';
-      case 'products': return '🛍️';
-      case 'jobs': return '💼';
-      default: return '👻';
+      case 'flights':
+        return '✈️';
+      case 'crypto':
+        return '💰';
+      case 'news':
+        return '📰';
+      case 'products':
+        return '🛍️';
+      case 'jobs':
+        return '💼';
+      default:
+        return '👻';
     }
   }
 
@@ -86,8 +93,12 @@ class _NotificationOverlayManagerState extends State<NotificationOverlayManager>
       },
       listener: (context, state) {
         if (state is FindingsLoaded && state.findings.isNotEmpty) {
-           final latest = state.findings.first;
-           _showNotification(latest.headline, _getEmoji(latest.type), latest.findingId);
+          final latest = state.findings.first;
+          _showNotification(
+            latest.headline,
+            _getEmoji(latest.type),
+            latest.findingId,
+          );
         }
       },
       child: widget.child,
