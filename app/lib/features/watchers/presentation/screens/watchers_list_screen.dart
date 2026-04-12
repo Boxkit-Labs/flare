@@ -1,3 +1,4 @@
+import 'package:flare_app/core/mixins/auto_refresh_mixin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -19,7 +20,7 @@ class WatchersListScreen extends StatefulWidget {
   State<WatchersListScreen> createState() => _WatchersListScreenState();
 }
 
-class _WatchersListScreenState extends State<WatchersListScreen> {
+class _WatchersListScreenState extends State<WatchersListScreen> with AutoRefreshMixin {
   String _selectedFilter = 'All';
   final List<String> _filters = [
     'All', 'Active', 'Paused', 'Flights', 'Crypto', 'News', 'Products', 'Jobs'
@@ -29,12 +30,15 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
   void initState() {
     super.initState();
     _refresh();
+    startAutoRefresh(const Duration(seconds: 30), _onAutoRefresh);
   }
 
-  void _refresh() {
+  void _onAutoRefresh() => _refresh(silent: true);
+
+  void _refresh({bool silent = false}) {
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
-      context.read<WatchersBloc>().add(LoadWatchers(authState.user.userId));
+      context.read<WatchersBloc>().add(LoadWatchers(authState.user.userId, isRefresh: silent));
     }
   }
 

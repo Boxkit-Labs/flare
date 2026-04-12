@@ -470,7 +470,8 @@ export class CheckExecutor {
           }
 
           const WebSocket = await import('ws').then(m => m.default || m.WebSocket);
-          const wsUrl = "ws://127.0.0.1:4000/ws/stream?userId=" + watcher.user_id + "&serviceId=" + watcher.type + "-service&channelId=" + channelId + "&watcherId=" + watcher.watcher_id;
+          const port = process.env.PORT || '3000';
+          const wsUrl = `ws://127.0.0.1:${port}/ws/stream?userId=${watcher.user_id}&serviceId=${watcher.type}-service&channelId=${channelId}&watcherId=${watcher.watcher_id}`;
 
           const ws = new WebSocket(wsUrl);
 
