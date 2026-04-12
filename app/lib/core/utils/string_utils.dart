@@ -16,4 +16,9 @@ class StringUtils {
     if (hash.length <= (startLen + endLen)) return hash;
     return '${hash.substring(0, startLen)}...${hash.substring(hash.length - endLen)}';
   }
+
+  /// Formats currency with high precision to show micropayment deductions.
+  static String formatCurrency(double amount, {int decimals = 4}) {
+     return '\$${amount.toStringAsFixed(decimals)}';
+  }
 }

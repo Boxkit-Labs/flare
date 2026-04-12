@@ -171,7 +171,7 @@ class _WalletScreenState extends State<WalletScreen> {
           curve: Curves.easeOutQuart,
           builder: (context, value, child) {
             return Text(
-              '\$${value.toStringAsFixed(2)}',
+              StringUtils.formatCurrency(value, decimals: 4),
               style: const TextStyle(fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2.0),
             );
           },
@@ -244,7 +244,7 @@ class _WalletScreenState extends State<WalletScreen> {
       children: [
         _buildStatPill(
           'SPENT TODAY',
-          '\$${(stats?.spentToday ?? 0.0).toStringAsFixed(2)}',
+          StringUtils.formatCurrency(stats?.spentToday ?? 0.0, decimals: 3),
           Icons.arrow_downward_rounded,
         ),
         const SizedBox(width: 12),
@@ -737,7 +737,7 @@ class _WalletScreenState extends State<WalletScreen> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              '-\$${tx.amountUsdc.toStringAsFixed(3)}',
+              '-\$${tx.amountUsdc.toStringAsFixed(4)}',
               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.black),
             ),
             if (tx.findingDetected == true)
@@ -793,7 +793,7 @@ class _WalletScreenState extends State<WalletScreen> {
             const SizedBox(height: 32),
             _buildDetailRow('AGENT NAME', tx.watcherName ?? 'General Scanner'),
             _buildDetailRow('SERVICE LAYER', tx.serviceName.toUpperCase()),
-            _buildDetailRow('AMOUNT', '\$${tx.amountUsdc.toStringAsFixed(3)} USDC'),
+            _buildDetailRow('AMOUNT', '\$${tx.amountUsdc.toStringAsFixed(4)} USDC'),
             _buildDetailRow('TIMESTAMP', DateFormat('MMMM d, yyyy HH:mm').format(DateTime.parse(tx.timestamp))),
             _buildDetailRow('STELLAR HASH', tx.stellarTxHash, isCopyable: true),
             const SizedBox(height: 40),

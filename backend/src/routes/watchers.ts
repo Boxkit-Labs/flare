@@ -119,7 +119,7 @@ router.get('/', async (req: Request, res: Response) => {
 
         const watchers = await queries.getWatchersByUserId(userId) as WatcherRow[];
         
-        const enhancedWatchers = watchers.map(w => {
+        const enhancedWatchers = watchers.map((w: WatcherRow) => {
             const budgetPercentUsed = w.weekly_budget_usdc > 0 
                 ? (w.spent_this_week_usdc / w.weekly_budget_usdc) * 100 
                 : 0;
@@ -242,16 +242,26 @@ router.delete('/:id', async (req: Request, res: Response) => {
         const watcher = await queries.getWatcherById(watcherId) as WatcherRow | undefined;
         if (watcher) {
             try {
-                // If there's an active off-chain MPP channel, close it to settle funds before deletion.
-                await mppChannelManager.closeChannel({
-                    userId: watcher.user_id,
-                    serviceId: `${watcher.type}-service`
-                });
-                console.log(`[MPP] Channel closed and settled successfully for deleted watcher: ${watcherId} - deducting used funds.`);
+                // Determine if this is the last watcher for this user/service type
+                const allUserWatchers = await queries.getWatchersByUserId(watcher.user_id);
+                // We count how many watchers of the same type exist that are NOT the one being deleted
+                const sameTypeWatchers = allUserWatchers.filter((w: WatcherRow) => w.type === watcher.type && w.watcher_id !== watcherId && w.status === 'active');
+                
+                if (sameTypeWatchers.length === 0) {
+                    console.log(`[MPP] Last ${watcher.type} watcher for user ${watcher.user_id} being deleted. Attempting to close/settle channel.`);
+                    // If there's an active off-chain MPP channel, close it to settle funds before deletion.
+                    await mppChannelManager.closeChannel({
+                        userId: watcher.user_id,
+                        serviceId: `${watcher.type}-service`
+                    });
+                    console.log(`[MPP] Channel closed and settled successfully for deleted watcher: ${watcherId}. Final balance should reflect on-chain.`);
+                } else {
+                    console.log(`[MPP] User still has ${sameTypeWatchers.length} active ${watcher.type} watcher(s). Keeping channel open for remaining stream to optimize fees.`);
+                }
             } catch (closeErr: any) {
-                // Ignore errors related to not finding a channel or proof, since non-MPP watchers won't have one
+                // Log the error but continue with deletion so the app doesn't hang
                 if (!closeErr.message.includes('No active channel') && !closeErr.message.includes('No proof')) {
-                    console.error(`[MPP] Warning: Could not close channel for deleted watcher (${watcherId}):`, closeErr.message);
+                    console.error(`[MPP] Error closing channel for deleted watcher ${watcherId}:`, closeErr.message);
                 }
             }
         }
