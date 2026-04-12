@@ -3,10 +3,6 @@ import * as queries from '../db/queries.js';
 
 const router = Router();
 
-/**
- * GET /api/findings
- * Paginated list of findings for a user.
- */
 router.get('/', async (req: Request, res: Response) => {
     try {
         const userId = req.query.user_id as string;
@@ -22,10 +18,6 @@ router.get('/', async (req: Request, res: Response) => {
     }
 });
 
-/**
- * GET /api/findings/:id
- * Detailed finding view with check and watcher info.
- */
 router.get('/:id', async (req: Request, res: Response) => {
     try {
         const findingId = req.params.id as string;
@@ -37,10 +29,6 @@ router.get('/:id', async (req: Request, res: Response) => {
     }
 });
 
-/**
- * POST /api/findings/:id/read
- * Mark a finding as read.
- */
 router.post('/:id/read', async (req: Request, res: Response) => {
     try {
         const findingId = req.params.id as string;

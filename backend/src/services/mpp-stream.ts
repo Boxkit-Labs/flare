@@ -26,13 +26,13 @@ export class MPPStreamService {
 
         this.wss.on('connection', async (ws: WebSocket, req: any) => {
             console.log(`[MPP Stream] New connection attempt: ${req.url}`);
-            
+
             try {
                 const WS_URL = 'ws://127.0.0.1:4000/ws/stream';
                 const url = new URL(req.url, `ws://${req.headers.host}`);
                 const userId = url.searchParams.get('userId');
                 const watcherId = url.searchParams.get('watcherId');
-                
+
                 let serviceId = url.searchParams.get('serviceId');
                 let channelId = url.searchParams.get('channelId');
 
@@ -51,7 +51,6 @@ export class MPPStreamService {
 
                 if (!serviceId) serviceId = `${watcher.type}-service`;
 
-                // Verify channel is open
                 const channelState = await mppChannelManager.getChannelStatus(userId, serviceId);
                 if (!channelState || channelState.status !== 'open') {
                     ws.send(JSON.stringify({ error: 'Valid open channel not found for this service' }));
@@ -60,7 +59,7 @@ export class MPPStreamService {
                 }
 
                 if (!channelId) channelId = channelState.channelId;
-                
+
                 if (channelId !== channelState.channelId) {
                     ws.send(JSON.stringify({ error: 'Mismatch between provided and active channelId' }));
                     ws.close(1008);
@@ -81,7 +80,6 @@ export class MPPStreamService {
                 this.clients.set(clientId, client);
                 console.log(`[MPP Stream] Client connected: ${clientId}`);
 
-                // Setup frame generation interval (every 10s)
                 client.intervalId = setInterval(() => this.sendDataFrame(clientId), 10000);
 
                 ws.on('message', async (message: string) => {
@@ -106,11 +104,10 @@ export class MPPStreamService {
 
         client.cumulativeCost += this.FRAME_COST_USDC;
 
-        // Mock data logic for frame
         const dataFrame = {
             type: "data",
             service: client.serviceId,
-            payload: { 
+            payload: {
                 timestamp: new Date().toISOString(),
                 status: "active",
                 data: `Mock data for ${client.serviceId} at ${Date.now()}`
@@ -121,7 +118,6 @@ export class MPPStreamService {
 
         client.ws.send(JSON.stringify(dataFrame));
 
-        // Check if 60 seconds have passed since last proof
         if (Date.now() - client.lastProofAt > 60000) {
             this.requestPaymentProof(clientId);
         }
@@ -131,11 +127,10 @@ export class MPPStreamService {
         const client = this.clients.get(clientId);
         if (!client) return;
 
-        // Clear any existing timeout
         if (client.paymentTimeoutId) clearTimeout(client.paymentTimeoutId);
 
         const amountDue = client.cumulativeCost;
-        
+
         const paymentFrame = {
             type: "payment_required",
             amount_due: amountDue.toFixed(4),
@@ -145,7 +140,6 @@ export class MPPStreamService {
 
         client.ws.send(JSON.stringify(paymentFrame));
 
-        // Disconnect if no proof received in 10 seconds
         client.paymentTimeoutId = setTimeout(() => {
             console.warn(`[MPP Stream] Client ${clientId} failed to provide payment proof. Disconnecting.`);
             client.ws.send(JSON.stringify({ type: "error", message: "Payment proof timeout" }));
@@ -161,17 +155,16 @@ export class MPPStreamService {
         try {
             const message = JSON.parse(messageStr);
             if (message.type === 'payment_proof' && message.proof) {
-                // Clear the timeout restriction
+
                 if (client.paymentTimeoutId) {
                     clearTimeout(client.paymentTimeoutId);
                     client.paymentTimeoutId = undefined;
                 }
 
-                // Verify the proof
                 const amountStroops = Math.round(client.cumulativeCost * 10_000_000);
                 const isValid = await mppChannelManager.verifyPaymentProof(
-                    client.channelId, 
-                    JSON.stringify(message.proof), // proof should be { amount, signature }
+                    client.channelId,
+                    JSON.stringify(message.proof),
                     amountStroops
                 );
 

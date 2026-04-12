@@ -1,10 +1,10 @@
 import express, { Request, Response } from 'express';
 import { stellarPaywall } from '../middleware/stellar-paywall.js';
-import { 
-    getFlightPrice, 
-    getCryptoData, 
-    getNewsAlerts, 
-    getJobPostings, 
+import {
+    getFlightPrice,
+    getCryptoData,
+    getNewsAlerts,
+    getJobPostings,
     getProductPrices,
     getStockData,
     getRealEstateData,
@@ -13,16 +13,12 @@ import {
 
 const router = express.Router();
 
-// Configuration from environment
 const RECIPIENT_ADDRESS = process.env.SERVICE_OPERATOR_PUBLIC || 'GDKU2DY4TTRRSQ6BBFYTDV2GEWREHCIDUM5FFXLIF66PDOO3HYJ2YZIF';
 const USDC_CONTRACT = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA';
 const SOROBAN_RPC_URL = process.env.SOROBAN_RPC_URL || 'https://soroban-testnet.stellar.org';
 
-/**
- * 1. Flight Data Service
- */
 router.post('/flight/api/flights', stellarPaywall({
-    priceStroops: 80000, // 0.008 USDC
+    priceStroops: 80000,
     recipientAddress: RECIPIENT_ADDRESS,
     usdcContractId: USDC_CONTRACT,
     rpcUrl: SOROBAN_RPC_URL
@@ -35,11 +31,8 @@ router.post('/flight/api/flights', stellarPaywall({
     res.json(getFlightPrice(origin.toUpperCase(), destination.toUpperCase()));
 });
 
-/**
- * 2. Crypto Data Service
- */
 router.get('/crypto/api/crypto', stellarPaywall({
-    priceStroops: 50000, // 0.005 USDC
+    priceStroops: 50000,
     recipientAddress: RECIPIENT_ADDRESS,
     usdcContractId: USDC_CONTRACT,
     rpcUrl: SOROBAN_RPC_URL
@@ -47,11 +40,8 @@ router.get('/crypto/api/crypto', stellarPaywall({
     res.json(getCryptoData());
 });
 
-/**
- * 3. News Data Service
- */
 router.get('/news/api/news', stellarPaywall({
-    priceStroops: 30000, // 0.003 USDC
+    priceStroops: 30000,
     recipientAddress: RECIPIENT_ADDRESS,
     usdcContractId: USDC_CONTRACT,
     rpcUrl: SOROBAN_RPC_URL
@@ -59,11 +49,8 @@ router.get('/news/api/news', stellarPaywall({
     res.json(getNewsAlerts());
 });
 
-/**
- * 4. Product Data Service
- */
 router.post('/product/api/products', stellarPaywall({
-    priceStroops: 40000, // 0.004 USDC
+    priceStroops: 40000,
     recipientAddress: RECIPIENT_ADDRESS,
     usdcContractId: USDC_CONTRACT,
     rpcUrl: SOROBAN_RPC_URL
@@ -76,11 +63,8 @@ router.post('/product/api/products', stellarPaywall({
     res.json(getProductPrices(name));
 });
 
-/**
- * 5. Job Data Service
- */
 router.post('/job/api/jobs', stellarPaywall({
-    priceStroops: 60000, // 0.006 USDC
+    priceStroops: 60000,
     recipientAddress: RECIPIENT_ADDRESS,
     usdcContractId: USDC_CONTRACT,
     rpcUrl: SOROBAN_RPC_URL
@@ -89,11 +73,8 @@ router.post('/job/api/jobs', stellarPaywall({
     res.json(getJobPostings(role));
 });
 
-/**
- * 6. Stock Data Service
- */
 router.get('/stocks/api/stocks', stellarPaywall({
-    priceStroops: 35000, // 0.0035 USDC
+    priceStroops: 35000,
     recipientAddress: RECIPIENT_ADDRESS,
     usdcContractId: USDC_CONTRACT,
     rpcUrl: SOROBAN_RPC_URL
@@ -102,11 +83,8 @@ router.get('/stocks/api/stocks', stellarPaywall({
     res.json(getStockData(symbol));
 });
 
-/**
- * 7. Real Estate Data Service
- */
 router.get('/realestate/api/realestate', stellarPaywall({
-    priceStroops: 90000, // 0.009 USDC
+    priceStroops: 90000,
     recipientAddress: RECIPIENT_ADDRESS,
     usdcContractId: USDC_CONTRACT,
     rpcUrl: SOROBAN_RPC_URL
@@ -115,11 +93,8 @@ router.get('/realestate/api/realestate', stellarPaywall({
     res.json(getRealEstateData(neighborhood));
 });
 
-/**
- * 8. Sports Data Service
- */
 router.get('/sports/api/sports', stellarPaywall({
-    priceStroops: 45000, // 0.0045 USDC
+    priceStroops: 45000,
     recipientAddress: RECIPIENT_ADDRESS,
     usdcContractId: USDC_CONTRACT,
     rpcUrl: SOROBAN_RPC_URL

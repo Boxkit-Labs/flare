@@ -49,7 +49,7 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
         ));
       }
     } catch (e) {
-      // Silent error for count
+
     }
   }
 
@@ -67,7 +67,7 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
           }
           return n;
         }).toList();
-        
+
         final newCount = (currentState.unreadCount - 1).clamp(0, double.infinity).toInt();
         emit(NotificationsLoaded(
           notifications: updatedNotifications,
@@ -75,7 +75,7 @@ class NotificationsBloc extends Bloc<NotificationsEvent, NotificationsState> {
         ));
       }
     } catch (e) {
-      // Silent error
+
     }
   }
 }

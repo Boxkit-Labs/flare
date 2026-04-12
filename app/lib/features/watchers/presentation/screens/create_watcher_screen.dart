@@ -30,10 +30,10 @@ class CreateWatcherScreen extends StatefulWidget {
 }
 
 class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
-  String _selectedType = 'flight'; 
+  String _selectedType = 'flight';
   Map<String, dynamic> _formData = {};
-  
-  int _intervalMinutes = 360; 
+
+  int _intervalMinutes = 360;
   double _weeklyBudget = 0.50;
   String _priority = 'medium';
 
@@ -68,7 +68,7 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
   void _onTypeSelect(String typeId) {
     setState(() {
       _selectedType = typeId;
-      _formData = {}; 
+      _formData = {};
       _intervalMinutes = _types.firstWhere((t) => t['id'] == typeId)['interval'];
     });
   }
@@ -138,13 +138,12 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
       _formData = {
         'name': 'Voice Agent: $text',
         'parameters': params,
-        'alert_conditions': {}, // Fail-safe: empty map to satisfy API req
+        'alert_conditions': {},
       };
     });
-    
+
     TopSnackbar.showSuccess(context, 'Flare understood: $text');
 
-    // Auto-launch after brief delay to let user see feedback
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) _launchWatcher();
     });
@@ -158,7 +157,7 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
 
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return;
-    
+
     final finalData = {
       ..._formData,
       'user_id': authState.user.userId,
@@ -195,7 +194,7 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
         ),
         body: Column(
           children: [
-            if (_isListening) 
+            if (_isListening)
               Container(
                 padding: const EdgeInsets.all(16),
                 color: AppTheme.primary.withValues(alpha: 0.1),

@@ -39,7 +39,7 @@ class _WalletScreenState extends State<WalletScreen> {
   void _refresh({bool force = false}) {
     final walletState = context.read<WalletBloc>().state;
     if (!force && walletState is WalletLoaded && walletState.wallet != null) return;
-    
+
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       final userId = authState.user.userId;
@@ -64,7 +64,7 @@ class _WalletScreenState extends State<WalletScreen> {
           IconButton(
             icon: const Icon(Icons.settings_outlined, size: 20),
             onPressed: () {
-               // Future settings
+
             },
           ),
           const SizedBox(width: 8),
@@ -249,7 +249,7 @@ class _WalletScreenState extends State<WalletScreen> {
         ),
         const SizedBox(width: 12),
         _buildStatPill(
-          'AGENT CHECKS', 
+          'AGENT CHECKS',
           '${stats?.totalChecksToday ?? 0}',
           Icons.bolt_rounded,
         ),
@@ -266,7 +266,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
   Widget _buildStatPill(
     String label,
-    String value, 
+    String value,
     IconData icon, {
     bool isHighlight = false,
   }) {
@@ -478,20 +478,16 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-
-
   Widget _buildEfficiencyCard(List<TransactionModel> txs) {
     if (txs.isEmpty) return const SizedBox.shrink();
-    
+
     final offChainCount = txs.where((t) => t.isOffChain).length;
     final onChainCount = txs.where((t) => !t.isOffChain).length;
-    
-    // Derived mockup statistics for visual analytics based on the requirements
+
     final withMppTx = onChainCount;
     final withoutMppTx = onChainCount + offChainCount;
     final savedPercent = withoutMppTx > 0 ? ((offChainCount / withoutMppTx) * 100).round() : 0;
-    
-    // Simulate channel stats based on tx data
+
     final channelsOpened = txs.where((t) => t.txType == 'channel_open' || (t.channelId != null && t.channelId!.isNotEmpty)).map((t) => t.channelId).toSet().length;
     final activeChannels = channelsOpened > 0 ? 1 : 0;
     final settledChannels = channelsOpened > 0 ? channelsOpened - activeChannels : 0;
@@ -538,8 +534,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 ],
               ),
               const SizedBox(height: 24),
-              
-              // Progress Bar
+
               Stack(
                 children: [
                    Container(
@@ -589,8 +584,7 @@ class _WalletScreenState extends State<WalletScreen> {
 
   Widget _buildChannelHistorySection(List<TransactionModel>? transactions) {
      if (transactions == null || transactions.isEmpty) return const SizedBox.shrink();
-     
-     // Group txs by channelId to build history view
+
      final offChain = transactions.where((t) => t.isOffChain && t.channelId != null).toList();
      if (offChain.isEmpty) return const SizedBox.shrink();
 
@@ -615,8 +609,8 @@ class _WalletScreenState extends State<WalletScreen> {
              final channelTxs = entry.value;
              final depositAmount = (channelTxs.length * 0.005).toStringAsFixed(3);
              final totalSpent = channelTxs.fold(0.0, (sum, tx) => sum + tx.amountUsdc);
-             // ignore: dead_code
-             const isClosed = false; // Mock channel open/close status
+
+             const isClosed = false;
 
              return Container(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -671,7 +665,7 @@ class _WalletScreenState extends State<WalletScreen> {
               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5),
             ),
             TextButton(
-              onPressed: () {}, 
+              onPressed: () {},
               child: const Text('View All', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
             ),
           ],
@@ -850,7 +844,7 @@ class _WalletScreenState extends State<WalletScreen> {
                 textAlign: TextAlign.end,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontWeight: FontWeight.w900, 
+                  fontWeight: FontWeight.w900,
                   fontSize: 13,
                   fontFamily: isCopyable ? 'Courier' : null,
                   color: isCopyable ? AppTheme.primary : AppTheme.textPrimary,
@@ -1032,7 +1026,7 @@ class _WalletScreenState extends State<WalletScreen> {
            Text(
              value,
              style: TextStyle(
-               fontWeight: FontWeight.w900, 
+               fontWeight: FontWeight.w900,
                fontSize: 14,
                color: isHighlighted ? AppTheme.primary : AppTheme.textPrimary,
              ),

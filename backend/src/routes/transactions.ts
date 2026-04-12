@@ -3,10 +3,6 @@ import * as queries from '../db/queries.js';
 
 const router = Router();
 
-/**
- * GET /api/transactions
- * Filtering by user_id or watcher_id.
- */
 router.get('/', async (req: Request, res: Response) => {
     try {
         const userId = req.query.user_id as string;

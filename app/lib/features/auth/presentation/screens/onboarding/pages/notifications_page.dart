@@ -40,7 +40,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     return BlocConsumer<OnboardingBloc, OnboardingState>(
         listener: (context, state) {
         if (state is OnboardingSuccess) {
-           // AuthBloc listener in OnboardingScreen handles this
+
         }
       },
       builder: (context, state) {
@@ -72,17 +72,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ),
               ),
               const SizedBox(height: 48),
-              
+
               const Text(
-                'DAILY DIGEST DELIVERY', 
+                'DAILY DIGEST DELIVERY',
                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppTheme.textSecondary, letterSpacing: 1.0)
               ),
               const SizedBox(height: 16),
-              
+
               GestureDetector(
                 onTap: () async {
                    final time = await showTimePicker(
-                     context: context, 
+                     context: context,
                      initialTime: _briefingTime,
                      builder: (context, child) {
                         return Theme(
@@ -123,9 +123,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 60),
-              
+
               Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
@@ -142,7 +142,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          _notificationsEnabled ? Icons.check_circle_rounded : Icons.notifications_active_rounded, 
+                          _notificationsEnabled ? Icons.check_circle_rounded : Icons.notifications_active_rounded,
                           color: _notificationsEnabled ? Colors.green : AppTheme.primary,
                           size: 20,
                         ),
@@ -150,8 +150,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         Text(
                           _notificationsEnabled ? 'Notifications Enabled' : 'Enable Notifications',
                           style: TextStyle(
-                            fontWeight: FontWeight.w900, 
-                            fontSize: 15, 
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
                             color: _notificationsEnabled ? Colors.green : AppTheme.textPrimary
                           ),
                         ),
@@ -160,7 +160,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   ),
                 ),
               ),
-              
+
               const Spacer(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -189,7 +189,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: isLoading 
+                      child: isLoading
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Text('Start Flare', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
                     ),

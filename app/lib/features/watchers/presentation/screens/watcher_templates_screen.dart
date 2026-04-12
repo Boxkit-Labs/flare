@@ -84,7 +84,7 @@ class WatcherTemplatesScreen extends StatelessWidget {
   Widget _buildTemplateCard(BuildContext context, Map<String, dynamic> template) {
     return InkWell(
       onTap: () {
-        // Navigate to create screen with initial data
+
         context.push('/watchers/create', extra: template);
       },
       borderRadius: BorderRadius.circular(24),

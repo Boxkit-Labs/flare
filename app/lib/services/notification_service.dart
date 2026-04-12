@@ -7,15 +7,11 @@ import 'package:flare_app/services/api_service.dart';
 import 'package:flare_app/core/utils/string_utils.dart';
 import 'package:flare_app/core/widgets/notification_banner.dart';
 
-/// Top-level handler for background messages (must be a top-level function).
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   debugPrint('[FCM] Background message received: ${message.messageId}');
 }
 
-/// Service responsible for Firebase Cloud Messaging integration.
-/// Handles permissions, token management, foreground/background notifications,
-/// and deep link navigation from notification taps.
 class NotificationService {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
@@ -25,8 +21,6 @@ class NotificationService {
   String? _currentUserId;
 
   NotificationService(this._apiService);
-
-  // ─── NOTIFICATION CHANNELS ─────────────────────────────────
 
   static const AndroidNotificationChannel findingsChannel =
       AndroidNotificationChannel(
@@ -54,16 +48,11 @@ class NotificationService {
     importance: Importance.defaultImportance,
   );
 
-  // ─── INITIALIZATION ────────────────────────────────────────
-
-  /// Initialize FCM, request permissions, register token, and set up listeners.
   Future<void> init({String? userId}) async {
     _currentUserId = userId;
 
-    // Register the background handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    // Request permissions (iOS + Android 13+)
     final settings = await _messaging.requestPermission(
       alert: true,
       announcement: false,
@@ -75,14 +64,12 @@ class NotificationService {
     );
     debugPrint('[FCM] Permission status: ${settings.authorizationStatus}');
 
-    // Enable explicit foreground notifications for iOS/macOS
     await _messaging.setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
       sound: true,
     );
 
-    // Create Android notification channels
     final androidPlugin =
         _localNotifications.resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
@@ -92,7 +79,6 @@ class NotificationService {
       await androidPlugin.createNotificationChannel(budgetChannel);
     }
 
-    // Initialize flutter_local_notifications
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosSettings = DarwinInitializationSettings();
@@ -105,33 +91,27 @@ class NotificationService {
       onDidReceiveNotificationResponse: _onLocalNotificationTap,
     );
 
-    // Get and send the current FCM token
     final token = await _messaging.getToken();
     if (token != null) {
       debugPrint('[FCM] Token acquired: ${StringUtils.truncate(token, 20)}');
       await _sendTokenToBackend(token);
     }
 
-    // Listen for token refreshes
     _messaging.onTokenRefresh.listen((newToken) {
       debugPrint('[FCM] Token refreshed.');
       _sendTokenToBackend(newToken);
     });
 
-    // Foreground message handler — show a local notification
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
-    // Notification tap handler (app was in background)
     FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
 
-    // Check if the app was opened from a terminated state via notification
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
       _handleNotificationTap(initialMessage);
     }
   }
 
-  /// Update the associated user ID and upload the token.
   Future<void> setUserId(String userId) async {
     _currentUserId = userId;
     final token = await _messaging.getToken();
@@ -140,8 +120,6 @@ class NotificationService {
       await _sendTokenToBackend(token);
     }
   }
-
-  // ─── TOKEN MANAGEMENT ──────────────────────────────────────
 
   Future<void> _sendTokenToBackend(String token) async {
     if (_currentUserId == null) {
@@ -156,15 +134,12 @@ class NotificationService {
     }
   }
 
-  // ─── FOREGROUND NOTIFICATIONS ──────────────────────────────
-
   void _handleForegroundMessage(RemoteMessage message) {
     debugPrint('[FCM] Foreground message: ${message.notification?.title}');
 
     final notification = message.notification;
     if (notification == null) return;
 
-    // Determine which channel to use based on the data type
     String channelId = findingsChannel.id;
     final dataType = message.data['type'] as String?;
     if (dataType == 'briefing') {
@@ -175,10 +150,8 @@ class NotificationService {
       channelId = budgetChannel.id;
     }
 
-    // Also show local notification for consistency (optional, depending on OS settings)
     _showLocalNotification(notification, message.data, channelId);
 
-    // Show in-app banner for active users
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctx = AppRouter.router.routerDelegate.navigatorKey.currentContext;
       if (ctx == null) return;
@@ -250,11 +223,9 @@ class NotificationService {
     );
   }
 
-  // ─── NOTIFICATION TAP HANDLING ─────────────────────────────
-
   void _handleNotificationTap(RemoteMessage message) {
     debugPrint('[FCM] Notification tapped: ${message.data}');
-    // Delay slightly to ensure router is ready if app is just launching
+
     Future.delayed(const Duration(milliseconds: 500), () {
       _navigateFromData(message.data);
     });
@@ -270,20 +241,16 @@ class NotificationService {
     }
   }
 
-  /// Extract the deep_link from notification data and navigate using GoRouter.
   void _navigateFromData(Map<String, dynamic> data) {
     final deepLink = data['deep_link'] as String?;
     if (deepLink != null && deepLink.isNotEmpty) {
       debugPrint('[FCM] Navigating to deep link: $deepLink');
-      
-      // Ensure we navigate only when the navigator is ready
+
       if (AppRouter.navigatorKey.currentState != null) {
         AppRouter.router.push(deepLink);
       } else {
         debugPrint('[FMC] Navigator not ready, storing link for later (handled by AppRouter init flow if needed)');
-        // In a real app we might store this in a 'pendingLink' variable 
-        // that the router reads on its initial route computation.
-        // For now, AppRouter.router.go(deepLink) generally handles it if called after init.
+
       }
     }
   }

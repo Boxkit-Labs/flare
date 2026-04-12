@@ -13,13 +13,10 @@ import { MppService } from './mpp-service.js';
 
 const USDC_CONTRACT = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA';
 
-/**
- * Fetches the user's USDC balance from the Soroban contract.
- */
 export async function getUsdcBalance(publicKey: string, rpcUrl: string): Promise<number> {
     const rpc = new SorobanRpc.Server(rpcUrl);
     const contract = new Contract(USDC_CONTRACT);
-    
+
     try {
         const balanceOp = contract.call('balance', new Address(publicKey).toScVal());
         const account = await rpc.getAccount(publicKey);
@@ -43,8 +40,6 @@ export async function getUsdcBalance(publicKey: string, rpcUrl: string): Promise
     }
 }
 
-
-
 export interface PayParams {
     serviceUrl: string;
     method: 'GET' | 'POST';
@@ -53,9 +48,6 @@ export interface PayParams {
     rpcUrl: string;
 }
 
-/**
- * Helper to fetch transaction status directly from JSON-RPC to avoid SDK deserialization bugs.
- */
 async function getTransactionStatus(rpcUrl: string, hash: string): Promise<any> {
     const response = await fetch(rpcUrl, {
         method: 'POST',
@@ -72,13 +64,9 @@ async function getTransactionStatus(rpcUrl: string, hash: string): Promise<any> 
     return json.result;
 }
 
-/**
- * Direct Stellar Payment client extracted from working test-x402.ts.
- */
 export async function payForService(params: PayParams): Promise<{ data: any, txHash: string, costPaid: number }> {
     const { serviceUrl, method, body, payerSecretKey, rpcUrl } = params;
-    
-    // 1. Initial request to get challenge
+
     const fetchOptions: RequestInit = {
         method,
         headers: { 'Content-Type': 'application/json' }
@@ -96,14 +84,13 @@ export async function payForService(params: PayParams): Promise<{ data: any, txH
     }
 
     const challenge = await initialRes.json() as any;
-    const recipient = challenge.recipient || challenge.payTo; // Support both naming schemes
+    const recipient = challenge.recipient || challenge.payTo;
     const amountStroops = challenge.amount;
 
     if (!recipient || !amountStroops) {
         throw new Error("Invalid x402 challenge: missing recipient or amount");
     }
 
-    // --- MPP OFF-CHAIN SESSION PAYMENT ---
     if (MppService.isActive()) {
         const signature = await MppService.makePayment(Number(amountStroops));
         if (signature) {
@@ -128,7 +115,6 @@ export async function payForService(params: PayParams): Promise<{ data: any, txH
         }
     }
 
-    // --- STANDARD X402 ON-CHAIN PAYMENT ---
     const keypair = Keypair.fromSecret(payerSecretKey);
     const rpc = new SorobanRpc.Server(rpcUrl);
     const account = await rpc.getAccount(keypair.publicKey());
@@ -163,8 +149,7 @@ export async function payForService(params: PayParams): Promise<{ data: any, txH
     } catch (e: any) {
         txXdr = (assembledTx as any).toEnvelope().toXDR('base64');
     }
-    
-    // Submit via raw fetch (matching test-x402.ts)
+
     const rpcResponse = await fetch(rpcUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -175,7 +160,7 @@ export async function payForService(params: PayParams): Promise<{ data: any, txH
             params: { transaction: txXdr }
         })
     });
-    
+
     const rpcResult = await rpcResponse.json() as any;
     if (rpcResult.error) {
         throw new Error(`Transaction submission failed: ${JSON.stringify(rpcResult.error)}`);
@@ -188,7 +173,6 @@ export async function payForService(params: PayParams): Promise<{ data: any, txH
 
     const txHash = submitResult.hash;
 
-    // 3. Poll for confirmation via raw fetch
     let confirmed = false;
     const startTime = Date.now();
     while (Date.now() - startTime < 45000) {
@@ -201,7 +185,7 @@ export async function payForService(params: PayParams): Promise<{ data: any, txH
                 throw new Error(`Transaction execution failed: ${JSON.stringify(getResult)}`);
             }
         } catch (e: any) {
-            // Wait and retry
+
         }
         await new Promise(resolve => setTimeout(resolve, 3000));
     }
@@ -210,7 +194,6 @@ export async function payForService(params: PayParams): Promise<{ data: any, txH
         throw new Error('Transaction confirmation timed out');
     }
 
-    // 4. Final request with x-stellar-tx header
     const paidRes = await fetch(serviceUrl, {
         method,
         headers: {

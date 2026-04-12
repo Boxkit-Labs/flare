@@ -9,14 +9,14 @@ async function checkOperatorHistory() {
   }
   const kp = Keypair.fromSecret(secret);
   const server = new Horizon.Server(process.env.HORIZON_URL || 'https://horizon-testnet.stellar.org');
-  
+
   console.log("Checking operator history:", kp.publicKey());
   try {
     const txs = await server.transactions().forAccount(kp.publicKey()).limit(5).order('desc').call();
     for (const tx of txs.records) {
       console.log(`TX: ${tx.hash} | Successful: ${tx.successful} | Result XDR: ${tx.result_xdr} | Memo: ${tx.memo}`);
       if (!tx.successful) {
-          // If transaction failed, try to get more details (though result_code_s is usually enough)
+
       }
     }
   } catch (e: any) {

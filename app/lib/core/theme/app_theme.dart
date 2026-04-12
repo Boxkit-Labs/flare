@@ -3,20 +3,16 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   AppTheme._();
-
-  static const Color background = Color(0xFFF8F9FA); 
+  static const Color background = Color(0xFFF8F9FA);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceLight = Color(0xFFF3F4F6); 
-  
-  static const Color primary = Color(0xFF6366F1); // Indigo 500
-  static const Color primaryLight = Color(0xFFA855F7); // Purple 500
-  static const Color secondary = Color(0xFF0F172A); // Slate 900
-  
-  static const Color error = Color(0xFFF43F5E); // Rose 500
-  static const Color warning = Color(0xFFF59E0B); // Amber 500
-
-  static const Color textPrimary = Color(0xFF0F172A); 
-  static const Color textSecondary = Color(0xFF64748B); 
+  static const Color surfaceLight = Color(0xFFF3F4F6);
+  static const Color primary = Color(0xFF6366F1);
+  static const Color primaryLight = Color(0xFFA855F7);
+  static const Color secondary = Color(0xFF0F172A);
+  static const Color error = Color(0xFFF43F5E);
+  static const Color warning = Color(0xFFF59E0B);
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF64748B);
 
   static ThemeData get lightTheme {
     final colorScheme = ColorScheme.light(
@@ -66,7 +62,7 @@ class AppTheme {
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16), 
+            borderRadius: BorderRadius.circular(16),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           textStyle: GoogleFonts.plusJakartaSans(
@@ -75,7 +71,7 @@ class AppTheme {
           ),
         ),
       ),
-      
+
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: textPrimary,
@@ -93,7 +89,7 @@ class AppTheme {
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFFF1F5F9), 
+        fillColor: const Color(0xFFF1F5F9),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,

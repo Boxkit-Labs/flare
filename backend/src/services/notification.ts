@@ -41,14 +41,14 @@ export class NotificationService {
 
         const [startH, startM] = dndStart.split(':').map(Number);
         const [endH, endM] = dndEnd.split(':').map(Number);
-        
+
         const start = startH + (startM / 60);
         const end = endH + (endM / 60);
 
         if (start <= end) {
             return currentTime >= start && currentTime <= end;
         } else {
-            // Spans midnight
+
             return currentTime >= start || currentTime <= end;
         }
     }
@@ -67,7 +67,7 @@ export class NotificationService {
             await admin.messaging().send(payload);
         } catch (error: any) {
             console.error(`Firebase messaging error for ${userId}:`, error.message);
-            // Invalidate token if it's dead
+
             if (
                 error.code === 'messaging/invalid-registration-token' ||
                 error.code === 'messaging/registration-token-not-registered'
@@ -82,7 +82,6 @@ export class NotificationService {
         const user = await getUserById(userId) as any;
         if (!user) return;
 
-        // DND Check
         if (this.isWithinDND(user.dnd_start, user.dnd_end) && watcher.priority !== 'high') {
             console.log(`NotificationService: DND active for user ${userId}. Skipping finding notification.`);
             return;
@@ -112,7 +111,7 @@ export class NotificationService {
 
         await this.sendPayload(userId, message);
         markFindingNotified(finding.finding_id);
-        
+
         await createNotification({
             user_id: userId,
             title: message.notification.title,
@@ -263,7 +262,7 @@ export class NotificationService {
             type: 'weekly_summary',
             data_id: null
         });
-        
+
         console.log(`Weekly Summary Notification sent to user ${userId}`);
     }
 }

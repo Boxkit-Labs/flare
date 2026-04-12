@@ -9,7 +9,7 @@ async function checkOperator() {
   }
   const kp = Keypair.fromSecret(secret);
   const server = new Horizon.Server(process.env.HORIZON_URL || 'https://horizon-testnet.stellar.org');
-  
+
   console.log("Checking operator:", kp.publicKey());
   try {
     const acc = await server.loadAccount(kp.publicKey());

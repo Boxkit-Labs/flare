@@ -638,7 +638,7 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen>
                     DeleteWatcher(watcher.watcherId),
                   );
                   Navigator.pop(context);
-                  context.pop(); // Go back to list
+                  context.pop();
                 },
               ),
             ],

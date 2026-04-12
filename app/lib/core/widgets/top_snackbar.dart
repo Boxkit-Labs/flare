@@ -70,7 +70,7 @@ class _SnackbarWidgetState extends State<_SnackbarWidget> with SingleTickerProvi
     super.initState();
     _controller = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 600));
-    
+
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     _slideAnimation = Tween<Offset>(begin: const Offset(0, -0.2), end: Offset.zero).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutQuart),
@@ -95,7 +95,7 @@ class _SnackbarWidgetState extends State<_SnackbarWidget> with SingleTickerProvi
   @override
   Widget build(BuildContext context) {
     final color = widget.isError ? const Color(0xFFEF4444) : const Color(0xFF10B981);
-    
+
     return FadeTransition(
       opacity: _fadeAnimation,
       child: SlideTransition(
@@ -145,7 +145,7 @@ class _SnackbarWidgetState extends State<_SnackbarWidget> with SingleTickerProvi
                       child: Text(
                         widget.message,
                         style: const TextStyle(
-                            color: Colors.white, 
+                            color: Colors.white,
                             fontWeight: FontWeight.w900,
                             fontSize: 14,
                             letterSpacing: -0.2,

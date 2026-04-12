@@ -5,10 +5,6 @@ import * as queries from '../db/queries.js';
 const router = Router();
 const server = new Horizon.Server('https://horizon-testnet.stellar.org');
 
-/**
- * GET /api/wallet/:user_id
- * Fetches Stellar balances and basic spending stats.
- */
 router.get('/:user_id', async (req: Request, res: Response) => {
     try {
         const userId = req.params.user_id as string;
@@ -24,7 +20,7 @@ router.get('/:user_id', async (req: Request, res: Response) => {
             xlmBalance = account.balances.find(b => b.asset_type === 'native')?.balance || '0.0';
             usdcBalance = account.balances.find(b => (b as any).asset_code === 'USDC')?.balance || '0.0';
         } catch (e) {
-            // Account might not be funded yet
+
         }
 
         const stats = await queries.getSpendingStats(userId);
@@ -41,10 +37,6 @@ router.get('/:user_id', async (req: Request, res: Response) => {
     }
 });
 
-/**
- * GET /api/wallet/:user_id/stats
- * Full analytics dashboard data.
- */
 router.get('/:user_id/stats', async (req: Request, res: Response) => {
     try {
         const userId = req.params.user_id as string;
@@ -52,13 +44,12 @@ router.get('/:user_id/stats', async (req: Request, res: Response) => {
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         const analytics = await queries.getWalletAnalytics(userId);
-        
-        // Subscription Savings Comparison
-        const traditionalEstimate = 58.00; // Hardcoded per requirements
+
+        const traditionalEstimate = 58.00;
         const flareMonthlyEstimate = (user.global_daily_cap || 1.0) * 30;
         const savings = traditionalEstimate - flareMonthlyEstimate;
 
-        const averageCostPerFinding = analytics.total_findings_all_time > 0 
+        const averageCostPerFinding = analytics.total_findings_all_time > 0
             ? analytics.total_spent_all_time / analytics.total_findings_all_time
             : 0;
 

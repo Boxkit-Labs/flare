@@ -198,7 +198,6 @@ class _GaugePainter extends CustomPainter {
     final radius = min(size.width / 2, size.height / 2);
     const strokeWidth = 16.0;
 
-    // Background track
     final paintBase = Paint()
       ..color = AppTheme.background
       ..style = PaintingStyle.stroke
@@ -213,7 +212,6 @@ class _GaugePainter extends CustomPainter {
       paintBase,
     );
 
-    // Progress arc
     final paintProgress = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
@@ -230,6 +228,6 @@ class _GaugePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _GaugePainter oldDelegate) => 
+  bool shouldRepaint(covariant _GaugePainter oldDelegate) =>
       oldDelegate.progress != progress || oldDelegate.color != color;
 }

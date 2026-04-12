@@ -11,7 +11,7 @@ class CheckHistoryTile extends StatelessWidget {
 
   String _formatValueSummary(Map<String, dynamic>? responseData) {
     if (responseData == null) return 'No data';
-    // Simplified summary logic based on service/type
+
     if (responseData.containsKey('price')) return 'Price: \$${responseData['price']}';
     if (responseData.containsKey('count')) return 'Count: ${responseData['count']}';
     if (responseData.containsKey('items')) return 'Items: ${(responseData['items'] as List).length}';
@@ -20,9 +20,9 @@ class CheckHistoryTile extends StatelessWidget {
 
   Future<void> _launchStellar(BuildContext context, String hash, bool isOffChain) async {
     if (isOffChain || hash.startsWith('mpp:')) {
-        // Show an info dialog for off-chain proof instead of an explorer link
+
         showDialog(
-            context: context, 
+            context: context,
             builder: (context) => AlertDialog(
                 title: const Text('MPP Session Proof'),
                 content: Text('This payment was batched off-chain using the Micro-Payment Protocol.\n\nChannel Signature/ID:\n$hash'),
@@ -42,7 +42,7 @@ class CheckHistoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = DateTime.parse(check.checkedAt);
-    
+
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       title: Row(
@@ -64,16 +64,16 @@ class CheckHistoryTile extends StatelessWidget {
                  child: Row(
                    children: [
                      Icon(
-                         check.isOffChain ? Icons.bolt_rounded : Icons.language_rounded, 
-                         size: 10, 
+                         check.isOffChain ? Icons.bolt_rounded : Icons.language_rounded,
+                         size: 10,
                          color: check.isOffChain ? Colors.purple : Colors.blue
                      ),
                      const SizedBox(width: 4),
                      Text(
                       check.isOffChain ? 'Off-chain' : 'On-chain',
                       style: TextStyle(
-                          fontSize: 8, 
-                          fontWeight: FontWeight.bold, 
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
                           color: check.isOffChain ? Colors.purple : Colors.blue
                       ),
                     ),
@@ -121,7 +121,7 @@ class CheckHistoryTile extends StatelessWidget {
           ],
         ],
       ),
-      trailing: check.stellarTxHash != null 
+      trailing: check.stellarTxHash != null
           ? IconButton(
               icon: Icon(check.isOffChain ? Icons.receipt_long_rounded : Icons.link, size: 16, color: check.isOffChain ? Colors.purple : AppTheme.primary),
               onPressed: () => _launchStellar(context, check.stellarTxHash!, check.isOffChain),

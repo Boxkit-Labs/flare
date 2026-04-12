@@ -52,7 +52,7 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
           IconButton(
             icon: const Icon(Icons.sort_rounded),
             onPressed: () {
-              // TODO: Implement sorting dialog
+
             },
           ),
           const SizedBox(width: 8),
@@ -63,7 +63,7 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
           if (state is WatcherActionSuccess) {
             TopSnackbar.showSuccess(context, state.message);
           } else if (state is WatchersError && context.read<WatchersBloc>().state is WatchersLoaded) {
-            // If we already have data, show error as snackbar instead of replacing the whole UI
+
             TopSnackbar.showError(context, state.message);
           }
         },
@@ -123,7 +123,7 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
   Widget _buildWatcherListContent(BuildContext context, WatchersState state) {
     if (state is WatchersLoaded) {
       final filteredWatchers = _applyFilter(state.watchers);
-      
+
       if (filteredWatchers.isEmpty) {
         return _buildEmptyState();
       }
@@ -148,7 +148,7 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
         },
       );
     }
-    
+
     if (state is WatchersError) {
       return ErrorState(
         key: const ValueKey('error'),
@@ -246,7 +246,7 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
                ),
              ),
              const SizedBox(height: 32),
-             _buildFab(), // Reusing the FAB style for alignment
+             _buildFab(),
            ],
          ),
        ),
@@ -257,7 +257,7 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
     if (_selectedFilter == 'All') return watchers;
     if (_selectedFilter == 'Active') return watchers.where((w) => w.status == 'active').toList();
     if (_selectedFilter == 'Paused') return watchers.where((w) => w.status == 'paused').toList();
-    
+
     final typeMap = {
       'Flights': 'flight',
       'Crypto': 'crypto',
@@ -265,7 +265,7 @@ class _WatchersListScreenState extends State<WatchersListScreen> {
       'Products': 'product',
       'Jobs': 'job',
     };
-    
+
     final targetType = typeMap[_selectedFilter] ?? _selectedFilter.toLowerCase();
     return watchers.where((w) => w.type.toLowerCase() == targetType).toList();
   }

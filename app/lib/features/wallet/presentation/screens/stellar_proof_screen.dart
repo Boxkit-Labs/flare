@@ -18,7 +18,7 @@ class StellarProofScreen extends StatefulWidget {
 }
 
 class _StellarProofScreenState extends State<StellarProofScreen> {
-  String _filter = 'all'; // all, findings, verification, collaboration
+  String _filter = 'all';
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +71,7 @@ class _StellarProofScreenState extends State<StellarProofScreen> {
 
   Widget _buildHeaderStats(List<TransactionModel> txs, double usdc, String wallet) {
     final offChainCount = txs.where((t) => t.isOffChain).length;
-    final feesSavedXlm = offChainCount * 0.0001; // Standard fee approximation
+    final feesSavedXlm = offChainCount * 0.0001;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -223,7 +223,7 @@ class _StellarProofScreenState extends State<StellarProofScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
                _buildBadge(tx.txType, tx.findingDetected ?? false, tx.isOffChain),
-               tx.isOffChain 
+               tx.isOffChain
                   ? Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
@@ -259,7 +259,7 @@ class _StellarProofScreenState extends State<StellarProofScreen> {
   Widget _buildBadge(String type, bool detected, bool isOffChain) {
     String label = 'CHECK';
     Color color = Colors.grey;
-    
+
     if (detected) {
       label = 'FINDING'; color = Colors.amber;
     } else if (isOffChain) {

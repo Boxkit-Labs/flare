@@ -15,55 +15,43 @@ export class BriefingGenerator {
     this.checkExecutor = executor;
   }
 
-  /**
-   * Generates a morning briefing for the overnight period and returns the Briefing Row
-   */
   async generateBriefing(userId: string): Promise<any> {
-    // 0. Trigger initial checks for new watchers (if any)
+
     await this.triggerInitialChecks(userId);
 
-    // 1. Load user settings
     const user = await getUserById(userId) as any;
     if (!user) throw new Error(`User ${userId} not found`);
 
-    // 2. Determine the briefing period
     const now = new Date();
     const periodEnd = now.toISOString();
-    
-    // Parse the user's dnd_start (e.g. '23:00'). If missing, default to 12 hours ago.
+
     let periodStart: string;
-    
+
     if (user.dnd_start) {
       const [h, m] = user.dnd_start.split(':').map(Number);
       const startDt = new Date(now);
-      
+
       startDt.setUTCHours(h, m, 0, 0);
-      
-      // If the resulting time is in the future (e.g. now is 07:00, dnd_start is 23:00),
-      // that means dnd_start happened yesterday.
+
       if (startDt > now) {
           startDt.setUTCDate(startDt.getUTCDate() - 1);
       }
       periodStart = startDt.toISOString();
     } else {
-      // Default to last 12 hours
+
       const twelveHoursAgo = new Date(now.getTime() - (12 * 60 * 60 * 1000));
       periodStart = twelveHoursAgo.toISOString();
     }
 
-    // 3. Query all checks for this user since period_start
     const checks = await getChecksSince(userId, periodStart) as any[];
 
-    // 4. Separate findings from non-findings
     const checkIds = checks.map(c => c.check_id);
     const findingsIds = checks.filter(c => c.finding_detected === 1).map(c => c.finding_id).filter(id => id);
 
-    // Get all user's watchers to seed the summaries (even if 0 checks)
     const watchers = await getWatchersByUserId(userId) as any[];
 
-    // 5. Group checks by watcher
     const summaryMap = new Map<string, any>();
-    
+
     for (const w of watchers) {
       summaryMap.set(w.watcher_id, {
         watcher_id: w.watcher_id,
@@ -76,20 +64,17 @@ export class BriefingGenerator {
       });
     }
 
-    // Process all checks
-    // We sort ascending to evaluate the "latest" at the end, or descending. 'getChecksSince' isn't explicitly sorted by us in memory, let's sort by checked_at ASC
     checks.sort((a, b) => new Date(a.checked_at).getTime() - new Date(b.checked_at).getTime());
 
     for (const check of checks) {
        const wId = check.watcher_id;
-       if (!summaryMap.has(wId)) continue; // Watcher deleted?
+       if (!summaryMap.has(wId)) continue;
 
        const target = summaryMap.get(wId);
        target.checks_run += 1;
        if (check.finding_detected === 1) target.findings_count += 1;
        target.spent += (check.cost_usdc || 0);
 
-       // Update latest_data_summary based on this most recent check's data
        if (check.response_data && !check.response_data.error) {
            target.latest_data_summary = this.buildLatestDataSummary(target.type, check.response_data);
        } else if (check.response_data && check.response_data.error) {
@@ -98,11 +83,10 @@ export class BriefingGenerator {
     }
 
     const watcherSummaries = Array.from(summaryMap.values()).map(summary => {
-       // Strip out 'type' from final json if not wanted, but we keep it
+
        return summary;
     });
 
-    // 6. Calculate totals
     const totalChecks = checks.length;
     const totalFindings = findingsIds.length;
     let totalCost = 0;
@@ -110,7 +94,6 @@ export class BriefingGenerator {
        totalCost += summary.spent;
     }
 
-    // 7. Generate Enhanced Summary Text
     let findingsSection = "FINDINGS\n";
     if (totalFindings === 0) {
       findingsSection += "No new findings overnight.\n";
@@ -120,7 +103,7 @@ export class BriefingGenerator {
         if (!f) continue;
         const vStatus = f.verified ? "Verified" : "Single Check";
         const cStatus = f.collaboration_result ? " | Cross-checked" : "";
-        // Cost: 0.008 (standard) + 0.008 (verify) + 0.008 (collab)
+
         let cost = f.cost_usdc || 0.008;
         let checkCount = 1;
         if (f.verified) { cost += 0.008; checkCount++; }
@@ -137,23 +120,20 @@ export class BriefingGenerator {
       noChangeSection += `• ${s.type.toUpperCase()}: ${s.watcher_name} - ${s.latest_data_summary}\n`;
     }
 
-    // Overnight Summary & Projection
     const totalSpent = totalCost;
-    const estSavings = totalFindings * 45.0; // Placeholder ROI: $45 per finding
+    const estSavings = totalFindings * 45.0;
     const flareScore = Math.min(100, Math.round((totalFindings * 15) + (totalChecks * 0.5) + 50));
-    
-    // Wallet Projection
+
     const walletRes = await getSpendingStats(userId);
-    const balance = (user as any).balance_usdc || 5.0; // Mock or fetch if possible
+    const balance = (user as any).balance_usdc || 5.0;
     const dailyRate = Math.max(0.01, walletRes.spent_today || (totalSpent / 1));
     const daysLeft = Math.round(balance / dailyRate);
 
     const generatedSummary = `${findingsSection}${noChangeSection}\nOVERNIGHT SUMMARY\nCost: $${totalSpent.toFixed(3)} across ${totalChecks} checks\nEstimated savings: $${estSavings}\nFlare Score: ${flareScore}/100\n\nWallet lasts ~${daysLeft} more days at current rate.`;
 
-    // 8. Create DB Record
     const today = now.toISOString().split('T')[0];
     const briefingId = uuidv4();
-    
+
     const briefingData = {
         briefingId: briefingId,
         userId: userId,
@@ -170,8 +150,6 @@ export class BriefingGenerator {
 
     await createBriefing(briefingData);
 
-    // 9. Fire Notification
-    // briefing payload for notificationService expects exact keys or we can map them
     const notifyPayload = {
        briefing_id: briefingData.briefingId,
        total_findings: briefingData.totalFindings,
@@ -195,34 +173,34 @@ export class BriefingGenerator {
                   return `${data.origin || 'Unknown'}->${data.destination || 'Unknown'}: $${data.price}`;
                }
                return "No flight data returned.";
-               
+
             case 'crypto':
                if (data && data.priceUsd) {
                    const change = data.changePercent24Hr ? ` (${Number(data.changePercent24Hr) > 0 ? '+' : ''}${Number(data.changePercent24Hr).toFixed(2)}%)` : '';
                    return `${data.id || 'Crypto'}: $${Number(data.priceUsd).toFixed(2)}${change}`;
                }
                return "No valid crypto pricing.";
-               
+
             case 'news':
                const newsCount = Array.isArray(data.articles) ? data.articles.length : 0;
                return newsCount === 0 ? "No new matches" : `${newsCount} articles found`;
-               
+
             case 'product':
                if (data && data.price) {
                    return `${data.title ? data.title.substring(0, 20) : 'Product'}: $${data.price}`;
                }
                return "No pricing returned.";
-               
+
             case 'job':
                const jobCount = Array.isArray(data.jobs) ? data.jobs.length : 0;
                return jobCount === 0 ? "0 new listings" : `${jobCount} new matches`;
-               
+
             case 'stock':
                 if (data && data.price) {
                    return `${data.symbol || 'Stock'}: $${data.price} (${data.change > 0 ? '+' : ''}${data.change}%)`;
                 }
                 return "Latest price stable.";
-                
+
             case 'realestate':
                 return data.address ? `Active listing: ${data.address.substring(0, 15)}...` : "Market monitored.";
 
@@ -242,14 +220,13 @@ export class BriefingGenerator {
 
     try {
       const watchers = await getWatchersByUserId(userId) as any[];
-      // Find active watchers with 0 checks
+
       const newWatchers = watchers.filter(w => w.status === 'active' && (w.total_checks || 0) === 0);
-      
+
       if (newWatchers.length === 0) return;
 
       console.log(`[BRIEFING] Triggering initial checks for ${newWatchers.length} new watchers in parallel...`);
-      
-      // Run checks in parallel (up to a reasonable limit, e.g., 5)
+
       const checksToRun = newWatchers.slice(0, 5);
       await Promise.all(checksToRun.map(async (watcher) => {
         try {

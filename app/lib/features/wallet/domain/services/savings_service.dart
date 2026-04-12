@@ -9,7 +9,6 @@ class SavingsService {
        double savings = 0;
        final data = finding.data ?? {};
 
-       // Type-specific savings calculation
        switch (finding.type.toLowerCase()) {
          case 'flights':
          case 'flight':
@@ -30,14 +29,14 @@ class SavingsService {
          case 'crypto':
          case 'stock':
          case 'stocks':
-           // Estimate ROI for buy/sell alerts if portfolio acted upon
+
            final change = data['change_percent'] ?? 0.0;
            if (change > 0) {
-              savings = (change / 100.0) * 1000; // Mock $1k baseline portfolio
+              savings = (change / 100.0) * 1000;
            }
            break;
          case 'sports':
-           final prev = data['previous_price'] ?? 250.0; // Benchmark for tickets
+           final prev = data['previous_price'] ?? 250.0;
            final curr = data['price'] ?? 150.0;
            savings = (prev - curr).toDouble().clamp(0, double.infinity);
            break;

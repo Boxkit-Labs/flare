@@ -78,7 +78,7 @@ class _TemplateSelectionPageState extends State<TemplateSelectionPage> {
 
   void _selectTemplate(Map<String, dynamic> template) {
     setState(() => _selectedType = template['type']);
-    
+
     final userId = context.read<OnboardingBloc>().apiService.userId;
     if (userId != null) {
       context.read<OnboardingBloc>().add(CreateInitialWatcher({
@@ -135,7 +135,7 @@ class _TemplateSelectionPageState extends State<TemplateSelectionPage> {
                   itemBuilder: (context, index) {
                     final t = _templates[index];
                     final isSelected = _selectedType == t['type'];
-                    
+
                     return InkWell(
                       onTap: isLoading ? null : () => _selectTemplate(t),
                       borderRadius: BorderRadius.circular(24),

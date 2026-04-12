@@ -10,7 +10,6 @@ import transactionsRouter from './routes/transactions.js';
 import servicesRouter from './routes/services.js';
 import notificationsRouter from './routes/notifications.js';
 
-
 import { CheckExecutor } from './services/check-executor.js';
 import { SchedulerService } from './services/scheduler.js';
 import { briefingGenerator } from './services/briefing-generator.js';
@@ -22,7 +21,6 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
-// Initialize Background Job Services
 const executor = new CheckExecutor();
 briefingGenerator.setCheckExecutor(executor);
 export const scheduler = new SchedulerService(executor);
@@ -38,7 +36,6 @@ app.use('/api/transactions', transactionsRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/services', servicesRouter);
 
-
 import { initializeDatabase } from './db/database.js';
 
 app.get('/health', (req: Request, res: Response) => {
@@ -51,18 +48,15 @@ app.get('/health', (req: Request, res: Response) => {
 
 async function main() {
   try {
-    // 1. Initialize database tables
+
     await initializeDatabase();
     console.log('Database schema initialized');
 
-    // 2. Initialize MPP payment channel (if configured)
     await MppService.init();
 
-    // 3. Start server
     app.listen(port, '0.0.0.0', () => {
       console.log(`Server is running on 0.0.0.0:${port}`);
-      
-      // 3. Start scheduler AFTER everything else is ready
+
       scheduler.start().catch(e => console.error("Scheduler failed to start:", e));
     });
   } catch (err) {

@@ -11,7 +11,7 @@ class StockWatcherForm extends StatefulWidget {
 }
 
 class _StockWatcherFormState extends State<StockWatcherForm> {
-  String _mode = 'quote'; // quote, portfolio, events
+  String _mode = 'quote';
   final _symbolsController = TextEditingController();
   final _priceBelowController = TextEditingController();
   final _priceAboveController = TextEditingController();
@@ -35,7 +35,7 @@ class _StockWatcherFormState extends State<StockWatcherForm> {
 
   void _updateData() {
     final symbols = _symbolsController.text.split(',').map((e) => e.trim().toUpperCase()).where((e) => e.isNotEmpty).toList();
-    
+
     widget.onChanged({
       'name': 'Stock Watcher${symbols.isNotEmpty ? ": ${symbols.first}" : ""}',
       'type': 'stock',

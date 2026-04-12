@@ -1,7 +1,4 @@
-// test-mpp-integration.ts
-// End-to-end integration test verifying the full MPP flow alongside X402.
-//
-// Usage: npx tsx src/scripts/test-mpp-integration.ts
+
 
 import WebSocket from "ws";
 import pool from "../db/database.js";
@@ -9,8 +6,6 @@ import { mppChannelManager } from "../services/mpp-channel-manager.js";
 
 const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
 const WS_URL = process.env.WS_URL || "ws://127.0.0.1:4000/ws/stream";
-
-// ─── Helpers ────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -28,15 +23,12 @@ function fail(label: string, detail: string) {
   console.log(`  ❌ ${label}: FAIL. ${detail}`);
 }
 
-// ─── Setup ──────────────────────────────────────────────────
-
 async function setup(): Promise<{ userId: string; publicKey: string }> {
   console.log("═════════════════════════════════════════════════");
   console.log("   MPP INTEGRATION TEST — FULL E2E SEQUENCE     ");
   console.log("═════════════════════════════════════════════════");
   console.log("");
 
-  // 1.1 Verify services
   console.log("[1] Setup");
   console.log("  → Verifying backend is reachable...");
   try {
@@ -49,7 +41,6 @@ async function setup(): Promise<{ userId: string; publicKey: string }> {
     process.exit(1);
   }
 
-  // 1.2 Create test user
   let userId = "";
   let publicKey = "";
   let success = false;
@@ -72,17 +63,16 @@ async function setup(): Promise<{ userId: string; publicKey: string }> {
       console.log(`  → User: ${userId}`);
       console.log(`  → Stellar Key: ${publicKey}`);
 
-      // 1.3 Fund wallet
       console.log("  → Funding testnet wallet (Friendbot + USDC trustline + 100 USDC)...");
       const fundRes = await fetch(`${BASE_URL}/api/users/${userId}/fund`, { method: "POST" });
       if (!fundRes.ok) {
         const errorJson = await fundRes.json().catch(() => ({}));
         throw new Error(`Funding failed: ${JSON.stringify(errorJson)}`);
       }
-      
+
       const fundData = await fundRes.json() as any;
       console.log(`  → Balance: ${fundData.usdc_balance} USDC, ${fundData.xlm_balance} XLM`);
-      
+
       success = true;
       break;
     } catch (err: any) {
@@ -98,15 +88,12 @@ async function setup(): Promise<{ userId: string; publicKey: string }> {
   return { userId, publicKey };
 }
 
-// ─── Test 2: X402 Flow ──────────────────────────────────────
-
 async function testX402Flow(userId: string): Promise<string> {
   console.log("");
   console.log("─────────────────────────────────────────────────");
   console.log("[2] Test X402 flow");
   console.log("─────────────────────────────────────────────────");
 
-  // Create a Flight watcher (interval: 6 hours → X402)
   console.log("  → Creating Flight watcher (interval: 360min → X402)...");
   const createRes = await fetch(`${BASE_URL}/api/watchers`, {
     method: "POST",
@@ -131,14 +118,12 @@ async function testX402Flow(userId: string): Promise<string> {
   const watcherId = watcher.watcher_id;
   console.log(`  → Watcher created: ${watcherId}`);
 
-  // Trigger a check
   console.log("  → Triggering manual check...");
   await fetch(`${BASE_URL}/api/watchers/${watcherId}/check`, {
     method: "POST",
   });
   await sleep(5000);
 
-  // Verify: direct Stellar transaction, data returned
   const detailRes = await fetch(`${BASE_URL}/api/watchers/${watcherId}`);
   const detail = (await detailRes.json()) as any;
 
@@ -158,8 +143,6 @@ async function testX402Flow(userId: string): Promise<string> {
 
   return x402Hash;
 }
-
-// ─── Test 3: MPP Channel Flow ───────────────────────────────
 
 interface MppResult {
   openHash: string;
@@ -185,7 +168,6 @@ async function testMppFlow(userId: string): Promise<MppResult> {
     returned: "0",
   };
 
-  // Create a Crypto watcher (interval: 120 minutes → MPP)
   console.log("  → Creating Crypto watcher (interval: 120min → MPP)...");
   const createRes = await fetch(`${BASE_URL}/api/watchers`, {
     method: "POST",
@@ -210,7 +192,6 @@ async function testMppFlow(userId: string): Promise<MppResult> {
   const watcherId = watcher.watcher_id;
   console.log(`  → Watcher created: ${watcherId}`);
 
-  // 3a: Trigger first check (should auto-open a channel)
   console.log("  → Triggering initial check (should auto-open a channel)...");
   await fetch(`${BASE_URL}/api/watchers/${watcherId}/check`, {
     method: "POST",
@@ -218,7 +199,6 @@ async function testMppFlow(userId: string): Promise<MppResult> {
   console.log("  → Waiting for channel creation on testnet (60s)...");
   await sleep(60000);
 
-  // Verify: channel opened with 1 on-chain transaction
   const detailRes = await fetch(`${BASE_URL}/api/watchers/${watcherId}`);
   const detail = (await detailRes.json()) as any;
 
@@ -229,7 +209,6 @@ async function testMppFlow(userId: string): Promise<MppResult> {
     }
   }
 
-  // Query the channel from DB for the open tx hash
   if (result.channelId) {
     const { rows } = await pool.query(
       `SELECT * FROM mpp_channels WHERE channel_id = $1`,
@@ -248,7 +227,6 @@ async function testMppFlow(userId: string): Promise<MppResult> {
     pass("MPP channel opened", `TX: ${result.openHash}`);
   }
 
-  // 3b: Trigger 4 more checks (should all be off-chain)
   console.log("  → Triggering 4 off-chain checks...");
   for (let i = 1; i <= 4; i++) {
     console.log(`    → Check ${i}/4...`);
@@ -258,21 +236,18 @@ async function testMppFlow(userId: string): Promise<MppResult> {
     await sleep(2000);
   }
 
-  // Verify: NO new on-chain transactions (all off-chain)
   const historyRes = await fetch(`${BASE_URL}/api/watchers/${watcherId}`);
   const history = (await historyRes.json()) as any;
 
   let offChainCount = 0;
   if (history.recent_checks) {
     for (const ck of history.recent_checks) {
-      // Recognized MPP formats: 
-      // 1. channelId:cumulativeAmount (from PaymentRouter)
-      // 2. mpp-offchain (from Paywall middleware fallback)
+
       const isMpp = ck.payment_method === "mpp";
-      const isOffChain = !ck.stellar_tx_hash || 
-                          ck.stellar_tx_hash.startsWith("mpp-offchain") || 
-                          ck.stellar_tx_hash.includes(":"); // the channelId:amount format
-      
+      const isOffChain = !ck.stellar_tx_hash ||
+                          ck.stellar_tx_hash.startsWith("mpp-offchain") ||
+                          ck.stellar_tx_hash.includes(":");
+
       if (isMpp && isOffChain) {
         offChainCount++;
       }
@@ -286,11 +261,10 @@ async function testMppFlow(userId: string): Promise<MppResult> {
     fail(`MPP off-chain checks`, `Expected ≥4, got ${offChainCount}`);
   }
 
-  // 3c: Close the channel
   console.log("  → Closing channel...");
   if (result.channelId) {
     try {
-      // Get channel details to find the service_id
+
       const { rows: chanRows } = await pool.query(
         `SELECT * FROM mpp_channels WHERE channel_id = $1`,
         [result.channelId],
@@ -323,8 +297,6 @@ async function testMppFlow(userId: string): Promise<MppResult> {
   return result;
 }
 
-// ─── Test 4: Hybrid Routing ─────────────────────────────────
-
 function testHybridRouting(x402Hash: string, mppResult: MppResult) {
   console.log("");
   console.log("─────────────────────────────────────────────────");
@@ -353,8 +325,6 @@ function testHybridRouting(x402Hash: string, mppResult: MppResult) {
   }
 }
 
-// ─── Test 5: WebSocket Streaming ────────────────────────────
-
 async function testStreaming(
   userId: string,
   watcherId: string,
@@ -371,7 +341,7 @@ async function testStreaming(
 
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
-      // If no frames received after 35s, report simulated results
+
       ws.close();
       if (frameCount === 0) {
         console.log(
@@ -401,7 +371,6 @@ async function testStreaming(
             `    → Frame ${frameCount}: ${JSON.stringify(payload.payload || {}).slice(0, 80)}`,
           );
 
-          // Send a payment proof after receiving 2 frames
           if (frameCount === 2) {
             proofsSent++;
             ws.send(
@@ -414,7 +383,6 @@ async function testStreaming(
             console.log(`    → Proof sent (#${proofsSent})`);
           }
 
-          // After 3 frames, disconnect
           if (frameCount >= 3) {
             clearTimeout(timeout);
             ws.close();
@@ -426,7 +394,7 @@ async function testStreaming(
           }
         }
       } catch {
-        // Ignore non-JSON
+
       }
     });
 
@@ -437,8 +405,6 @@ async function testStreaming(
     });
   });
 }
-
-// ─── Summary ────────────────────────────────────────────────
 
 function printSummary(x402Hash: string, mppResult: MppResult) {
   console.log("");
@@ -462,26 +428,19 @@ function printSummary(x402Hash: string, mppResult: MppResult) {
   console.log("═════════════════════════════════════════════════");
 }
 
-// ─── Main ───────────────────────────────────────────────────
-
 async function main() {
   const startTime = Date.now();
 
   try {
-    // 1. Setup
+
     const { userId } = await setup();
 
-    // 2. X402
     const x402Hash = await testX402Flow(userId);
 
-    // 3. MPP
     const mppResult = await testMppFlow(userId);
 
-    // 4. Hybrid routing
     testHybridRouting(x402Hash, mppResult);
 
-    // 5. Streaming
-    // Use the crypto watcher from MPP test — retrieve from recent watchers
     const watchersRes = await fetch(
       `${BASE_URL}/api/watchers?user_id=${userId}`,
     );
@@ -493,7 +452,6 @@ async function main() {
       console.log("\n[5] Streaming test skipped — watcher or channel missing");
     }
 
-    // 6. Summary
     printSummary(x402Hash, mppResult);
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);

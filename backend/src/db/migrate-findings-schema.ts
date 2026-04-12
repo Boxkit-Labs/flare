@@ -15,10 +15,10 @@ async function migrate() {
     for (const q of queries) {
       await pool.query(q);
     }
-    
+
     console.log('SUCCESS: findings table successfully migrated.');
   } catch (err: any) {
-    // If using SQLite, ignore "duplicate column name"
+
     if (err.message.includes('duplicate column')) {
       console.log('SUCCESS: columns already existed (SQLite).');
     } else {

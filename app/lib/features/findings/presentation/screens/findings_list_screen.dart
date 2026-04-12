@@ -63,7 +63,7 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
           IconButton(
             icon: const Icon(Icons.tune_rounded),
             onPressed: () {
-              // TODO: Advanced filters
+
             },
           ),
           const SizedBox(width: 8),
@@ -90,7 +90,7 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
   Widget _buildFindingsContent(BuildContext context, FindingsState state) {
     if (state is FindingsLoaded) {
       final filteredFindings = _applyFilter(state.findings);
-      
+
       if (filteredFindings.isEmpty) {
         return _buildEmptyState();
       }
@@ -116,7 +116,7 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
                 itemBuilder: (context, index) {
                   final dateLabel = grouped.keys.elementAt(index);
                   final items = grouped[dateLabel]!;
-                  
+
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -190,7 +190,7 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
         itemBuilder: (context, index) {
           final filter = _filters[index];
           final isSelected = _selectedFilter == filter;
-          
+
           return Padding(
             padding: const EdgeInsets.only(right: 10),
             child: ChoiceChip(
@@ -209,8 +209,8 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
                       child: Text(
                         '$unreadCount',
                         style: TextStyle(
-                          fontSize: 10, 
-                          color: isSelected ? AppTheme.primary : Colors.white, 
+                          fontSize: 10,
+                          color: isSelected ? AppTheme.primary : Colors.white,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -248,7 +248,7 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
   List<FindingModel> _applyFilter(List<FindingModel> findings) {
     if (_selectedFilter == 'All') return findings;
     if (_selectedFilter == 'Unread') return findings.where((f) => !f.isRead).toList();
-    
+
     final typeMap = {
       'Flights': 'flight',
       'Crypto': 'crypto',
@@ -256,7 +256,7 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
       'Products': 'product',
       'Jobs': 'job',
     };
-    
+
     final targetType = typeMap[_selectedFilter] ?? _selectedFilter.toLowerCase();
     return findings.where((f) => f.type.toLowerCase() == targetType).toList();
   }
@@ -271,7 +271,7 @@ class _FindingsListScreenState extends State<FindingsListScreen> {
     for (var finding in findings) {
       final date = DateTime.parse(finding.foundAt);
       final compareDate = DateTime(date.year, date.month, date.day);
-      
+
       String label;
       if (compareDate == today) {
         label = 'Today';

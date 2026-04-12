@@ -9,7 +9,7 @@ async function sweep() {
   if (!opSecret) throw new Error("OPERATOR_SECRET not found");
   const opKp = Keypair.fromSecret(opSecret);
   const operatorPk = opKp.publicKey();
-  
+
   const usdcAsset = new Asset('USDC', process.env.USDC_ISSUER || 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5');
 
   console.log(`Operator: ${operatorPk}`);
@@ -22,17 +22,16 @@ async function sweep() {
 
   for (const user of users) {
     if (user.stellar_public_key === operatorPk) continue;
-    
+
     try {
       const acc = await server.loadAccount(user.stellar_public_key);
       const usdcBalance = acc.balances.find(b => b.asset_type === 'credit_alphanum4' && b.asset_code === 'USDC' && b.asset_issuer === usdcAsset.issuer);
-      
+
       if (usdcBalance && parseFloat(usdcBalance.balance) > 0) {
         console.log(`User ${user.user_id} (${user.stellar_public_key}) has ${usdcBalance.balance} USDC.`);
-        
+
         let amount = usdcBalance.balance;
-        // If testing, leave a tiny bit if you want, but sweeping entirely is fine.
-        
+
         const encryptionKey = process.env.ENCRYPTION_KEY!;
         const decryptedSecret = decrypt(user.stellar_secret_key_encrypted, encryptionKey);
         const userKp = Keypair.fromSecret(decryptedSecret);
@@ -46,7 +45,7 @@ async function sweep() {
           }))
           .setTimeout(30)
           .build();
-        
+
         tx.sign(userKp);
         await server.submitTransaction(tx);
         console.log(`  -> Swept ${amount} USDC to Operator.`);
@@ -54,7 +53,7 @@ async function sweep() {
       }
     } catch (e: any) {
       if (e.response && e.response.status === 404) {
-        // Account unfunded or not found
+
       } else {
         console.error(`Error sweeping ${user.stellar_public_key}:`, e.response?.data?.extras?.result_codes || e.message);
       }

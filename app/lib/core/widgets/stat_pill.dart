@@ -20,7 +20,7 @@ class StatPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeColor = color ?? AppTheme.primary;
-    
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 8 : 12,

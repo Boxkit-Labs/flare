@@ -82,7 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _buildSectionHeader('ACCOUNT'),
               _buildAccountTile(user),
               const SizedBox(height: 32),
-              
+
               _buildSectionHeader('MORNING BRIEFING'),
               _buildSwitchTile(
                 'Enable daily briefing',
@@ -325,7 +325,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final current = _localSettings[key] as String;
     final parts = current.split(':');
     final initialTime = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-    
+
     final picked = await showTimePicker(
       context: context,
       initialTime: initialTime,
@@ -355,7 +355,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () {
               Navigator.pop(context);
               TopSnackbar.showSuccess(context, 'History cleared');
-            }, 
+            },
             child: const Text('Clear', style: TextStyle(color: Colors.redAccent))
           ),
         ],

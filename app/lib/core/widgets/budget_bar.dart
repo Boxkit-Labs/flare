@@ -18,8 +18,7 @@ class BudgetBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double percentage = (total > 0) ? (spent / total).clamp(0.0, 1.0) : 0.0;
-    
-    // Choose color based on percentage
+
     Color progressColor;
     if (percentage < 0.6) {
       progressColor = Colors.greenAccent;

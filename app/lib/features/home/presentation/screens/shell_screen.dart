@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flare_app/core/theme/app_theme.dart';
 
-/// Navigation shell wrapping the main 5 tabs with a premium glassmorphic bottom bar.
 class ShellScreen extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -56,7 +55,7 @@ class ShellScreen extends StatelessWidget {
 
   Widget _buildNavItem(BuildContext context, int index, IconData icon, IconData activeIcon, String label) {
     final isActive = navigationShell.currentIndex == index;
-    
+
     return Expanded(
       child: InkWell(
         onTap: () => _onTap(context, index),

@@ -33,7 +33,7 @@ class _VoiceTeaserPageState extends State<VoiceTeaserPage> with SingleTickerProv
   void _finish() {
     final apiService = context.read<OnboardingBloc>().apiService;
     if (apiService.userId != null) {
-      // Just complete with default (or whatever was set in notifications step)
+
       context.read<OnboardingBloc>().add(CompleteOnboarding(apiService.userId!, "07:00"));
     }
   }
@@ -121,7 +121,7 @@ class _VoiceTeaserPageState extends State<VoiceTeaserPage> with SingleTickerProv
                       shadowColor: Colors.transparent,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     ),
-                    child: isLoading 
+                    child: isLoading
                       ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                       : const Text(
                           'ENTER FLARE INTELLIGENCE',

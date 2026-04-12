@@ -16,9 +16,9 @@ class BriefingLoaded extends BriefingState {
   final BriefingModel? todayBriefing;
   final List<BriefingModel> history;
   final Map<String, BriefingModel?> briefingsByDate;
-  
+
   const BriefingLoaded({
-    this.todayBriefing, 
+    this.todayBriefing,
     this.history = const [],
     this.briefingsByDate = const {},
   });

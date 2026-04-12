@@ -2,7 +2,6 @@ import * as mpp from '@stellar/mpp';
 import * as mppxClient from 'mppx/client';
 import * as mppxServer from 'mppx/server';
 
-// Attempting subpath imports as per research
 async function testImports() {
   console.log('--- MPP SDK EXPORT VERIFICATION ---');
 
@@ -32,7 +31,7 @@ async function testImports() {
   console.log('Exports:', Object.keys(mppxServer));
 
   console.log('\n--- CORE FUNCTION CHECK ---');
-  // Checking for specific functions requested
+
   const checks = [
     { name: 'Mppx.create (client)', fn: mppxClient.Mppx?.create },
     { name: 'Mppx.create (server)', fn: mppxServer.Mppx?.create },

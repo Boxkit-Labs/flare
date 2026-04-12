@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Reusable placeholder screen for the new Clean Architecture structure.
 class PlaceholderScreen extends StatelessWidget {
   final String title;
 

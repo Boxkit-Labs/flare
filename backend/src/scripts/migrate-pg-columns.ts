@@ -10,18 +10,16 @@ async function migrate() {
   const client = await pool.connect();
   try {
     console.log('Starting PostgreSQL column migration...');
-    
-    // Add columns to checks table
+
     await client.query(`
-      ALTER TABLE checks 
+      ALTER TABLE checks
       ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'x402',
       ADD COLUMN IF NOT EXISTS channel_id TEXT;
     `);
     console.log('Updated checks table.');
 
-    // Add columns to transactions table
     await client.query(`
-      ALTER TABLE transactions 
+      ALTER TABLE transactions
       ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT 'x402',
       ADD COLUMN IF NOT EXISTS channel_id TEXT;
     `);

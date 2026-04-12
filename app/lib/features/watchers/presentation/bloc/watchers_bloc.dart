@@ -23,7 +23,7 @@ class WatchersBloc extends Bloc<WatchersEvent, WatchersState> {
       try {
         await apiService.createWatcher(event.watcherData);
         emit(const WatcherActionSuccess('Watcher created successfully'));
-        // Trigger reload
+
         if (apiService.userId != null) {
           add(LoadWatchers(apiService.userId!));
         }

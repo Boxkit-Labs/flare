@@ -24,7 +24,7 @@ class _HorizontalCalendarState extends State<HorizontalCalendar> {
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-    // Last 14 days
+
     final now = DateTime.now();
     for (int i = 13; i >= 0; i--) {
       _dates.add(DateTime(now.year, now.month, now.day).subtract(Duration(days: i)));

@@ -11,7 +11,7 @@ class SportsWatcherForm extends StatefulWidget {
 }
 
 class _SportsWatcherFormState extends State<SportsWatcherForm> {
-  String _mode = 'tickets'; // tickets, scores, events
+  String _mode = 'tickets';
   final _teamController = TextEditingController();
   final _maxPriceController = TextEditingController();
   final _cityController = TextEditingController();

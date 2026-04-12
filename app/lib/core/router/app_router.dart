@@ -28,14 +28,12 @@ class AppRouter {
   static GoRouter? _router;
   static GoRouter get router => _router!;
 
-  /// Reset the router (call before re-init on hot restart)
   static void reset() {
     _router?.dispose();
     _router = null;
   }
 
   static void init(AuthBloc authBloc) {
-    // Dispose any previous router to avoid stale listeners
     if (_router != null) {
       _router!.dispose();
       _router = null;
@@ -49,7 +47,6 @@ class AppRouter {
         final authState = authBloc.state;
         final goingToOnboarding = state.matchedLocation == '/onboarding';
 
-        // Still loading or not yet determined — send to onboarding
         if (authState is AuthInitial || authState is AuthLoading) {
           return goingToOnboarding ? null : '/onboarding';
         }
@@ -57,7 +54,7 @@ class AppRouter {
         if (authState is AuthUnauthenticated) {
           return goingToOnboarding ? null : '/onboarding';
         }
-        
+
         if (authState is AuthAuthenticated && goingToOnboarding) {
           return '/';
         }

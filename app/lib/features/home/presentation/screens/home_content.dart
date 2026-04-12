@@ -173,7 +173,7 @@ class HomeContent extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
-          // Top Row
+
           Row(
             children: [
               Expanded(flex: 3, child: _buildGhostScoreBento(context)),
@@ -182,7 +182,7 @@ class HomeContent extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          // Bottom Row
+
           Row(
             children: [
               Expanded(child: _buildActiveAgentsBento(context)),
@@ -1086,7 +1086,6 @@ class HomeContent extends StatelessWidget {
             ),
             const SizedBox(height: 32),
 
-            // Performance Card
             Container(
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
@@ -1162,7 +1161,6 @@ class HomeContent extends StatelessWidget {
 
             const SizedBox(height: 40),
 
-            // Detailed Breakdown
             _buildROIMetricItem(
               icon: Icons.rocket_launch_rounded,
               label: 'AGENT ENERGY COST',
@@ -1295,7 +1293,7 @@ class _AgentActivityIndicatorState extends State<AgentActivityIndicator> {
           if (_nextCheckMinutes > 1) {
             _nextCheckMinutes--;
           } else {
-            _nextCheckMinutes = 60; // Simple loop until re-synced by bloc
+            _nextCheckMinutes = 60;
           }
         });
       }
@@ -1312,7 +1310,7 @@ class _AgentActivityIndicatorState extends State<AgentActivityIndicator> {
   Widget build(BuildContext context) {
     return BlocConsumer<WatchersBloc, WatchersState>(
       listener: (context, state) {
-        // Sync actual next check minutes from network data
+
         if (state is WatchersLoaded) {
           final activeWatchers = state.watchers
               .where((w) => w.status == 'active')

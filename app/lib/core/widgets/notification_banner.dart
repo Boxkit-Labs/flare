@@ -38,8 +38,7 @@ class _NotificationBannerState extends State<NotificationBanner> with SingleTick
     ));
 
     _controller.forward();
-    
-    // Auto-dismiss logic happens in the Overlay manager usually
+
   }
 
   Future<void> dismiss() async {

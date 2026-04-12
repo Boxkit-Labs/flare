@@ -13,10 +13,7 @@ export interface ConfidenceResult {
 }
 
 export class ConfidenceCalculator {
-  
-  /**
-   * Calculates a 0-100 confidence score for a finding.
-   */
+
   public static calculate(
     watcher: WatcherRow,
     finding: Finding,
@@ -50,28 +47,27 @@ export class ConfidenceCalculator {
 
   private static calculateVerification(finding: Finding): number {
     if (finding.verified) return 25;
-    return 10; // Single check only
+    return 10;
   }
 
   private static calculateHistory(watcher: WatcherRow, hasHistory: boolean): number {
     if (!hasHistory) return 10;
-    // For now we assume consistency if history exists, 
-    // in a real app we'd compare data points.
-    return 20; 
+
+    return 20;
   }
 
   private static calculateCollaboration(collab: any): number {
     if (!collab) return 10;
     if (collab.safe === true) return 20;
     if (collab.safe === false) return 5;
-    return 15; // Collaboration found no specific issues but didn't explicitly "confirm"
+    return 15;
   }
 
   private static calculateReliability(watcher: WatcherRow): number {
-    // Some services like News are more "volatile" than price feeds
+
     if (watcher.type === 'news') return 8;
     if (watcher.type === 'custom') return 5;
-    return 15; // Multiple sources (mocked)
+    return 15;
   }
 
   private static getTier(score: number): any {

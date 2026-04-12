@@ -19,17 +19,16 @@ async function topUpOperator() {
         const account = await server.loadAccount(pk);
         const fee = await server.fetchBaseFee();
 
-        // Path Payment Strict Send: Send 100 XLM to self to get as much USDC as possible (min 50)
         const transaction = new TransactionBuilder(account, {
             fee: fee.toString(),
             networkPassphrase: Networks.TESTNET
         })
         .addOperation(Operation.pathPaymentStrictSend({
             sendAsset: Asset.native(),
-            sendAmount: '3000', // 3000 XLM
+            sendAmount: '3000',
             destination: pk,
             destAsset: usdcAsset,
-            destMin: '250', // Minimum 250 USDC
+            destMin: '250',
             path: []
         }))
         .setTimeout(30)

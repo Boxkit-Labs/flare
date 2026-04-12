@@ -5,7 +5,7 @@ async function testPayment() {
   const server = new Horizon.Server('https://horizon-testnet.stellar.org');
   const opSecret = process.env.OPERATOR_SECRET!;
   const opKp = Keypair.fromSecret(opSecret);
-  
+
   const targetPk = "GA5XVNXZFYKR6ELWTPCV32KVPHH4JFOOHWMV7FVT6PSNVGG22PJQ6VYK";
   const usdcAsset = new Asset('USDC', 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5');
 
@@ -23,7 +23,7 @@ async function testPayment() {
     }))
     .setTimeout(30)
     .build();
-    
+
     tx.sign(opKp);
     const res = await server.submitTransaction(tx);
     console.log("Success! Hash:", res.hash);
