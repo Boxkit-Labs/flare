@@ -4,7 +4,7 @@
 
 ### What We Built
 
-Flare is a mobile app where autonomous AI agents monitor flights, crypto, stocks, news, products, jobs, real estate, and events, paying for every data query with real USDC micropayments on Stellar. Agents verify findings with double-checks, cross-verify with other agents, and only alert you when something actually matters. You wake up to a morning briefing that cost $0.03.
+Flare is a mobile app where AI agents monitor flights, crypto, stocks, news, products, jobs, real estate, and events, paying for every data query with real USDC micropayments on Stellar. Agents verify findings with double-checks, cross-verify with other agents, and only alert you when something actually matters. You wake up to a morning briefing that cost $0.03.
 
 ### What Makes Flare Different
 
