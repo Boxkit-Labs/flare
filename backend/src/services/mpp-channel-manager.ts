@@ -490,7 +490,23 @@ export class MPPChannelManager {
     }
 
     if (!state.latestProof) {
-      throw new Error("No proof available to close channel with");
+      if (state.spent > 0) {
+        throw new Error(`Channel has accrued ${state.spent} USDC but has no signed proof to settle with.`);
+      }
+      
+      console.log(`[MPP] Closing channel ${state.channelId} with 0 spent (no proof needed).`);
+      // For 0 spent, we can still call close but with amount 0 and a dummy signature?
+      // Actually, the contract's 'close' requires a valid signature from the funder.
+      // If we don't have a proof, it means the operator (recipient) hasn't signed one yet.
+      // But in our system, the OPERATOR signs the proofs (it's a one-way channel from USER to OPERATOR).
+      // Wait, who is 'from' and 'to'?
+      // In mpp-channel-manager.ts:
+      // - sender (USER) is 'from'
+      // - receiver (OPERATOR) is 'to'
+      // The USER signs commitments for the OPERATOR.
+      // So 'state.latestProof' is a commitment signed by the USER's commitment key.
+      
+      throw new Error("Cannot close channel without a valid proof from the user.");
     }
 
     const proof = JSON.parse(state.latestProof) as {

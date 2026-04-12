@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flare_app/core/utils/string_utils.dart';
 import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:flare_app/core/models/models.dart';
 import 'package:flare_app/features/watchers/presentation/bloc/watchers_bloc.dart';
@@ -188,7 +189,7 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
               children: [
                 Text(_watcher!.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                Text('ID: ${_watcher!.watcherId.substring(0, 12)}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                Text('ID: ${StringUtils.truncate(_watcher!.watcherId, 12)}', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
               ],
             ),
           ),

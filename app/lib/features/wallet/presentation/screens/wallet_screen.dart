@@ -12,6 +12,7 @@ import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_event.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_state.dart';
 import 'package:intl/intl.dart';
+import 'package:flare_app/core/utils/string_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flare_app/features/wallet/domain/services/savings_service.dart';
@@ -170,7 +171,7 @@ class _WalletScreenState extends State<WalletScreen> {
           curve: Curves.easeOutQuart,
           builder: (context, value, child) {
             return Text(
-              '\$${value.toStringAsFixed(2)}',
+              StringUtils.formatCurrency(value, decimals: 4),
               style: const TextStyle(fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2.0),
             );
           },
@@ -225,7 +226,7 @@ class _WalletScreenState extends State<WalletScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '${address.substring(0, 8)}...${address.substring(address.length - 8)}',
+                  StringUtils.formatHash(address),
                   style: const TextStyle(fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
                 ),
                 const SizedBox(width: 8),
@@ -243,7 +244,7 @@ class _WalletScreenState extends State<WalletScreen> {
       children: [
         _buildStatPill(
           'SPENT TODAY',
-          '\$${(stats?.spentToday ?? 0.0).toStringAsFixed(2)}',
+          StringUtils.formatCurrency(stats?.spentToday ?? 0.0, decimals: 3),
           Icons.arrow_downward_rounded,
         ),
         const SizedBox(width: 12),
@@ -736,7 +737,7 @@ class _WalletScreenState extends State<WalletScreen> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              '-\$${tx.amountUsdc.toStringAsFixed(3)}',
+              '-\$${tx.amountUsdc.toStringAsFixed(4)}',
               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.black),
             ),
             if (tx.findingDetected == true)
@@ -792,7 +793,7 @@ class _WalletScreenState extends State<WalletScreen> {
             const SizedBox(height: 32),
             _buildDetailRow('AGENT NAME', tx.watcherName ?? 'General Scanner'),
             _buildDetailRow('SERVICE LAYER', tx.serviceName.toUpperCase()),
-            _buildDetailRow('AMOUNT', '\$${tx.amountUsdc.toStringAsFixed(3)} USDC'),
+            _buildDetailRow('AMOUNT', '\$${tx.amountUsdc.toStringAsFixed(4)} USDC'),
             _buildDetailRow('TIMESTAMP', DateFormat('MMMM d, yyyy HH:mm').format(DateTime.parse(tx.timestamp))),
             _buildDetailRow('STELLAR HASH', tx.stellarTxHash, isCopyable: true),
             const SizedBox(height: 40),

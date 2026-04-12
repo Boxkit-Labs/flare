@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flare_app/core/router/app_router.dart';
 import 'package:flare_app/services/api_service.dart';
+import 'package:flare_app/core/utils/string_utils.dart';
 import 'package:flare_app/core/widgets/notification_banner.dart';
 
 /// Top-level handler for background messages (must be a top-level function).
@@ -107,7 +108,7 @@ class NotificationService {
     // Get and send the current FCM token
     final token = await _messaging.getToken();
     if (token != null) {
-      debugPrint('[FCM] Token acquired: ${token.substring(0, 20)}...');
+      debugPrint('[FCM] Token acquired: ${StringUtils.truncate(token, 20)}');
       await _sendTokenToBackend(token);
     }
 
