@@ -664,6 +664,7 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
   bool _isConnected = false;
   bool _isReconnecting = false;
   int _proofsSent = 0;
+  bool _disposed = false;
 
   @override
   void initState() {
@@ -674,7 +675,7 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
   }
 
   void _connect() {
-    if (!mounted) return;
+    if (_disposed || !mounted) return;
     setState(() {
       _isReconnecting = true;
     });
@@ -686,60 +687,69 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
 
       _channel!.stream.listen(
         (message) {
-          if (!mounted) return;
+          if (_disposed || !mounted) return;
           try {
             final data = jsonDecode(message);
             if (data['type'] == 'data') {
-              setState(() {
-                _isConnected = true;
-                _isReconnecting = false;
-                _latestFrame = data;
-                final num val = data['payload']['price'] ?? 0.0;
-                _prices.add(val.toDouble());
-                if (_prices.length > 20) _prices.removeAt(0);
-                _proofsSent++;
-              });
+              if (!_disposed && mounted) {
+                setState(() {
+                  _isConnected = true;
+                  _isReconnecting = false;
+                  _latestFrame = data;
+                  final num val = data['payload']['price'] ?? 0.0;
+                  _prices.add(val.toDouble());
+                  if (_prices.length > 20) _prices.removeAt(0);
+                  _proofsSent++;
+                });
+              }
             }
           } catch (e) {
             debugPrint('Error parsing WS message: $e');
           }
         },
         onDone: () {
-          if (mounted) {
+          if (!_disposed && mounted) {
             setState(() {
               _isConnected = false;
               if (!_isReconnecting) {
                  _isReconnecting = true;
-                 Future.delayed(const Duration(seconds: 5), _connect);
+                 Future.delayed(const Duration(seconds: 5), () {
+                   if (!_disposed && mounted) _connect();
+                 });
               }
             });
           }
         },
         onError: (error) {
           debugPrint('WS Connection Error: $error');
-          if (mounted) {
+          if (!_disposed && mounted) {
             setState(() {
               _isConnected = false;
               _isReconnecting = true;
             });
-            Future.delayed(const Duration(seconds: 5), _connect);
+            Future.delayed(const Duration(seconds: 5), () {
+              if (!_disposed && mounted) _connect();
+            });
           }
         },
       );
     } catch (e) {
       debugPrint('WS Setup Error: $e');
-      if (mounted) {
+      if (!_disposed && mounted) {
         setState(() {
           _isConnected = false;
           _isReconnecting = true;
         });
-        Future.delayed(const Duration(seconds: 5), _connect);
+        Future.delayed(const Duration(seconds: 5), () {
+          if (!_disposed && mounted) _connect();
+        });
       }
     }
   }
 
   @override
   void dispose() {
+    _disposed = true;
     _channel?.sink.close();
     super.dispose();
   }

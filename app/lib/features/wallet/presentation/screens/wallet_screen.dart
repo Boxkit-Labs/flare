@@ -481,14 +481,25 @@ class _WalletScreenState extends State<WalletScreen> {
             borderRadius: BorderRadius.circular(28),
             border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
           ),
-          child: BarChart(
-            BarChartData(
-              borderData: FlBorderData(show: false),
-              gridData: const FlGridData(show: false),
-              titlesData: const FlTitlesData(show: false),
-              barGroups: _generateBarGroups(stats),
-            ),
-          ),
+          child: (stats?.dailySpending == null || stats!.dailySpending!.isEmpty || stats.dailySpending!.every((d) => (d['amount'] as num) == 0))
+              ? const Center(
+                  child: Text(
+                    'No spending data yet',
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                )
+              : BarChart(
+                  BarChartData(
+                    borderData: FlBorderData(show: false),
+                    gridData: const FlGridData(show: false),
+                    titlesData: const FlTitlesData(show: false),
+                    barGroups: _generateBarGroups(stats),
+                  ),
+                ),
         ),
       ],
     );

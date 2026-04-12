@@ -291,6 +291,7 @@ export class CheckExecutor {
           await notificationService.sendFindingNotification(watcher.user_id, finalFindingToSave as any, watcher);
       }
 
+      console.log('[DB] Incrementing watcher:', watcherId, 'cost:', costUsdc);
       await incrementWatcherChecks(watcherId, costUsdc);
 
       const percentUsed = ((watcher.spent_this_week_usdc || 0) + costUsdc) / watcher.weekly_budget_usdc * 100;
