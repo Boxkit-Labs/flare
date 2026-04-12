@@ -1,3 +1,4 @@
+import 'package:flare_app/core/config/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -28,7 +29,8 @@ class WatcherDetailScreen extends StatefulWidget {
   State<WatcherDetailScreen> createState() => _WatcherDetailScreenState();
 }
 
-class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerProviderStateMixin, AutoRefreshMixin {
+class _WatcherDetailScreenState extends State<WatcherDetailScreen>
+    with TickerProviderStateMixin, AutoRefreshMixin {
   late TabController _tabController;
 
   @override
@@ -40,7 +42,9 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
   }
 
   void _refresh({bool silent = false}) {
-    context.read<WatchersBloc>().add(LoadWatcherDetail(widget.watcherId, isRefresh: silent));
+    context.read<WatchersBloc>().add(
+      LoadWatcherDetail(widget.watcherId, isRefresh: silent),
+    );
   }
 
   void _onAutoRefresh() => _refresh(silent: true);
@@ -64,7 +68,8 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
   }
 
   Widget _buildBody(BuildContext context, WatchersState state) {
-    if (state is WatcherDetailLoaded && state.watcher.watcherId == widget.watcherId) {
+    if (state is WatcherDetailLoaded &&
+        state.watcher.watcherId == widget.watcherId) {
       final watcher = state.watcher;
       return Scaffold(
         backgroundColor: AppTheme.background,
@@ -77,13 +82,17 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
             onPressed: () => context.pop(),
           ),
           title: Text(
-            watcher.name, 
-            style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.8),
+            watcher.name,
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.8,
+            ),
           ),
           actions: [
             IconButton(
               icon: const Icon(Icons.edit_outlined),
-              onPressed: () => context.push('/watchers/${watcher.watcherId}/edit'),
+              onPressed: () =>
+                  context.push('/watchers/${watcher.watcherId}/edit'),
             ),
             IconButton(
               icon: const Icon(Icons.more_horiz_rounded),
@@ -125,10 +134,7 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
         backgroundColor: AppTheme.background,
         key: const ValueKey('error'),
         appBar: AppBar(backgroundColor: AppTheme.background, elevation: 0),
-        body: ErrorState(
-          message: state.message,
-          onRetry: _refresh,
-        ),
+        body: ErrorState(message: state.message, onRetry: _refresh),
       );
     }
 
@@ -144,21 +150,45 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            const ShimmerPlaceholder(width: double.infinity, height: 110, borderRadius: 24),
+            const ShimmerPlaceholder(
+              width: double.infinity,
+              height: 110,
+              borderRadius: 24,
+            ),
             const SizedBox(height: 24),
             const Row(
               children: [
-                Expanded(child: ShimmerPlaceholder(width: double.infinity, height: 80, borderRadius: 16)),
+                Expanded(
+                  child: ShimmerPlaceholder(
+                    width: double.infinity,
+                    height: 80,
+                    borderRadius: 16,
+                  ),
+                ),
                 SizedBox(width: 12),
-                Expanded(child: ShimmerPlaceholder(width: double.infinity, height: 80, borderRadius: 16)),
+                Expanded(
+                  child: ShimmerPlaceholder(
+                    width: double.infinity,
+                    height: 80,
+                    borderRadius: 16,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 32),
-            const ShimmerPlaceholder(width: double.infinity, height: 100, borderRadius: 24),
+            const ShimmerPlaceholder(
+              width: double.infinity,
+              height: 100,
+              borderRadius: 24,
+            ),
             const SizedBox(height: 32),
             const ShimmerHeader(),
             const SizedBox(height: 16),
-            const ShimmerList(itemCount: 3, itemHeight: 80, padding: EdgeInsets.zero),
+            const ShimmerList(
+              itemCount: 3,
+              itemHeight: 80,
+              padding: EdgeInsets.zero,
+            ),
           ],
         ),
       ),
@@ -176,7 +206,11 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
         color: AppTheme.surface,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
         border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
       ),
@@ -187,7 +221,11 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: (isError ? Colors.red : (isPaused ? Colors.orange : Colors.green)).withValues(alpha: 0.1),
+                  color:
+                      (isError
+                              ? Colors.red
+                              : (isPaused ? Colors.orange : Colors.green))
+                          .withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: StatusIndicator(status: watcher.status, size: 10),
@@ -200,45 +238,68 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
                     Text(
                       watcher.status.toUpperCase(),
                       style: TextStyle(
-                        fontWeight: FontWeight.w900, 
-                        fontSize: 14, 
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
                         letterSpacing: 1.2,
-                        color: isError ? Colors.red : (isPaused ? Colors.orange : Colors.green),
+                        color: isError
+                            ? Colors.red
+                            : (isPaused ? Colors.orange : Colors.green),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      isActive 
-                        ? 'Hunting for data since ${DateFormat('MMM d').format(DateTime.parse(watcher.createdAt))}'
-                        : isPaused ? 'Agent currently sleeping' : 'Something went wrong',
-                      style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
+                      isActive
+                          ? 'Hunting for data since ${DateFormat('MMM d').format(DateTime.parse(watcher.createdAt))}'
+                          : isPaused
+                          ? 'Agent currently sleeping'
+                          : 'Something went wrong',
+                      style: const TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
               ),
               if (['crypto', 'stock'].contains(watcher.type) && isActive)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.redAccent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Row(
                     children: [
-                       Icon(Icons.fiber_manual_record, color: Colors.redAccent, size: 10),
-                       SizedBox(width: 4),
-                       Text('LIVE', style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
+                      Icon(
+                        Icons.fiber_manual_record,
+                        color: Colors.redAccent,
+                        size: 10,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'LIVE',
+                        style: TextStyle(
+                          color: Colors.redAccent,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
                     ],
                   ),
                 ),
               const SizedBox(width: 8),
               if (isError)
-                 TextButton.icon(
-                   onPressed: _refresh, 
-                   icon: const Icon(Icons.refresh_rounded, size: 18),
-                   label: const Text('Retry'),
-                   style: TextButton.styleFrom(foregroundColor: AppTheme.error),
-                 ),
+                TextButton.icon(
+                  onPressed: _refresh,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Retry'),
+                  style: TextButton.styleFrom(foregroundColor: AppTheme.error),
+                ),
             ],
           ),
           if (isError && watcher.errorMessage != null) ...[
@@ -270,10 +331,26 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
       crossAxisSpacing: 12,
       childAspectRatio: 2.2,
       children: [
-        _buildStatCard('Total Checks', '${watcher.totalChecks}', Icons.analytics_outlined),
-        _buildStatCard('Findings', '${watcher.totalFindings}', Icons.bolt_rounded),
-        _buildStatCard('Total Spent', '\$${watcher.totalSpentUsdc.toStringAsFixed(2)}', Icons.payment_rounded),
-        _buildStatCard('Budget Status', '${(watcher.budgetPercentUsed! * 100).toInt()}%', Icons.account_balance_wallet_outlined),
+        _buildStatCard(
+          'Total Checks',
+          '${watcher.totalChecks}',
+          Icons.analytics_outlined,
+        ),
+        _buildStatCard(
+          'Findings',
+          '${watcher.totalFindings}',
+          Icons.bolt_rounded,
+        ),
+        _buildStatCard(
+          'Total Spent',
+          '\$${watcher.totalSpentUsdc.toStringAsFixed(2)}',
+          Icons.payment_rounded,
+        ),
+        _buildStatCard(
+          'Budget Status',
+          '${(watcher.budgetPercentUsed! * 100).toInt()}%',
+          Icons.account_balance_wallet_outlined,
+        ),
       ],
     );
   }
@@ -301,8 +378,21 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(label, style: const TextStyle(fontSize: 10, color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
-              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ],
           ),
         ],
@@ -324,31 +414,42 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-             children: [
-               const Text('Weekly Budget', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-               Container(
-                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                 decoration: BoxDecoration(
-                   color: AppTheme.primary.withValues(alpha: 0.05),
-                   borderRadius: BorderRadius.circular(20),
-                 ),
-                 child: Text(
-                  '\$${watcher.spentThisWeekUsdc.toStringAsFixed(2)} / \$${watcher.weeklyBudgetUsdc.toStringAsFixed(2)}', 
-                  style: const TextStyle(fontSize: 12, color: AppTheme.primary, fontWeight: FontWeight.bold),
-                 ),
-               ),
-             ],
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Weekly Budget',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '\$${watcher.spentThisWeekUsdc.toStringAsFixed(2)} / \$${watcher.weeklyBudgetUsdc.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
-          AnimatedBudgetBar(
-            percentUsed: percentUsed,
-            minHeight: 10,
-          ),
+          AnimatedBudgetBar(percentUsed: percentUsed, minHeight: 10),
           const SizedBox(height: 12),
           Text(
             'Resets in ${7 - DateTime.now().weekday % 7} days',
-            style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -373,7 +474,10 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
         indicatorSize: TabBarIndicatorSize.tab,
         padding: const EdgeInsets.all(4),
         labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        unselectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 13,
+        ),
         tabs: const [
           Tab(text: 'Live Feed'),
           Tab(text: 'Findings'),
@@ -390,10 +494,10 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
       child: TabBarView(
         controller: _tabController,
         children: [
-           _LiveFeedTab(watcher: watcher),
-           _buildFindingsTab(watcher),
-           _buildHistoryTab(watcher),
-           _buildAnalyticsTab(watcher),
+          _LiveFeedTab(watcher: watcher),
+          _buildFindingsTab(watcher),
+          _buildHistoryTab(watcher),
+          _buildAnalyticsTab(watcher),
         ],
       ),
     );
@@ -402,7 +506,10 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
   Widget _buildFindingsTab(WatcherModel watcher) {
     final findings = watcher.recentFindings ?? [];
     if (findings.isEmpty) {
-      return _buildEmptyTab('No findings yet', 'Your agent hasn\'t discovered any matches.');
+      return _buildEmptyTab(
+        'No findings yet',
+        'Your agent hasn\'t discovered any matches.',
+      );
     }
     return ListView.builder(
       padding: EdgeInsets.zero,
@@ -414,7 +521,10 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
   Widget _buildHistoryTab(WatcherModel watcher) {
     final checks = watcher.recentChecks ?? [];
     if (checks.isEmpty) {
-      return _buildEmptyTab('No history', 'Agent is awaiting its first deployment check.');
+      return _buildEmptyTab(
+        'No history',
+        'Agent is awaiting its first deployment check.',
+      );
     }
     return ListView.separated(
       padding: EdgeInsets.zero,
@@ -448,7 +558,10 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
           Text('🛡️', style: const TextStyle(fontSize: 32)),
           const SizedBox(height: 16),
           Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text(subtitle, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+          Text(
+            subtitle,
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+          ),
         ],
       ),
     );
@@ -459,7 +572,9 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
       context: context,
       useRootNavigator: true,
       backgroundColor: AppTheme.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -483,16 +598,22 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    watcher.status == 'active' ? Icons.pause_circle_outline : Icons.play_circle_outline,
+                    watcher.status == 'active'
+                        ? Icons.pause_circle_outline
+                        : Icons.play_circle_outline,
                     color: AppTheme.primary,
                   ),
                 ),
                 title: Text(
-                  watcher.status == 'active' ? 'Pause Watcher' : 'Resume Watcher',
+                  watcher.status == 'active'
+                      ? 'Pause Watcher'
+                      : 'Resume Watcher',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 onTap: () {
-                  context.read<WatchersBloc>().add(ToggleWatcher(watcher.watcherId));
+                  context.read<WatchersBloc>().add(
+                    ToggleWatcher(watcher.watcherId),
+                  );
                   Navigator.pop(context);
                 },
               ),
@@ -505,9 +626,17 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen> with TickerPr
                   ),
                   child: const Icon(Icons.delete_outline, color: Colors.red),
                 ),
-                title: const Text('Delete Watcher', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+                title: const Text(
+                  'Delete Watcher',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 onTap: () {
-                  context.read<WatchersBloc>().add(DeleteWatcher(watcher.watcherId));
+                  context.read<WatchersBloc>().add(
+                    DeleteWatcher(watcher.watcherId),
+                  );
                   Navigator.pop(context);
                   context.pop(); // Go back to list
                 },
@@ -540,7 +669,7 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
   void initState() {
     super.initState();
     if (['crypto', 'stock'].contains(widget.watcher.type)) {
-       _connect();
+      _connect();
     }
   }
 
@@ -550,15 +679,16 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
       setState(() {
         _isReconnecting = true;
       });
-      _channel = WebSocketChannel.connect(
-        Uri.parse('ws://127.0.0.1:4000/ws/stream?watcherId=${widget.watcher.watcherId}'),
-      );
-      
-      _channel!.stream.listen((message) {
-        final data = jsonDecode(message);
-        if (data['type'] == 'data') {
-           if (!mounted) return;
-           setState(() {
+      final wsUrl =
+          '${AppConstants.baseWsUrl}/ws/stream?watcherId=${widget.watcher.watcherId}&userId=${widget.watcher.userId}';
+      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
+
+      _channel!.stream.listen(
+        (message) {
+          final data = jsonDecode(message);
+          if (data['type'] == 'data') {
+            if (!mounted) return;
+            setState(() {
               _isConnected = true;
               _isReconnecting = false;
               _latestFrame = data;
@@ -566,25 +696,28 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
               _prices.add(val.toDouble());
               if (_prices.length > 20) _prices.removeAt(0);
               _proofsSent++;
-           });
-        }
-      }, onDone: () {
-         if (mounted) {
-           setState(() {
-             _isConnected = false;
-             _isReconnecting = true;
-           });
-           Future.delayed(const Duration(seconds: 3), _connect);
-         }
-      }, onError: (error) {
-         if (mounted) {
-           setState(() {
-             _isConnected = false;
-             _isReconnecting = true;
-           });
-           Future.delayed(const Duration(seconds: 3), _connect);
-         }
-      });
+            });
+          }
+        },
+        onDone: () {
+          if (mounted) {
+            setState(() {
+              _isConnected = false;
+              _isReconnecting = true;
+            });
+            Future.delayed(const Duration(seconds: 3), _connect);
+          }
+        },
+        onError: (error) {
+          if (mounted) {
+            setState(() {
+              _isConnected = false;
+              _isReconnecting = true;
+            });
+            Future.delayed(const Duration(seconds: 3), _connect);
+          }
+        },
+      );
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -610,20 +743,31 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
           children: [
             const Icon(Icons.waves, size: 40, color: AppTheme.textSecondary),
             const SizedBox(height: 12),
-            const Text('Live Stream Unavailable', style: TextStyle(fontWeight: FontWeight.w900)),
+            const Text(
+              'Live Stream Unavailable',
+              style: TextStyle(fontWeight: FontWeight.w900),
+            ),
             const SizedBox(height: 8),
             const Text(
               'High-frequency WebSocket streams are\ncurrently only supported for crypto/stocks.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 12,
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
       );
     }
 
-    final price = _latestFrame != null ? _latestFrame!['payload']['price'].toString() : '---';
-    final timestamp = _latestFrame != null ? DateFormat('HH:mm:ss.SS').format(DateTime.now()) : '--:--:--';
+    final price = _latestFrame != null
+        ? _latestFrame!['payload']['price'].toString()
+        : '---';
+    final timestamp = _latestFrame != null
+        ? DateFormat('HH:mm:ss.SS').format(DateTime.now())
+        : '--:--:--';
     final sessionCost = (_proofsSent * 0.0005).toStringAsFixed(4);
 
     return Padding(
@@ -636,89 +780,154 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
               Row(
                 children: [
                   Container(
-                    width: 8, height: 8,
+                    width: 8,
+                    height: 8,
                     decoration: BoxDecoration(
                       color: _isConnected ? Colors.green : Colors.amber,
                       shape: BoxShape.circle,
                       boxShadow: [
-                         BoxShadow(color: (_isConnected ? Colors.green : Colors.amber).withValues(alpha: 0.3), blurRadius: 4),
-                      ]
+                        BoxShadow(
+                          color: (_isConnected ? Colors.green : Colors.amber)
+                              .withValues(alpha: 0.3),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(_isConnected ? 'Connected' : 'Reconnecting...', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppTheme.textSecondary)),
+                  Text(
+                    _isConnected ? 'Connected' : 'Reconnecting...',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
                 ],
               ),
-              Text(timestamp, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w900, color: AppTheme.textSecondary)),
+              Text(
+                timestamp,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 24),
           Container(
-             padding: const EdgeInsets.all(24),
-             decoration: BoxDecoration(
-               color: Colors.black,
-               borderRadius: BorderRadius.circular(24),
-             ),
-             child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                   const Text('LATEST FRAME', style: TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
-                   const SizedBox(height: 8),
-                   Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('\$$price', style: const TextStyle(color: Colors.greenAccent, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: -1.0)),
-                        const SizedBox(width: 8),
-                        const Padding(
-                          padding: EdgeInsets.only(bottom: 6.0),
-                          child: Text('USD', style: TextStyle(color: Colors.white38, fontSize: 14, fontWeight: FontWeight.bold)),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'LATEST FRAME',
+                  style: TextStyle(
+                    color: Colors.white60,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '\$$price',
+                      style: const TextStyle(
+                        color: Colors.greenAccent,
+                        fontSize: 36,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1.0,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 6.0),
+                      child: Text(
+                        'USD',
+                        style: TextStyle(
+                          color: Colors.white38,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
                         ),
-                      ]
-                   ),
-                   const SizedBox(height: 32),
-                   SizedBox(
-                     height: 100,
-                     child: _prices.isEmpty ? const Center(child: CircularProgressIndicator(color: Colors.white24)) : LineChart(
-                        LineChartData(
-                          gridData: const FlGridData(show: false),
-                          titlesData: const FlTitlesData(show: false),
-                          borderData: FlBorderData(show: false),
-                          lineBarsData: [
-                            LineChartBarData(
-                              spots: _prices.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
-                              isCurved: true,
-                              color: Colors.greenAccent,
-                              barWidth: 3,
-                              isStrokeCapRound: true,
-                              dotData: const FlDotData(show: false),
-                              belowBarData: BarAreaData(
-                                show: true,
-                                color: Colors.greenAccent.withValues(alpha: 0.1),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                SizedBox(
+                  height: 100,
+                  child: _prices.isEmpty
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: Colors.white24,
+                          ),
+                        )
+                      : LineChart(
+                          LineChartData(
+                            gridData: const FlGridData(show: false),
+                            titlesData: const FlTitlesData(show: false),
+                            borderData: FlBorderData(show: false),
+                            lineBarsData: [
+                              LineChartBarData(
+                                spots: _prices
+                                    .asMap()
+                                    .entries
+                                    .map(
+                                      (e) => FlSpot(e.key.toDouble(), e.value),
+                                    )
+                                    .toList(),
+                                isCurved: true,
+                                color: Colors.greenAccent,
+                                barWidth: 3,
+                                isStrokeCapRound: true,
+                                dotData: const FlDotData(show: false),
+                                belowBarData: BarAreaData(
+                                  show: true,
+                                  color: Colors.greenAccent.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                     ),
-                   )
-                ]
-             )
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(
+              color: Colors.purple.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Row(
-               mainAxisAlignment: MainAxisAlignment.center,
-               children: [
-                 const Icon(Icons.link, color: Colors.purple, size: 16),
-                 const SizedBox(width: 8),
-                 Text('Proofs sent: $_proofsSent  |  Session cost: \$$sessionCost', style: const TextStyle(color: Colors.purple, fontWeight: FontWeight.w900, fontSize: 12)),
-               ]
-            )
-          )
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.link, color: Colors.purple, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  'Proofs sent: $_proofsSent  |  Session cost: \$$sessionCost',
+                  style: const TextStyle(
+                    color: Colors.purple,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 }
-

@@ -21,8 +21,8 @@ export class MPPStreamService {
     private readonly FRAME_COST_USDC = 0.0005;
 
     constructor(port: number = 4000) {
-        this.wss = new WebSocketServer({ port, host: '127.0.0.1' });
-        console.log(`[MPP Stream] WebSocket server started on port ${port} at 127.0.0.1`);
+        this.wss = new WebSocketServer({ port, host: '0.0.0.0' });
+        console.log(`[MPP Stream] WebSocket server started on port ${port} at 0.0.0.0`);
 
         this.wss.on('connection', async (ws: WebSocket, req: any) => {
             console.log(`[MPP Stream] New connection attempt: ${req.url}`);
@@ -31,20 +31,13 @@ export class MPPStreamService {
                 const WS_URL = 'ws://127.0.0.1:4000/ws/stream';
                 const url = new URL(req.url, `ws://${req.headers.host}`);
                 const userId = url.searchParams.get('userId');
-                const serviceId = url.searchParams.get('serviceId');
-                const channelId = url.searchParams.get('channelId');
                 const watcherId = url.searchParams.get('watcherId');
+                
+                let serviceId = url.searchParams.get('serviceId');
+                let channelId = url.searchParams.get('channelId');
 
-                if (!userId || !serviceId || !channelId || !watcherId) {
-                    ws.send(JSON.stringify({ error: 'Missing required parameters (userId, serviceId, channelId, watcherId)' }));
-                    ws.close(1008);
-                    return;
-                }
-
-                // Verify channel is open
-                const channelState = await mppChannelManager.getChannelStatus(userId, serviceId);
-                if (!channelState || channelState.status !== 'open' || channelState.channelId !== channelId) {
-                    ws.send(JSON.stringify({ error: 'Valid open channel not found' }));
+                if (!userId || !watcherId) {
+                    ws.send(JSON.stringify({ error: 'Missing required parameters (userId, watcherId)' }));
                     ws.close(1008);
                     return;
                 }
@@ -52,6 +45,24 @@ export class MPPStreamService {
                 const watcher = await getWatcherById(watcherId);
                 if (!watcher || watcher.user_id !== userId) {
                     ws.send(JSON.stringify({ error: 'Watcher not found or unauthorized' }));
+                    ws.close(1008);
+                    return;
+                }
+
+                if (!serviceId) serviceId = `${watcher.type}-service`;
+
+                // Verify channel is open
+                const channelState = await mppChannelManager.getChannelStatus(userId, serviceId);
+                if (!channelState || channelState.status !== 'open') {
+                    ws.send(JSON.stringify({ error: 'Valid open channel not found for this service' }));
+                    ws.close(1008);
+                    return;
+                }
+
+                if (!channelId) channelId = channelState.channelId;
+                
+                if (channelId !== channelState.channelId) {
+                    ws.send(JSON.stringify({ error: 'Mismatch between provided and active channelId' }));
                     ws.close(1008);
                     return;
                 }
