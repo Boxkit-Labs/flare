@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:flare_app/core/models/models.dart';
-import 'package:flare_app/core/mixins/auto_refresh_mixin.dart';
 import 'package:flare_app/core/widgets/error_state.dart';
 import 'package:flare_app/core/widgets/shimmer_utilities.dart';
 import 'package:flare_app/core/widgets/status_indicator.dart';
@@ -30,7 +29,7 @@ class WatcherDetailScreen extends StatefulWidget {
 }
 
 class _WatcherDetailScreenState extends State<WatcherDetailScreen>
-    with TickerProviderStateMixin, AutoRefreshMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -38,16 +37,13 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen>
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _refresh();
-    startAutoRefresh(const Duration(seconds: 30), _onAutoRefresh);
   }
 
   void _refresh({bool silent = false}) {
     context.read<WatchersBloc>().add(
-      LoadWatcherDetail(widget.watcherId, isRefresh: silent),
-    );
+          LoadWatcherDetail(widget.watcherId, isRefresh: silent),
+        );
   }
-
-  void _onAutoRefresh() => _refresh(silent: true);
 
   @override
   void dispose() {
@@ -664,6 +660,7 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
   bool _isConnected = false;
   bool _isReconnecting = false;
   int _proofsSent = 0;
+  bool _disposed = false;
 
   @override
   void initState() {
@@ -674,7 +671,7 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
   }
 
   void _connect() {
-    if (!mounted) return;
+    if (_disposed || !mounted) return;
     setState(() {
       _isReconnecting = true;
     });
@@ -686,60 +683,69 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
 
       _channel!.stream.listen(
         (message) {
-          if (!mounted) return;
+          if (_disposed || !mounted) return;
           try {
             final data = jsonDecode(message);
             if (data['type'] == 'data') {
-              setState(() {
-                _isConnected = true;
-                _isReconnecting = false;
-                _latestFrame = data;
-                final num val = data['payload']['price'] ?? 0.0;
-                _prices.add(val.toDouble());
-                if (_prices.length > 20) _prices.removeAt(0);
-                _proofsSent++;
-              });
+              if (!_disposed && mounted) {
+                setState(() {
+                  _isConnected = true;
+                  _isReconnecting = false;
+                  _latestFrame = data;
+                  final num val = data['payload']['price'] ?? 0.0;
+                  _prices.add(val.toDouble());
+                  if (_prices.length > 20) _prices.removeAt(0);
+                  _proofsSent++;
+                });
+              }
             }
           } catch (e) {
             debugPrint('Error parsing WS message: $e');
           }
         },
         onDone: () {
-          if (mounted) {
+          if (!_disposed && mounted) {
             setState(() {
               _isConnected = false;
               if (!_isReconnecting) {
                  _isReconnecting = true;
-                 Future.delayed(const Duration(seconds: 5), _connect);
+                 Future.delayed(const Duration(seconds: 5), () {
+                   if (!_disposed && mounted) _connect();
+                 });
               }
             });
           }
         },
         onError: (error) {
           debugPrint('WS Connection Error: $error');
-          if (mounted) {
+          if (!_disposed && mounted) {
             setState(() {
               _isConnected = false;
               _isReconnecting = true;
             });
-            Future.delayed(const Duration(seconds: 5), _connect);
+            Future.delayed(const Duration(seconds: 5), () {
+              if (!_disposed && mounted) _connect();
+            });
           }
         },
       );
     } catch (e) {
       debugPrint('WS Setup Error: $e');
-      if (mounted) {
+      if (!_disposed && mounted) {
         setState(() {
           _isConnected = false;
           _isReconnecting = true;
         });
-        Future.delayed(const Duration(seconds: 5), _connect);
+        Future.delayed(const Duration(seconds: 5), () {
+          if (!_disposed && mounted) _connect();
+        });
       }
     }
   }
 
   @override
   void dispose() {
+    _disposed = true;
     _channel?.sink.close();
     super.dispose();
   }
