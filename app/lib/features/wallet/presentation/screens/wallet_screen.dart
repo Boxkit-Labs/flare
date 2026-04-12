@@ -518,13 +518,15 @@ class _WalletScreenState extends State<WalletScreen> with AutoRefreshMixin {
       final dateStr = DateFormat('yyyy-MM-dd').format(date);
 
       final dayData = daily.firstWhere(
-        (d) => d['date'] == dateStr,
+        (d) {
+          final dDate = d['date'].toString();
+          return dDate.startsWith(dateStr) || dateStr.startsWith(dDate);
+        },
         orElse: () => {'amount': 0.0, 'on_chain_amount': 0.0},
       );
 
-      final total = (dayData['amount'] as num).toDouble();
-      final onChain =
-          (dayData['on_chain_amount'] as num?)?.toDouble() ?? (total * 0.4);
+      final total = (dayData['amount'] as num?)?.toDouble() ?? 0.0;
+      final onChain = (dayData['on_chain_amount'] as num?)?.toDouble() ?? (total * 0.4);
       final offChain = total - onChain;
 
       return BarChartGroupData(

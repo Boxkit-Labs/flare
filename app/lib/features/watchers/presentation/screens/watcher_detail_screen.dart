@@ -769,11 +769,14 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
       );
     }
 
-    final price = _latestFrame != null
-        ? _latestFrame!['payload']['price'].toString()
-        : '---';
-    final timestamp = _latestFrame != null
-        ? DateFormat('HH:mm:ss.SS').format(DateTime.now())
+    final payload = _latestFrame?['payload'];
+    final priceVal = payload?['price'];
+    final price = priceVal != null
+        ? '\$${priceVal is num ? priceVal.toStringAsFixed(2) : priceVal}'
+        : (payload?['data'] != null ? 'Data Received' : '---');
+
+    final timestamp = payload?['timestamp'] != null
+        ? DateFormat('HH:mm:ss').format(DateTime.parse(payload!['timestamp']))
         : '--:--:--';
     final sessionCost = (_proofsSent * 0.0005).toStringAsFixed(4);
 

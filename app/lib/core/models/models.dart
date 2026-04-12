@@ -553,12 +553,39 @@ class SpendingStatsModel {
       return null;
     }
 
+    double parseAmount(dynamic val) {
+      if (val == null) return 0.0;
+      if (val is num) return val.toDouble();
+      if (val is String) return double.tryParse(val) ?? 0.0;
+      return 0.0;
+    }
+
+    final dailyRaw = json['daily_spending'];
+    List<dynamic>? cleanDaily;
+    if (dailyRaw is List) {
+      cleanDaily = dailyRaw.map((d) => {
+        ...Map<String, dynamic>.from(d),
+        'amount': parseAmount(d['amount']),
+        'on_chain_amount': parseAmount(d['on_chain_amount']),
+        'findings': d['findings'] ?? 0,
+      }).toList();
+    }
+
+    final perWatcherRaw = json['per_watcher_spending'];
+    List<dynamic>? cleanPerWatcher;
+    if (perWatcherRaw is List) {
+      cleanPerWatcher = perWatcherRaw.map((d) => {
+        ...Map<String, dynamic>.from(d),
+        'amount': parseAmount(d['amount']),
+      }).toList();
+    }
+
     return SpendingStatsModel(
       totalSpent: parseDouble(json['total_spent']),
       spentToday: parseDouble(json['spent_today']),
       spentThisWeek: parseDouble(json['spent_this_week']),
-      dailySpending: json['daily_spending'],
-      perWatcherSpending: json['per_watcher_spending'],
+      dailySpending: cleanDaily,
+      perWatcherSpending: cleanPerWatcher,
       totalChecksToday: json['total_checks_today'],
       totalFindingsToday: json['total_findings_today'],
       totalFindingsAllTime: json['total_findings_all_time'],
