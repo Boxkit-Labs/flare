@@ -102,7 +102,7 @@ class _WalletScreenState extends State<WalletScreen> with AutoRefreshMixin {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           physics: const BouncingScrollPhysics(),
           children: [
-            _buildBalanceHeader(state.wallet),
+            _buildBalanceHeader(state),
             const SizedBox(height: 32),
             _buildTodayStats(state.stats),
             const SizedBox(height: 32),
@@ -169,9 +169,10 @@ class _WalletScreenState extends State<WalletScreen> with AutoRefreshMixin {
     );
   }
 
-  Widget _buildBalanceHeader(WalletModel? wallet) {
-    final balance = wallet?.balanceUsdc ?? 0.0;
-    final address = wallet?.publicKey ?? 'GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
+  Widget _buildBalanceHeader(WalletLoaded state) {
+    final balance = state.wallet?.balanceUsdc ?? 0.0;
+    final isFunding = state.isFunding;
+    final address = state.wallet?.publicKey ?? 'GXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
 
     return Column(
       children: [
@@ -205,39 +206,55 @@ class _WalletScreenState extends State<WalletScreen> with AutoRefreshMixin {
           children: [
             Container(
               decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
+                gradient: isFunding
+                    ? null
+                    : AppTheme.primaryGradient,
+                color: isFunding ? Colors.grey[200] : null,
                 borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primary.withValues(alpha: 0.2),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                boxShadow: isFunding
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: AppTheme.primary.withValues(alpha: 0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
               ),
               child: ElevatedButton.icon(
-                onPressed: () {
-                  final authState = context.read<AuthBloc>().state;
-                  if (authState is AuthAuthenticated) {
-                    context.read<WalletBloc>().add(
-                      FundWalletUser(authState.user.userId),
-                    );
-                    TopSnackbar.showSuccess(
-                      context,
-                      'Requesting Testnet funds...',
-                    );
-                  }
-                },
-                icon: const Icon(
-                  Icons.add_rounded,
-                  size: 18,
-                  color: Colors.white,
-                ),
-                label: const Text(
-                  'Add Funds',
+                onPressed: isFunding
+                    ? null
+                    : () {
+                        final authState = context.read<AuthBloc>().state;
+                        if (authState is AuthAuthenticated) {
+                          context.read<WalletBloc>().add(
+                                FundWalletUser(authState.user.userId),
+                              );
+                          TopSnackbar.showSuccess(
+                            context,
+                            'Requesting Testnet funds...',
+                          );
+                        }
+                      },
+                icon: isFunding
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppTheme.primary,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.add_rounded,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                label: Text(
+                  isFunding ? 'Processing...' : 'Add Funds',
                   style: TextStyle(
                     fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                    color: isFunding ? AppTheme.textSecondary : Colors.white,
                   ),
                 ),
                 style: ElevatedButton.styleFrom(

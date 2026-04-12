@@ -323,6 +323,56 @@ class FindingModel {
       confidenceTier: json['confidence_tier'],
     );
   }
+
+  FindingModel copyWith({
+    String? findingId,
+    String? watcherId,
+    String? checkId,
+    String? userId,
+    String? type,
+    String? headline,
+    String? detail,
+    Map<String, dynamic>? data,
+    String? actionUrl,
+    double? costUsdc,
+    String? stellarTxHash,
+    bool? isRead,
+    bool? isNotified,
+    String? foundAt,
+    String? watcherName,
+    String? watcherType,
+    bool? verified,
+    String? verificationTxHash,
+    String? verificationCheckId,
+    Map<String, dynamic>? collaborationResult,
+    int? confidenceScore,
+    String? confidenceTier,
+  }) {
+    return FindingModel(
+      findingId: findingId ?? this.findingId,
+      watcherId: watcherId ?? this.watcherId,
+      checkId: checkId ?? this.checkId,
+      userId: userId ?? this.userId,
+      type: type ?? this.type,
+      headline: headline ?? this.headline,
+      detail: detail ?? this.detail,
+      data: data ?? this.data,
+      actionUrl: actionUrl ?? this.actionUrl,
+      costUsdc: costUsdc ?? this.costUsdc,
+      stellarTxHash: stellarTxHash ?? this.stellarTxHash,
+      isRead: isRead ?? this.isRead,
+      isNotified: isNotified ?? this.isNotified,
+      foundAt: foundAt ?? this.foundAt,
+      watcherName: watcherName ?? this.watcherName,
+      watcherType: watcherType ?? this.watcherType,
+      verified: verified ?? this.verified,
+      verificationTxHash: verificationTxHash ?? this.verificationTxHash,
+      verificationCheckId: verificationCheckId ?? this.verificationCheckId,
+      collaborationResult: collaborationResult ?? this.collaborationResult,
+      confidenceScore: confidenceScore ?? this.confidenceScore,
+      confidenceTier: confidenceTier ?? this.confidenceTier,
+    );
+  }
 }
 
 class WatcherSummary {

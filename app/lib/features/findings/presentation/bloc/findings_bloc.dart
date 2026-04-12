@@ -24,14 +24,22 @@ class FindingsBloc extends Bloc<FindingsEvent, FindingsState> {
     });
 
     on<MarkFindingAsRead>((event, emit) async {
+      final currentState = state;
       try {
-        await apiService.markFindingRead(event.findingId);
-
-        if (apiService.userId != null) {
-          add(LoadFindings(apiService.userId!));
+        if (currentState is FindingsLoaded) {
+          final updatedFindings = currentState.findings.map((f) {
+            if (f.findingId == event.findingId) {
+              return f.copyWith(isRead: true);
+            }
+            return f;
+          }).toList();
+          final newUnread = updatedFindings.where((f) => !f.isRead).length;
+          emit(FindingsLoaded(updatedFindings, newUnread));
         }
+
+        await apiService.markFindingRead(event.findingId);
       } catch (e) {
-        emit(FindingsError(ErrorFormatter.format(e)));
+        // Silent fail on optimistic update
       }
     });
 

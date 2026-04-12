@@ -772,7 +772,7 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
     final payload = _latestFrame?['payload'];
     final priceVal = payload?['price'];
     final price = priceVal != null
-        ? '\$${priceVal is num ? priceVal.toStringAsFixed(2) : priceVal}'
+        ? (priceVal is num ? priceVal.toStringAsFixed(2) : priceVal)
         : (payload?['data'] != null ? 'Data Received' : '---');
 
     final timestamp = payload?['timestamp'] != null
