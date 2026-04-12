@@ -1,3 +1,4 @@
+import 'package:flare_app/core/mixins/auto_refresh_mixin.dart';
 import 'package:flare_app/features/findings/presentation/bloc/findings_event.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,14 +29,17 @@ class WalletScreen extends StatefulWidget {
   State<WalletScreen> createState() => _WalletScreenState();
 }
 
-class _WalletScreenState extends State<WalletScreen> {
+class _WalletScreenState extends State<WalletScreen> with AutoRefreshMixin {
   int _chartDays = 7;
 
   @override
   void initState() {
     super.initState();
     _refresh();
+    startAutoRefresh(const Duration(seconds: 30), _onAutoRefresh);
   }
+
+  void _onAutoRefresh() => _refresh(force: true);
 
   void _refresh({bool force = false}) {
     final authState = context.read<AuthBloc>().state;

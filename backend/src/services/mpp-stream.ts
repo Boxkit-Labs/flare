@@ -31,7 +31,7 @@ export class MPPStreamService {
         `[MPP Stream] WebSocket server attached to HTTP server at /ws/stream`,
       );
     } else {
-      const port = options?.port || 4000;
+      const port = options?.port || 3000;
       this.wss = new WebSocketServer({
         port,
         host: "0.0.0.0",
@@ -46,7 +46,6 @@ export class MPPStreamService {
       console.log(`[MPP Stream] New connection attempt: ${req.url}`);
 
       try {
-        const WS_URL = "ws://127.0.0.1:4000/ws/stream";
         const url = new URL(req.url, `ws://${req.headers.host}`);
         const userId = url.searchParams.get("userId");
         const watcherId = url.searchParams.get("watcherId");

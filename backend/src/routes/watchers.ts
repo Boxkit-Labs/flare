@@ -68,7 +68,7 @@ router.post('/', async (req: Request, res: Response) => {
 
         const watcherId = randomUUID();
         const now = new Date();
-        const nextCheck = new Date(now.getTime() + check_interval_minutes * 60000);
+        const nextCheck = now;
 
         const newWatcher = {
             watcherId,
