@@ -16,7 +16,6 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import "dotenv/config";
 
-// Constants
 const RPC_URL = "https://soroban-testnet.stellar.org";
 const HORIZON_URL = "https://horizon-testnet.stellar.org";
 const NETWORK_PASSPHRASE = Networks.TESTNET;
@@ -32,10 +31,6 @@ const rpc = new Server(RPC_URL);
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// RPC Helpers
-// ─────────────────────────────────────────────────────────────────────────────
 
 async function waitForTx(hash: string): Promise<any> {
   console.log(`  -> Polling for status of TX ${hash}...`);
@@ -62,7 +57,7 @@ async function getAccount(pk: string) {
 }
 
 async function quickTx(keypair: Keypair, ops: any[]) {
-  await sleep(2000); // Resiliency for ledger propagation
+  await sleep(2000);
   const acc = await getAccount(keypair.publicKey());
   const tx = new TransactionBuilder(
     new Account(keypair.publicKey(), acc.sequence),
@@ -112,10 +107,6 @@ async function quickTx(keypair: Keypair, ops: any[]) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Stellar Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
 async function fundWithFriendbot(publicKey: string) {
   console.log(`  -> Funding ${publicKey} via Friendbot...`);
   const response = await fetch(
@@ -129,16 +120,11 @@ async function fundWithFriendbot(publicKey: string) {
   await sleep(5000);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main Flow
-// ─────────────────────────────────────────────────────────────────────────────
-
 async function main() {
   console.log("=================================================");
   console.log("   MPP STANDALONE CLOSE PROOF (DEFINITIVE-FIX)   ");
   console.log("=================================================");
 
-  // 1. Setup Accounts
   const commitmentSeed = nacl.randomBytes(32);
   const commitmentKeypair = nacl.sign.keyPair.fromSeed(commitmentSeed);
   const commitmentPublicKey = Buffer.from(commitmentKeypair.publicKey);
@@ -169,7 +155,6 @@ async function main() {
   ]);
   console.log(`    SENDER swapped for 5 USDC.`);
 
-  // 3. Upload Fixed WASM
   console.log(`[3] Uploading FIXED Channel WASM...`);
   const wasmBuffer = fs.readFileSync(WASM_PATH);
   const uploadRes = await quickTx(sender, [
@@ -181,7 +166,6 @@ async function main() {
   const wasmHash = uploadRes.returnValue.bytes();
   console.log(`    WASM Uploaded: ${wasmHash.toString("hex")}`);
 
-  // 4. Deploy Fresh Contract Instance
   console.log(`[4] Deploying Contract Instance...`);
   const salt = crypto.randomBytes(32);
   const deployRes = await quickTx(sender, [
@@ -205,7 +189,6 @@ async function main() {
   console.log(`    Contract Deployed: ${contractId}`);
   const channelContractSc = Address.fromString(contractId).toScAddress();
 
-  // 5. Initialize (Fixed Signature: [key, from, to, token])
   console.log(`[5] Initializing Channel (with FIXED signature)...`);
   const initOp = Operation.invokeHostFunction({
     func: xdr.HostFunction.hostFunctionTypeInvokeContract(
@@ -225,7 +208,6 @@ async function main() {
   await quickTx(sender, [initOp]);
   console.log(`    Channel Initialized.`);
 
-  // 6. Top-up
   console.log(`[6] Depositing 2 USDC...`);
   const topUpOp = Operation.invokeHostFunction({
     func: xdr.HostFunction.hostFunctionTypeInvokeContract(
@@ -240,7 +222,6 @@ async function main() {
   await quickTx(sender, [topUpOp]);
   console.log(`    Deposit complete.`);
 
-  // 7. Off-chain Payments
   console.log(`[7] Exchanging off-chain payments...`);
   const cumulativeAmounts = [100000, 250000, 500000];
   let lastSig = "";
@@ -269,7 +250,6 @@ async function main() {
     console.log(`    Signed cumulative ${amountStroops} stroops.`);
   }
 
-  // 8. Close
   console.log(`[8] Closing channel (Settlement)...`);
   const closeOp = Operation.invokeHostFunction({
     func: xdr.HostFunction.hostFunctionTypeInvokeContract(
@@ -287,7 +267,6 @@ async function main() {
   await quickTx(receiver, [closeOp]);
   console.log(`    Channel Closed.`);
 
-  // 9. Verification
   const rFinal = await fetch(
     `${HORIZON_URL}/accounts/${receiver.publicKey()}`,
   ).then((r) => r.json());

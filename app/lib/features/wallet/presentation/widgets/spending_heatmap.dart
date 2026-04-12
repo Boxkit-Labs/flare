@@ -3,7 +3,7 @@ import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:intl/intl.dart';
 
 class SpendingHeatmap extends StatelessWidget {
-  final List<dynamic> dailySpending; // List of {date: string, amount: double, findings: int}
+  final List<dynamic> dailySpending;
   final Function(Map<String, dynamic>) onDayTap;
 
   const SpendingHeatmap({
@@ -14,17 +14,17 @@ class SpendingHeatmap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Generate last 84 days (12 weeks)
+
     final now = DateTime.now();
     final days = List.generate(84, (index) {
       final date = now.subtract(Duration(days: 83 - index));
       final dateStr = DateFormat('yyyy-MM-dd').format(date);
-      
+
       final data = dailySpending.firstWhere(
         (d) => d['date'] == dateStr,
         orElse: () => {'date': dateStr, 'amount': 0.0, 'findings': 0},
       );
-      
+
       return data;
     });
 
@@ -49,7 +49,7 @@ class SpendingHeatmap extends StatelessWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 12, // 12 weeks
+                  crossAxisCount: 12,
                   mainAxisSpacing: 4,
                   crossAxisSpacing: 4,
                 ),
@@ -67,7 +67,7 @@ class SpendingHeatmap extends StatelessWidget {
                         borderRadius: BorderRadius.circular(3),
                         border: hasFindings ? Border.all(color: Colors.amber, width: 1.5) : null,
                       ),
-                      child: hasFindings 
+                      child: hasFindings
                           ? const Center(child: Text('⭐', style: TextStyle(fontSize: 6)))
                           : null,
                     ),

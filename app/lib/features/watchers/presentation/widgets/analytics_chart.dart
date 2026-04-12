@@ -166,7 +166,7 @@ class AnalyticsChart extends StatelessWidget {
             x: i,
             barRods: [
               BarChartRodData(
-                toY: 0.008 * (i + 1), // Simulated cost per day
+                toY: 0.008 * (i + 1),
                 color: Colors.black12,
                 width: 20,
                 borderRadius: BorderRadius.circular(4),

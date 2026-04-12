@@ -20,23 +20,19 @@ export class SchedulerService {
   async start(): Promise<void> {
     if (this.isRunning) return;
 
-    // Load active watchers from PG
     const watchers = await getActiveWatchers();
-    
+
     for (const watcher of watchers) {
       this.scheduleWatcher(watcher as WatcherRow);
     }
-    
+
     this.isRunning = true;
     console.log(`Scheduler started with ${watchers.length} active watchers.`);
 
-    // Initialize Midnight Budget Reset Cron
     this.initWeeklyBudgetCron();
 
-    // Initialize 15-minute Morning Briefing Cron
     this.initBriefingCron();
 
-    // Initialize daily MPP Channel Cleanup Cron
     this.initMPPCleanupCron();
   }
 
@@ -45,7 +41,6 @@ export class SchedulerService {
       this.removeWatcher(watcher.watcher_id);
     }
 
-    // Determine initial delay
     let delay = 0;
     if (watcher.next_check_at) {
       const nextTime = new Date(watcher.next_check_at).getTime();
@@ -55,7 +50,6 @@ export class SchedulerService {
 
     const intervalMs = (watcher.check_interval_minutes || 60) * 60 * 1000;
 
-    // Set initial timeout
     const timeoutId = setTimeout(async () => {
       await this.executeScheduledCheck(watcher.watcher_id, intervalMs);
     }, delay);
@@ -65,15 +59,13 @@ export class SchedulerService {
   }
 
   async executeScheduledCheck(watcherId: string, intervalMs: number): Promise<void> {
-    // 1. Run the actual blockchain/fetch logic
+
     await this.checkExecutor.runCheck(watcherId);
 
-    // 2. Clear current job from map as it just executed
     this.activeJobs.delete(watcherId);
 
-    if (!this.isRunning) return; // Scheduler was stopped mid-execution
+    if (!this.isRunning) return;
 
-    // 3. Reload watcher state to determine recurring continuation
     const updatedWatcher = await getWatcherById(watcherId) as WatcherRow;
 
     if (!updatedWatcher) {
@@ -83,10 +75,9 @@ export class SchedulerService {
 
     if (updatedWatcher.status !== 'active') {
       console.log(`Watcher ${updatedWatcher.name} paused: ${updatedWatcher.status} (Reason: ${updatedWatcher.error_message || 'Budget/Manual'})`);
-      return; // Do not reschedule
+      return;
     }
 
-    // 4. Schedule the recurring interval execution if it's still active
     const nextExecution = async () => {
        await this.executeScheduledCheck(watcherId, intervalMs);
     };
@@ -134,24 +125,23 @@ export class SchedulerService {
   }
 
   private initWeeklyBudgetCron(): void {
-    // Runs at midnight (00:00) UTC every day
+
     cron.schedule('0 0 * * *', async () => {
        console.log('Running daily midnight maintenance job for Watchers...');
-       
+
        const limitTimestamp = new Date();
-       limitTimestamp.setDate(limitTimestamp.getDate() - 7); // Exactly 7 days ago
-       
+       limitTimestamp.setDate(limitTimestamp.getDate() - 7);
+
        try {
          const runReset = async () => {
             const res = await pool.query(`SELECT * FROM watchers WHERE status IN ('active', 'paused_budget')`);
             const updatableWatchers = res.rows;
-            
+
             for (const row of updatableWatchers) {
                 if (!row.week_start) continue;
 
                 const weekStartDate = new Date(row.week_start);
-                
-                // If the week start is older than 7 days, we reset it
+
                 if (weekStartDate <= limitTimestamp) {
                    const nowStr = new Date().toISOString();
                    const updates: any = {
@@ -159,14 +149,12 @@ export class SchedulerService {
                        week_start: nowStr
                    };
 
-                   // Reactivate if it was paused exclusively for budget
                    if (row.status === 'paused_budget') {
                        updates.status = 'active';
                    }
 
                    await updateWatcher(row.watcher_id, updates);
-                   
-                   // If we just reactivated it, kick off scheduling
+
                    if (row.status === 'paused_budget' && this.isRunning) {
                       const reactivated = await getWatcherById(row.watcher_id);
                       if(reactivated) this.scheduleWatcher(reactivated as WatcherRow);
@@ -174,14 +162,14 @@ export class SchedulerService {
                 }
             }
          };
-         
+
          await runReset();
          console.log('Daily maintenance complete.');
 
        } catch (err) {
          console.error('Error during daily cron budget reset:', err);
        }
-       
+
     }, {
       timezone: "UTC"
     });
@@ -195,15 +183,13 @@ export class SchedulerService {
             for (const user of users) {
                 if (!user.briefing_time || !user.timezone) continue;
 
-                // Format current time in user's timezone HH:MM
-                const userTimeStr = new Date().toLocaleTimeString('en-US', { 
-                    timeZone: user.timezone, 
-                    hour12: false, 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
+                const userTimeStr = new Date().toLocaleTimeString('en-US', {
+                    timeZone: user.timezone,
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit'
                 });
 
-                // e.g. "07:00"
                 if (userTimeStr === user.briefing_time) {
                     const existingBriefing = await getTodayBriefing(user.user_id);
                     if (!existingBriefing) {
@@ -219,7 +205,7 @@ export class SchedulerService {
   }
 
   private initMPPCleanupCron(): void {
-    // Runs at 02:00 UTC every day (off-peak)
+
     cron.schedule('0 2 * * *', async () => {
       console.log('Running daily MPP channel cleanup job...');
       try {

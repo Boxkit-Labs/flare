@@ -1,4 +1,4 @@
-// Data models for the Flare app, mirroring backend database schemas.
+
 
 class UserModel {
   final String userId;
@@ -92,7 +92,6 @@ class WatcherModel {
   final String updatedAt;
   final double? budgetPercentUsed;
 
-  // Detail sub-models (populated when fetching single watcher)
   final List<CheckModel>? recentChecks;
   final List<FindingModel>? recentFindings;
 
@@ -315,10 +314,10 @@ class FindingModel {
       verified: json['verified'] == 1 || json['verified'] == true,
       verificationTxHash: json['verification_tx_hash'],
       verificationCheckId: json['verification_check_id'],
-      collaborationResult: json['collaboration_result'] is Map 
-          ? Map<String, dynamic>.from(json['collaboration_result']) 
-          : (json['collaboration_result'] is String 
-              ? null // JSON parsing usually handled outside or would need jsonDecode
+      collaborationResult: json['collaboration_result'] is Map
+          ? Map<String, dynamic>.from(json['collaboration_result'])
+          : (json['collaboration_result'] is String
+              ? null
               : null),
       confidenceScore: json['confidence_score'] ?? 0,
       confidenceTier: json['confidence_tier'],
@@ -466,7 +465,7 @@ class TransactionModel {
   final double amountUsdc;
   final String serviceName;
   final String stellarTxHash;
-  final String txType; // 'check', 'verification', 'collaboration'
+  final String txType;
   final String timestamp;
   final String? watcherName;
   final bool? findingDetected;
@@ -565,8 +564,8 @@ class SpendingStatsModel {
       totalFindingsAllTime: json['total_findings_all_time'],
       totalSpentAllTime: parseDouble(json['total_spent_all_time']),
       averageCostPerFinding: parseDouble(json['average_cost_per_finding']),
-      subscriptionComparison: json['subscription_comparison'] is Map 
-          ? Map<String, dynamic>.from(json['subscription_comparison']) 
+      subscriptionComparison: json['subscription_comparison'] is Map
+          ? Map<String, dynamic>.from(json['subscription_comparison'])
           : null,
     );
   }

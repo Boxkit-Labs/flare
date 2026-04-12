@@ -1,4 +1,4 @@
-import { getWatcherById, getUserById, updateWatcher, createCheck, createTransaction, createFinding, getChecksByWatcherId } from '../db/queries.js';
+import { getWatcherById, getUserById, updateWatcher, createCheck, createTransaction, createFinding, getChecksByWatcherId, incrementWatcherChecks, incrementWatcherFindings } from '../db/queries.js';
 import { decrypt } from '../utils/crypto.js';
 import { paymentRouter } from './payment-router.js';
 import { detector } from './finding-detector.js';
@@ -17,16 +17,11 @@ const OPERATOR_ADDRESS = process.env.OPERATOR_SECRET
 
 export class CheckExecutor {
   private activeStreams: Set<string> = new Set();
-  
-  /**
-   * Executes a single data check for a localized watcher.
-   * Runs the x402 payment, fetches the data, and runs finding detection logic.
-   */
+
   async runCheck(watcherId: string): Promise<void> {
     const checkId = uuidv4();
     let watcher: WatcherRow;
 
-    // 1. Load watcher from database
     try {
         watcher = await getWatcherById(watcherId);
         if (!watcher) {
@@ -39,13 +34,12 @@ export class CheckExecutor {
     }
 
     try {
-      // 2. Verify status
+
       if (watcher.status !== 'active') {
         console.log(`CheckExecutor: Watcher ${watcherId} is ${watcher.status}. Skipping.`);
-        return; 
+        return;
       }
 
-      // 3. Check budget limits
       if (watcher.spent_this_week_usdc >= watcher.weekly_budget_usdc) {
         console.warn(`CheckExecutor: Watcher ${watcherId} exceeded weekly budget. Pausing.`);
         await updateWatcher(watcherId, { status: 'paused_budget' });
@@ -53,27 +47,24 @@ export class CheckExecutor {
         return;
       }
 
-      // 4 & 5. Load user and decrypt secret
       const user = await getUserById(watcher.user_id) as any;
       if (!user) {
          throw new Error(`User ${watcher.user_id} not found for watcher ${watcherId}`);
       }
       const payerSecretKey = decrypt(user.stellar_secret_key_encrypted, ENCRYPTION_KEY);
 
-      // --- Streaming Delegation ---
       if (this.isStreamable(watcher)) {
           if (!this.activeStreams.has(watcherId)) {
               this.startStream(watcher, payerSecretKey, checkId);
           } else {
               console.log(`CheckExecutor: Watcher ${watcherId} is already streaming. Stripping from poll.`);
           }
-          return; // Bypass normal polling
+          return;
       }
 
-      // Local service resolution
       const port = process.env.PORT || '3000';
       const baseUrl = `http://127.0.0.1:${port}/services`;
-      
+
       let serviceUrl = '';
       let method: 'GET' | 'POST' = 'POST';
       let body: any = watcher.parameters;
@@ -109,11 +100,9 @@ export class CheckExecutor {
           throw new Error(`Unknown watcher type: ${watcher.type}`);
       }
 
-      // 6. Retrieve previous check for comparison logic
       const checks = await getChecksByWatcherId(watcherId, 1, 0);
       const previousCheckData = checks.length > 0 ? checks[0].response_data : null;
 
-      // 7. Execute Payment (X402 or MPP via PaymentRouter)
       let responseData: any;
       let txHash: string;
       let costPaid: number;
@@ -143,10 +132,10 @@ export class CheckExecutor {
           channelId = result.channelId;
           console.log(`[CheckExecutor] Payment via ${result.paymentMethod.toUpperCase()}`);
       } catch (payError: any) {
-          // 8. If X402 Payment Fails
+
           const errorMsg = payError instanceof Error ? payError.message : 'Unknown payment error';
           console.error(`CheckExecutor Payment Error (Watcher ${watcherId}):`, errorMsg);
-          
+
           await createCheck({
              checkId: checkId,
              watcherId: watcherId,
@@ -159,13 +148,12 @@ export class CheckExecutor {
              findingDetected: false,
              agentReasoning: `Payment failed: ${errorMsg}`
           });
-          
-          // Check if it's a balance issue based on common Soroban/Stellar errors
-          const isBalanceIssue = errorMsg.toLowerCase().includes('insufficient balance') || 
+
+          const isBalanceIssue = errorMsg.toLowerCase().includes('insufficient balance') ||
                                  errorMsg.toLowerCase().includes('balanceerror') ||
                                  errorMsg.toLowerCase().includes('op_underfunded') ||
                                  errorMsg.toLowerCase().includes('tx_insufficient_balance');
-          
+
           if (isBalanceIssue) {
               await updateWatcher(watcherId, { status: 'paused_wallet', error_message: 'Insufficient USDC Balance' });
               await notificationService.sendLowBalance(watcher.user_id, '0.00');
@@ -175,10 +163,8 @@ export class CheckExecutor {
           return;
       }
 
-      // 9. On Success
       const costUsdc = costPaid / 10000000;
 
-      // 10. Transaction Record
       await createTransaction({
         txId: uuidv4(),
         userId: watcher.user_id,
@@ -192,23 +178,19 @@ export class CheckExecutor {
         channelId: channelId
       });
 
-      // 11. Run Finding Detector
       const finding = await detector.detectFinding(watcher, responseData, previousCheckData, costUsdc, txHash);
-      
-      // 12. Determine Logging & Check Record State
+
       let findingDetected = false;
       let findingId = null;
       let agentReasoning = '';
       let finalFindingToSave: Finding | null = null;
 
       if (finding) {
-          // --- DEAD FINDING PREVENTION: RE-VERIFICATION LOOP ---
+
           console.log(`[Re-Verify] Finding detected for ${watcher.name}. Verifying in 60s...`);
-          
-          // 1. Wait 2 seconds (reduced from 60s for testing/demo responsiveness)
+
           await new Promise(resolve => setTimeout(resolve, 2000));
 
-          // 2. Perform SECOND payment and check
           try {
             console.log(`[Re-Verify] Executing second check for ${watcher.type} ...`);
             const vResult = await paymentRouter.payForCheck({
@@ -225,15 +207,14 @@ export class CheckExecutor {
               priceStroops: 5000,
               weeklyBudgetUsdc: watcher.weekly_budget_usdc,
             });
-            
+
             const vFinding = await detector.detectFinding(watcher, vResult.data, responseData, vResult.costPaid / 10000000, vResult.txHash);
-            
-            // Log verification transaction
+
             await createTransaction({
               txId: uuidv4(),
               userId: watcher.user_id,
               watcherId: watcherId,
-              checkId: checkId, // Associate with main check
+              checkId: checkId,
               amountUsdc: vResult.costPaid / 10000000,
               serviceName: `${watcher.type} (verify)`,
               stellarTxHash: vResult.txHash,
@@ -241,35 +222,32 @@ export class CheckExecutor {
               paymentMethod: vResult.paymentMethod,
               channelId: vResult.channelId
             });
-            
+
             if (vFinding) {
               console.log(`[Re-Verify] CONFIRMED! Finding is still valid.`);
               vFinding.verified = true;
               vFinding.verification_tx_hash = vResult.txHash;
               vFinding.verification_check_id = uuidv4();
-              
-              // --- AGENT-TO-AGENT COLLABORATION: TRIPLE CHECK ---
+
               console.log(`[Collab] Running agent-to-agent cross-check for ${watcher.type}...`);
               const collabResult = await this.runCollaborationCheck(watcher, vFinding, payerSecretKey);
               vFinding.collaboration_result = collabResult;
-              
-              // --- CONFIDENCE SCORING ---
+
               const hasHistory = checks.length > 0;
               const confidence = ConfidenceCalculator.calculate(
-                watcher, 
-                vFinding as any, 
-                new Date(), 
-                hasHistory, 
+                watcher,
+                vFinding as any,
+                new Date(),
+                hasHistory,
                 collabResult
               );
-              
+
               vFinding.confidence_score = confidence.score;
               vFinding.confidence_tier = confidence.tier;
               vFinding.headline = `[${confidence.score}%] ${vFinding.headline}`;
-              
-              // Ensure finding is linked to the ORIGINAL check_id
+
               vFinding.check_id = checkId;
-              
+
               findingDetected = true;
               findingId = vFinding.finding_id;
               agentReasoning = vFinding.agent_reasoning || 'Finding cross-verified and scored.';
@@ -285,7 +263,7 @@ export class CheckExecutor {
              agentReasoning = "Finding detected but verification check failed.";
           }
       } else {
-          // 14. If No Finding
+
           agentReasoning = "No finding matched the alert criteria.";
           console.log(`No finding: ${agentReasoning}`);
       }
@@ -307,30 +285,25 @@ export class CheckExecutor {
         channelId: channelId
       });
 
-      // 14b. Save Finding and Alert User if Confirmed
       if (findingDetected && finalFindingToSave) {
           await createFinding(finalFindingToSave);
+          await incrementWatcherFindings(watcherId);
           await notificationService.sendFindingNotification(watcher.user_id, finalFindingToSave as any, watcher);
       }
 
-      // 15. Update Watcher Details
-      const newTotalChecks = ((watcher as any).total_checks || 0) + 1;
-      const newTotalFindings = findingDetected ? (((watcher as any).total_findings || 0) + 1) : ((watcher as any).total_findings || 0);
+      await incrementWatcherChecks(watcherId);
+
       const newSpentThisWeek = (watcher.spent_this_week_usdc || 0) + costUsdc;
       const newTotalSpent = ((watcher as any).total_spent_usdc || 0) + costUsdc;
       const nowStr = new Date().toISOString();
 
-      // Check for 80% budget warning
       const percentUsed = (newSpentThisWeek / watcher.weekly_budget_usdc) * 100;
       if (percentUsed >= 80 && watcher.spent_this_week_usdc / watcher.weekly_budget_usdc * 100 < 80) {
           await notificationService.sendBudgetWarning(watcher.user_id, watcher, Math.round(percentUsed));
       }
 
       const updates: any = {
-        last_check_at: nowStr,
         updated_at: nowStr,
-        total_checks: newTotalChecks,
-        total_findings: newTotalFindings,
         spent_this_week_usdc: newSpentThisWeek,
         total_spent_usdc: newTotalSpent
       };
@@ -344,26 +317,21 @@ export class CheckExecutor {
       await updateWatcher(watcherId, updates);
 
     } catch (e: any) {
-      // Unhandled generic system errors
+
       const errorMsg = e instanceof Error ? e.message : 'Unknown system error during execution';
       console.error(`CheckExecutor Critical Error (Watcher ${watcherId}):`, errorMsg);
       await updateWatcher(watcherId, { status: 'error', error_message: errorMsg });
     }
   }
 
-  /**
-   * Runs a cross-service check to confirm or contextualize a finding.
-   * Performs a THIRD Stellar transaction.
-   */
   private async runCollaborationCheck(watcher: WatcherRow, finding: any, payerSecretKey: string): Promise<any> {
     const port = process.env.PORT || '3000';
     const baseUrl = `http://127.0.0.1:${port}/services`;
-    
+
     let targetUrl = '';
     let query = '';
     let triggeredService = '';
 
-    // Collaboration Rules
     if (watcher.type === 'flight') {
       triggeredService = 'news';
       targetUrl = `${baseUrl}/news/api/news`;
@@ -399,7 +367,7 @@ export class CheckExecutor {
        targetUrl = `${baseUrl}/product/api/products`;
        query = finding.data?.product_name || 'product';
     } else {
-       return null; // No collaboration rule for this type
+       return null;
     }
 
     try {
@@ -419,7 +387,6 @@ export class CheckExecutor {
         weeklyBudgetUsdc: watcher.weekly_budget_usdc,
       });
 
-      // Log collaboration transaction
       await createTransaction({
         txId: uuidv4(),
         userId: watcher.user_id,
@@ -436,11 +403,10 @@ export class CheckExecutor {
 
       if (triggeredService === 'news') {
         const articles = result.data?.articles || [];
-        summary = articles.length > 0 
+        summary = articles.length > 0
           ? `Cross-checked ${articles.length} related articles. Insights incorporated.`
           : `No specific news flags found for "${query}".`;
-        
-        // Simple heuristic for "safety"
+
         const content = JSON.stringify(articles).toLowerCase();
         if (content.includes('warning') || content.includes('advisory') || content.includes('alert')) {
            safe = false;
@@ -463,33 +429,25 @@ export class CheckExecutor {
     }
   }
 
-  /**
-   * Evaluates if a watcher qualifies for continuous streaming.
-   */
   private isStreamable(watcher: WatcherRow): boolean {
-      if (watcher.type === 'sports') return true; // Always
+      if (watcher.type === 'sports') return true;
       if ((watcher.type === 'crypto' || watcher.type === 'stock') && watcher.check_interval_minutes < 60) {
           return true;
       }
       return false;
   }
 
-  /**
-   * Establishes a WebSocket connection for streaming watchers, bypassing REST.
-   */
   private async startStream(watcher: WatcherRow, secretKey: string, initialCheckId: string) {
       this.activeStreams.add(watcher.watcher_id);
       console.log(`[CheckExecutor] Starting stream for ${watcher.type} watcher: ${watcher.watcher_id}`);
 
-      // We need an open channel to pass to the stream server. 
       const port = process.env.PORT || '3000';
       const baseUrl = "http://127.0.0.1:" + port + "/services";
-      
+
       let serviceUrl = `${baseUrl}/${watcher.type}/api/${watcher.type}`;
-      
+
       try {
-          // Trigger a dummy REST check just to ensure the channel is opened and initialized
-          // The initial deposit will cover the stream for a while
+
           const routeRes = await paymentRouter.payForCheck({
               userId: watcher.user_id,
               watcherId: watcher.watcher_id,
@@ -504,12 +462,10 @@ export class CheckExecutor {
               priceStroops: 5000,
               weeklyBudgetUsdc: watcher.weekly_budget_usdc || 1.0,
           });
-          
+
           let channelId = 'unknown';
           if (routeRes.paymentMethod === 'mpp') {
-              // Extract the contract address from the txHash which is formatted as "mpp:CHANNEL_ID:SIG" or similar in paywall
-              // Actually, paymentRouter's txHash might be openTxHash or 'mpp-offchain'.
-              // Better to fetch it directly from manager:
+
               const { mppChannelManager } = await import('./mpp-channel-manager.js');
               const state = await mppChannelManager.getChannelStatus(watcher.user_id, `${watcher.type}-service`);
               if (state) channelId = state.channelId;
@@ -519,10 +475,9 @@ export class CheckExecutor {
               throw new Error("Could not negotiate MPP channel for streaming.");
           }
 
-          // Dynamically import ws to avoid top-level issues if not installed yet
           const WebSocket = await import('ws').then(m => m.default || m.WebSocket);
           const wsUrl = "ws://127.0.0.1:4000/ws/stream?userId=" + watcher.user_id + "&serviceId=" + watcher.type + "-service&channelId=" + channelId + "&watcherId=" + watcher.watcher_id;
-          
+
           const ws = new WebSocket(wsUrl);
 
           ws.on('open', () => {
@@ -533,13 +488,12 @@ export class CheckExecutor {
               try {
                   const message = JSON.parse(data.toString());
                   if (message.type === 'data') {
-                      // Process streaming data frame
+
                       console.log(`[Stream Client] Data frame received for ${watcher.watcher_id}`);
                       const costUsdc = parseFloat(message.cost_this_frame || '0');
-                      
-                      // Run finding detector
+
                       const finding = await detector.detectFinding(watcher, message.payload, null, costUsdc, 'mpp-stream-frame');
-                      
+
                       let findingDetected = false;
                       let fId = null;
                       if (finding) {
@@ -549,7 +503,6 @@ export class CheckExecutor {
                           await notificationService.sendFindingNotification(watcher.user_id, finding as any, watcher);
                       }
 
-                      // Create check and transaction silently for telemetry
                       const cId = uuidv4();
                       await createCheck({
                           checkId: cId,
@@ -566,7 +519,7 @@ export class CheckExecutor {
                           paymentMethod: 'mpp',
                           channelId
                       });
-                      
+
                       await createTransaction({
                           txId: uuidv4(),
                           userId: watcher.user_id,
@@ -582,18 +535,16 @@ export class CheckExecutor {
 
                   } else if (message.type === 'payment_required') {
                       console.log(`[Stream Client] Payment required (${message.amount_due} USDC) for watcher ${watcher.watcher_id}`);
-                      // Request a signature from MPP Manager
+
                       const { mppChannelManager } = await import('./mpp-channel-manager.js');
                       try {
                           const { proof } = await mppChannelManager.makePayment({
                               userId: watcher.user_id,
                               serviceId: `${watcher.type}-service`,
-                              amount: message.amount_due, // Provide the difference or the cumulative?
-                              // Note: MPPChannelManager expects the *incremental* amount to add.
-                              // Our WS stream expects the *cumulative*.
-                              // For this demo, let's just make an incremental payment equal to what it asks.
+                              amount: message.amount_due,
+
                           });
-                          
+
                           ws.send(JSON.stringify({
                               type: 'payment_proof',
                               proof: JSON.parse(proof)
@@ -614,7 +565,7 @@ export class CheckExecutor {
               console.log(`[Stream Client] Connection closed for ${watcher.watcher_id}`);
               this.activeStreams.delete(watcher.watcher_id);
           });
-          
+
           ws.on('error', (err: any) => {
               console.error(`[Stream Client] Connection error: `, err);
               this.activeStreams.delete(watcher.watcher_id);

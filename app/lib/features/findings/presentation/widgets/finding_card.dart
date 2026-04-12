@@ -138,9 +138,9 @@ class _FindingCardState extends State<FindingCard> {
                         Text(
                           widget.finding.type.toUpperCase(),
                           style: TextStyle(
-                            fontSize: 9, 
-                            fontWeight: FontWeight.w900, 
-                            color: typeColor, 
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            color: typeColor,
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -177,8 +177,8 @@ class _FindingCardState extends State<FindingCard> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontWeight: FontWeight.w900, 
-                  fontSize: 17, 
+                  fontWeight: FontWeight.w900,
+                  fontSize: 17,
                   height: 1.2,
                   letterSpacing: -0.4,
                 ),
@@ -220,5 +220,4 @@ class _FindingCardState extends State<FindingCard> {
     );
   }
 }
-
 

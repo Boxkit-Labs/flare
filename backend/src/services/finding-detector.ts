@@ -2,13 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { WatcherRow, Finding } from '../types.js';
 
 export class FindingDetector {
-  /**
-   * Analyzes the response data from a check and determines if it should trigger an alert.
-   * @param watcher The watcher configuration from the database.
-   * @param checkData The raw JSON response from the data service.
-   * @param previousCheckData The previous raw JSON response (optional).
-   * @returns A Finding object if a trigger condition is met, otherwise null.
-   */
+
   async detectFinding(
     watcher: WatcherRow,
     checkData: any,
@@ -53,8 +47,7 @@ export class FindingDetector {
       finding.cost_usdc = costUsdc;
       finding.stellar_tx_hash = txHash;
       finding.data = checkData;
-      
-      // Calculate Confidence Score (0-100)
+
       const confidence = this.calculateConfidence(watcher, checkData, previousCheckData);
       finding.confidence_score = confidence;
       finding.confidence_tier = confidence > 90 ? 'High' : (confidence > 70 ? 'Medium' : 'Low');
@@ -64,10 +57,10 @@ export class FindingDetector {
   }
 
   private calculateConfidence(watcher: WatcherRow, data: any, prev: any): number {
-    let score = 92; // Base confidence for deeply enriched agent
+    let score = 92;
     if (!prev) score -= 4;
-    if (data.is_error_fare) score -= 12; // Error fares are inherently volatile
-    if (data.articles && data.articles.length < 3) score -= 15; 
+    if (data.is_error_fare) score -= 12;
+    if (data.articles && data.articles.length < 3) score -= 15;
     if (data.trending_score && data.trending_score < 80) score -= 8;
     if (data.market_impact === 'High') score += 3;
     return Math.min(100, Math.max(0, score));
@@ -109,19 +102,55 @@ export class FindingDetector {
 
   private detectCryptoFinding(watcher: WatcherRow, data: any, prev: any): Finding | null {
     const targetSymbol = (watcher.parameters?.symbol || '').toUpperCase();
-    
-    // Volume spikes
+    const conditions = watcher.alert_conditions || {};
+
     for (const [symbol, vol] of Object.entries(data.volumes || {}) as [string, number][]) {
-        // If watcher specified a symbol, only match that one. Otherwise match any spike.
         if (targetSymbol && symbol !== targetSymbol) continue;
 
-        if (vol > 1.5) { // Relaxed from 2.5
+        if (vol > 1.5) {
             const asset = data.assets?.[symbol];
             return {
                 finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'price_spike',
                 headline: `${symbol} Whale Alert: Volume +${Math.round(vol * 100)}%`,
-                detail: `${asset?.name} (${symbol}) is seeing massive institutional buying. Current Price: $${asset?.price}. Sentiment is ${asset?.sentiment}. RSI(14) is at ${asset?.rsi_14}.\n\nSignals: ${asset?.signals?.join(', ')}.`,
-                data: null, cost_usdc: 0, agent_reasoning: `On-chain monitoring for ${symbol} detected a transfer of ${vol}x the average hourly volume. Technical setup shows a ${asset?.sentiment} divergence with RSI at ${asset?.rsi_14}.`
+                detail: `${asset?.name} (${symbol}) is seeing massive institutional buying. Current Price: $${asset?.price}. Sentiment is ${asset?.sentiment}. RSI(14) is at ${asset?.rsi_14}.`,
+                data: null, cost_usdc: 0, agent_reasoning: `On-chain monitoring for ${symbol} detected a transfer of ${vol}x the average hourly volume. Volume spikes are strong leading indicators of volatility.`
+            };
+        }
+    }
+
+    for (const [symbol, asset] of Object.entries(data.assets || {}) as [string, any][]) {
+        if (targetSymbol && symbol !== targetSymbol) continue;
+
+        const price = asset.price;
+        const change = Math.abs(asset.change_24h);
+
+        if (conditions.change_24h_percent && change >= conditions.change_24h_percent) {
+             return {
+                finding_id: '', watcher_id: '', user_id: '', check_id: '', type: asset.change_24h > 0 ? 'price_spike' : 'price_drop',
+                headline: `${symbol} Volatility: ${asset.change_24h > 0 ? '+' : ''}${asset.change_24h}% in 24h`,
+                detail: `${asset.name} has crossed your ${conditions.change_24h_percent}% alert threshold. Current Price: $${price}.`,
+                data: null, cost_usdc: 0, agent_reasoning: `Targeted volatility threshold of ${conditions.change_24h_percent}% reached. Current market sentiment is ${asset.sentiment}.`
+            };
+        }
+
+        const aboveKey = `${symbol.toLowerCase()}_above`;
+        const belowKey = `${symbol.toLowerCase()}_below`;
+
+        if (conditions[aboveKey] && price >= conditions[aboveKey]) {
+            return {
+                finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'threshold_crossed',
+                headline: `${symbol} Target Reached: $${price}`,
+                detail: `${asset.name} is now above your target of $${conditions[aboveKey]}.`,
+                data: null, cost_usdc: 0, agent_reasoning: `Price target of $${conditions[aboveKey]} breached. Setting new resistance targets.`
+            };
+        }
+
+        if (conditions[belowKey] && price <= conditions[belowKey]) {
+            return {
+                finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'threshold_crossed',
+                headline: `${symbol} Buy Opportunity: $${price}`,
+                detail: `${asset.name} has dropped below your target of $${conditions[belowKey]}.`,
+                data: null, cost_usdc: 0, agent_reasoning: `Price target of $${conditions[belowKey]} breached. Market is entering historical support zone.`
             };
         }
     }
@@ -134,18 +163,17 @@ export class FindingDetector {
     const query = (watcher.parameters?.q || watcher.name || '').toLowerCase();
     const keywords = query.split(' ').filter((k: string) => k.length > 2);
 
-    // Filter articles by keywords
     const matches = articles.filter((a: any) => {
         if (keywords.length === 0) return true;
         const text = (a.title + ' ' + a.summary).toLowerCase();
         return keywords.some((k: string) => text.includes(k));
     });
 
-    if (matches.length >= 1) { // Relaxed from 3
+    if (matches.length >= 1) {
         const top = matches[0];
         return {
             finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'news_match',
-            headline: `Flare Match: ${top.title}`, // Changed from Market Mover
+            headline: `Flare Match: ${top.title}`,
             detail: `Found a match for "${query}" reported by ${top.source}. \n\nSummary: ${top.summary} \n\nFull Intel: ${top.content}`,
             data: null, cost_usdc: 0, agent_reasoning: `My news agent identified a ${Math.round(top.relevance_score * 100)}% thematic match between your watcher "${watcher.name}" and this report from ${top.source}.`
         };
@@ -167,11 +195,10 @@ export class FindingDetector {
 
   private detectJobFinding(watcher: WatcherRow, data: any): Finding | null {
     const targetRole = (watcher.parameters?.role || '').toLowerCase();
-    
-    // Find a hot job OR a job matching the role
+
     const match = data.listings?.find((l: any) => {
         const titleMatch = targetRole ? l.title.toLowerCase().includes(targetRole) : true;
-        return titleMatch && (l.is_hot || Math.random() > 0.5); // More lenient
+        return titleMatch && (l.is_hot || Math.random() > 0.5);
     });
 
     if (match) {
@@ -187,10 +214,16 @@ export class FindingDetector {
 
   private detectStockFinding(watcher: WatcherRow, data: any, prev: any): Finding | null {
     const targetSymbol = (watcher.parameters?.symbol || '').toUpperCase();
+    const conditions = watcher.alert_conditions || {};
 
     const stock = data.stocks?.find((s: any) => {
         const symbolMatch = targetSymbol ? s.symbol === targetSymbol : true;
-        return symbolMatch && (Math.abs(s.change_percent) > 2 || s.event); // Relaxed from 4
+
+        if (conditions.change_24h_percent) {
+            return symbolMatch && Math.abs(s.change_percent) >= conditions.change_24h_percent;
+        }
+
+        return symbolMatch && (Math.abs(s.change_percent) > 2 || s.event);
     });
 
     if (stock) {

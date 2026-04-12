@@ -5,13 +5,13 @@ async function diagnose() {
   const server = new Horizon.Server(process.env.HORIZON_URL || 'https://horizon-testnet.stellar.org');
   const opSecret = process.env.OPERATOR_SECRET;
   const opKp = Keypair.fromSecret(opSecret!);
-  
+
   const targetPk = process.argv[2] || "GA5XVNXZFYKR6ELWTPCV32KVPHH4JFOOHWMV7FVT6PSNVGG22PJQ6VYK";
-  
+
   console.log("=== DIAGNOSIS ===");
   console.log("Operator:", opKp.publicKey());
   console.log("Target  :", targetPk);
-  
+
   try {
     const opAcc = await server.loadAccount(opKp.publicKey());
     console.log("Operator Balances:", JSON.stringify(opAcc.balances, null, 2));

@@ -45,7 +45,7 @@ class WatcherCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final percentUsed = watcher.budgetPercentUsed ?? 0.0;
-    
+
     return InkWell(
       onTap: () => context.push('/watchers/${watcher.watcherId}'),
       borderRadius: BorderRadius.circular(28),
@@ -133,8 +133,8 @@ class WatcherCard extends StatelessWidget {
                     const Text(
                       'BUDGET',
                       style: TextStyle(
-                        fontSize: 9, 
-                        fontWeight: FontWeight.w900, 
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
                         color: AppTheme.textSecondary,
                         letterSpacing: 0.5,
                       ),
@@ -142,8 +142,8 @@ class WatcherCard extends StatelessWidget {
                     Text(
                       '${(percentUsed * 100).toInt()}%',
                       style: TextStyle(
-                        fontSize: 11, 
-                        fontWeight: FontWeight.w900, 
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
                         color: percentUsed > 0.8 ? AppTheme.error : AppTheme.primary,
                       ),
                     ),

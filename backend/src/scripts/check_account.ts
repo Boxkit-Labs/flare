@@ -3,7 +3,7 @@ import 'dotenv/config';
 
 async function checkAccount(pk: string) {
   const server = new Horizon.Server(process.env.HORIZON_URL || 'https://horizon-testnet.stellar.org');
-  
+
   console.log("Checking account:", pk);
   try {
     const acc = await server.loadAccount(pk);

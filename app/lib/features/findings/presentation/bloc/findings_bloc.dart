@@ -26,7 +26,7 @@ class FindingsBloc extends Bloc<FindingsEvent, FindingsState> {
     on<MarkFindingAsRead>((event, emit) async {
       try {
         await apiService.markFindingRead(event.findingId);
-        // Refresh findings
+
         if (apiService.userId != null) {
           add(LoadFindings(apiService.userId!));
         }

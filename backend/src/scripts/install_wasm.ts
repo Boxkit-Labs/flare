@@ -29,14 +29,14 @@ async function installWasm() {
 
   const tx = new TransactionBuilder(account, { fee: "100000", networkPassphrase: Networks.TESTNET })
       .addOperation(op).setTimeout(60).build();
-  
+
   const sim = await rpc.simulateTransaction(tx);
   if (Api.isSimulationError(sim)) throw new Error(JSON.stringify(sim));
-  
+
   const prepared = assembleTransaction(tx, sim).build();
   prepared.sign(opKp);
   const sendRes = await rpc.sendTransaction(prepared);
-  
+
   const res = await waitForTransaction(rpc, sendRes.hash);
   const hash = (res as any).returnValue.value().toString('hex');
   console.log("WASM HASH:");

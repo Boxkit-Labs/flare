@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 
-/// Base exception class for all application-specific errors.
 abstract class AppException implements Exception {
   final String message;
   final String? code;
@@ -12,43 +11,36 @@ abstract class AppException implements Exception {
   String toString() => message;
 }
 
-/// Thrown when there is a connectivity issue.
 class NetworkException extends AppException {
-  NetworkException([String message = 'No Internet Connection', dynamic originalError]) 
+  NetworkException([String message = 'No Internet Connection', dynamic originalError])
       : super(message, originalError: originalError);
 }
 
-/// Thrown when the server returns a 500+ error.
 class ServerException extends AppException {
-  ServerException([String message = 'Server Error', dynamic originalError]) 
+  ServerException([String message = 'Server Error', dynamic originalError])
       : super(message, originalError: originalError);
 }
 
-/// Thrown when the server returns a 401/403.
 class UnauthorizedException extends AppException {
-  UnauthorizedException([String message = 'Unauthorized', dynamic originalError]) 
+  UnauthorizedException([String message = 'Unauthorized', dynamic originalError])
       : super(message, originalError: originalError);
 }
 
-/// Thrown when the server returns a 404.
 class NotFoundException extends AppException {
-  NotFoundException([String message = 'Not Found', dynamic originalError]) 
+  NotFoundException([String message = 'Not Found', dynamic originalError])
       : super(message, originalError: originalError);
 }
 
-/// Thrown when the server returns validation errors (400).
 class ValidationException extends AppException {
-  ValidationException([String message = 'Invalid Request', dynamic originalError]) 
+  ValidationException([String message = 'Invalid Request', dynamic originalError])
       : super(message, originalError: originalError);
 }
 
-/// Thrown when an unknown error occurs.
 class UnknownException extends AppException {
-  UnknownException([String message = 'An unexpected error occurred', dynamic originalError]) 
+  UnknownException([String message = 'An unexpected error occurred', dynamic originalError])
       : super(message, originalError: originalError);
 }
 
-/// Helper to convert DioException to AppException
 AppException mapDioException(DioException e) {
   switch (e.type) {
     case DioExceptionType.connectionTimeout:

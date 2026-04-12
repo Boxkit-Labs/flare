@@ -15,7 +15,7 @@ class SuccessOverlay extends StatefulWidget {
   static void show(BuildContext context, {String message = 'Launched!', String subMessage = 'Your Flare agent is now hunting.'}) {
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
-    
+
     entry = OverlayEntry(
       builder: (context) => SuccessOverlay(message: message, subMessage: subMessage),
     );
@@ -46,7 +46,7 @@ class _SuccessOverlayState extends State<SuccessOverlay> with SingleTickerProvid
 
     _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _controller, 
+        parent: _controller,
         curve: const Interval(0.0, 0.4, curve: Curves.elasticOut),
       ),
     );
@@ -74,7 +74,6 @@ class _SuccessOverlayState extends State<SuccessOverlay> with SingleTickerProvid
         color: Colors.black.withValues(alpha: 0.8),
         child: Stack(
           children: [
-            // Confetti particles
             ..._particles.map((p) => AnimatedBuilder(
               animation: _controller,
               builder: (context, child) {
@@ -98,8 +97,6 @@ class _SuccessOverlayState extends State<SuccessOverlay> with SingleTickerProvid
                 );
               },
             )),
-            
-            // Central Content
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -167,8 +164,7 @@ class _ConfettiParticle {
 
   _ConfettiParticle() {
     final random = math.Random();
-    // Start roughly in the middle, then explode outward
-    startX = 200.0 + random.nextDouble() * 100 - 50; 
+    startX = 200.0 + random.nextDouble() * 100 - 50;
     startY = 400.0 + random.nextDouble() * 100 - 50;
     speed = random.nextDouble() * 2 + 1;
     size = random.nextDouble() * 8 + 4;
@@ -183,9 +179,6 @@ class _ConfettiParticle {
     isCircle = random.nextBool();
     rotationSpeed = random.nextDouble() * 10;
     randomPhase = random.nextDouble() * 2 * math.pi;
-    
-    // Better start position based on typical screen size (rough estimation)
-    // In a real app we might use MediaQuery but here we can just center it relatively
-    startX = 180; // Placeholder, will fix in build if possible or just use a wide range
+    startX = 180;
   }
 }

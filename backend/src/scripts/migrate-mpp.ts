@@ -10,8 +10,7 @@ async function runMigration() {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
-    // Create mpp_channels table
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS mpp_channels (
         id SERIAL PRIMARY KEY,

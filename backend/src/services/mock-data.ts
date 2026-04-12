@@ -1,7 +1,5 @@
-// Deeply Enriched Mock Data for All Services
-import { v4 as uuidv4 } from 'uuid';
 
-// --- Flight Data ---
+import { v4 as uuidv4 } from 'uuid';
 
 const AIRLINES = ["Stellar Airways", "Lumen Wings", "Galactic Express", "Horizon Air", "Nebula Jets"];
 const AIRPORTS: Record<string, string> = {
@@ -25,7 +23,7 @@ export function getFlightPrice(origin: string, destination: string) {
     const lastPrice = history[history.length - 1];
     const isErrorFare = Math.random() < 0.25;
     let price = isErrorFare ? Math.round(lastPrice * 0.35) : Math.round(lastPrice + (Math.random() * 60 - 30));
-    
+
     price = Math.max(150, price);
     history.push(price);
     if (history.length > 5) history.shift();
@@ -60,8 +58,6 @@ export function getFlightPrice(origin: string, destination: string) {
     };
 }
 
-// --- Crypto Data ---
-
 const CRYPTO_METADATA: Record<string, any> = {
     XLM: { name: "Stellar", foundation: "SDF", consensus: "SCP" },
     ETH: { name: "Ethereum", foundation: "Ethereum Foundation", consensus: "PoS" },
@@ -75,9 +71,9 @@ const cryptoPriceHistory: Record<string, number[]> = {};
 export function getCryptoData() {
     const symbols = Object.keys(CRYPTO_METADATA);
     const data: Record<string, any> = {};
-    
+
     symbols.forEach(symbol => {
-        if (!cryptoPriceHistory[symbol]) cryptoPriceHistory[symbol] = [100]; // normalized base
+        if (!cryptoPriceHistory[symbol]) cryptoPriceHistory[symbol] = [100];
         const history = cryptoPriceHistory[symbol];
         const last = history[history.length - 1];
         const change = (Math.random() * 0.06 - 0.03);
@@ -99,14 +95,12 @@ export function getCryptoData() {
 
     return {
         assets: data,
-        volumes: { XLM: 3.1, BTC: 1.2, ETH: 0.9 }, // XLM spike for testing
+        volumes: { XLM: 3.1, BTC: 1.2, ETH: 0.9 },
         global_market_cap: "2.64T",
         dominance: { BTC: "52.1%", ETH: "16.8%" },
         checked_at: new Date().toISOString()
     };
 }
-
-// --- News Data ---
 
 const NEWS_SOURCES = ["Stellar Hub", "CryptoDaily", "The Block", "ChainWire", "Protocol Insider"];
 
@@ -138,8 +132,6 @@ export function getNewsAlerts() {
     };
 }
 
-// --- Job Data ---
-
 export function getJobPostings(role: string) {
     const titles = ["Senior Engineer", "Lead Architect", "Protocol Dev", "Systems Designer"];
     const companies = ["Stellar Foundation", "Circle", "Anchorage Digital", "MoneyGram", "WalletConnect"];
@@ -155,7 +147,7 @@ export function getJobPostings(role: string) {
                 company: companies[i % companies.length],
                 location: "Remote / Global",
                 salary_range: `$${salary.toLocaleString()} - $${(salary + 40000).toLocaleString()}`,
-                salary: salary, // numeric for detector
+                salary: salary,
                 is_hot: isHot,
                 experience_level: "Senior",
                 employment_type: "Full-time",
@@ -169,8 +161,6 @@ export function getJobPostings(role: string) {
         checked_at: new Date().toISOString()
     };
 }
-
-// --- Product Data ---
 
 export function getProductPrices(name: string) {
     const isATH = Math.random() < 0.45;
@@ -198,12 +188,10 @@ export function getProductPrices(name: string) {
     };
 }
 
-// --- Stock Data ---
-
 export function getStockData(symbol?: string) {
     const target = symbol?.toUpperCase() || "XLM";
     const price = 45.12 + Math.random() * 100;
-    const change = (Math.random() * 14 - 7); // -7% to +7%
+    const change = (Math.random() * 14 - 7);
     const isVolatile = Math.abs(change) > 5;
 
     return {
@@ -224,8 +212,6 @@ export function getStockData(symbol?: string) {
         checked_at: new Date().toISOString()
     };
 }
-
-// --- Real Estate Data ---
 
 export function getRealEstateData(neighborhood?: string) {
     const nb = neighborhood || "Lower East Side";
@@ -263,8 +249,6 @@ export function getRealEstateData(neighborhood?: string) {
         checked_at: new Date().toISOString()
     };
 }
-
-// --- Sports Data ---
 
 export function getSportsData(team?: string) {
     const t = team || "Golden State Warriors";

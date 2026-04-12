@@ -3,7 +3,6 @@ import { getNotificationsByUserId, getUnreadNotificationCount, markNotificationR
 
 const router = Router();
 
-// GET /api/notifications?user_id=...
 router.get('/', async (req, res) => {
   try {
     const userId = req.query.user_id as string;
@@ -21,7 +20,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/notifications/unread-count?user_id=...
 router.get('/unread-count', async (req, res) => {
   try {
     const userId = req.query.user_id as string;
@@ -36,7 +34,6 @@ router.get('/unread-count', async (req, res) => {
   }
 });
 
-// POST /api/notifications/:id/read
 router.post('/:id/read', async (req, res) => {
   try {
     const { id } = req.params;

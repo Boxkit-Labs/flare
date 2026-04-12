@@ -70,7 +70,7 @@ class _FindingDetailScreenState extends State<FindingDetailScreen> {
                     child: ConfidenceGauge(
                       score: finding.confidenceScore,
                       tier: finding.confidenceTier ?? 'Moderate',
-                      breakdown: _getMockBreakdown(finding), // In a real app, this would come from the backend payload
+                      breakdown: _getMockBreakdown(finding),
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -440,8 +440,8 @@ class _FindingDetailScreenState extends State<FindingDetailScreen> {
   void _shareFinding(FindingModel finding) {
     final headline = finding.headline;
     final score = finding.confidenceScore;
-    final cost = 0.024; // Mock total cost as per request
-    
+    final cost = 0.024;
+
     final text = 'Ghost found me $headline. Verified with $score% confidence across 3 checks. Total monitoring cost: \$$cost. 👻';
     Share.share(text);
   }

@@ -7,12 +7,10 @@ class GhostScoreService {
     double totalSpent,
     int streak,
   ) {
-    // 1. Efficiency (0-30): Findings per dollar
-    // Benchmark: $0.50 per finding is good efficiency.
+
     double findingsPerDollar = totalSpent > 0 ? findings.length / totalSpent : 0.0;
     double efficiencyS = (findingsPerDollar / 2.0).clamp(0.0, 1.0) * 30;
 
-    // 2. Savings (0-25): Estimate total savings from findings
     double totalSavings = 0;
     for (var f in findings) {
       if (f.data != null) {
@@ -24,19 +22,16 @@ class GhostScoreService {
       }
     }
     double savingsRatio = totalSpent > 0 ? totalSavings / totalSpent : 0.0;
-    double savingsS = (savingsRatio / 100.0).clamp(0.0, 1.0) * 25; // Good ROI = 100x
+    double savingsS = (savingsRatio / 100.0).clamp(0.0, 1.0) * 25;
 
-    // 3. Coverage (0-20): Unique active categories
     Set<String> categories = watchers.where((w) => w.status == 'active').map((w) => w.type).toSet();
     double coverageS = (categories.length / 8.0).clamp(0.0, 1.0) * 20;
 
-    // 4. Reliability (0-15): Avg confidence score
-    double avgConfidence = findings.isEmpty 
-        ? 0 
+    double avgConfidence = findings.isEmpty
+        ? 0
         : findings.fold(0, (sum, f) => sum + f.confidenceScore) / findings.length;
     double reliabilityS = (avgConfidence / 100.0).clamp(0.0, 1.0) * 15;
 
-    // 5. Consistency (0-10): Streak
     double consistencyS = (streak / 7.0).clamp(0.0, 1.0) * 10;
 
     double total = efficiencyS + savingsS + coverageS + reliabilityS + consistencyS;

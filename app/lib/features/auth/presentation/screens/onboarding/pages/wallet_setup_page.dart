@@ -24,7 +24,7 @@ class _WalletSetupPageState extends State<WalletSetupPage> {
     super.didChangeDependencies();
     if (!_isInitialized) {
       _isInitialized = true;
-      // Start registration on enter
+
       context.read<OnboardingBloc>().add(const StartRegistration('DEVICE_ID_PLACEHOLDER'));
     }
   }
@@ -37,7 +37,7 @@ class _WalletSetupPageState extends State<WalletSetupPage> {
       listener: (context, state) {
         if (state is OnboardingWalletCreated) {
            _publicKey = state.user.stellarPublicKey;
-          // Fund immediately after creation
+
           context.read<OnboardingBloc>().add(FundWallet(state.user.userId));
         }
         if (state is OnboardingSuccess) {
@@ -48,10 +48,9 @@ class _WalletSetupPageState extends State<WalletSetupPage> {
         final isFunded = state is OnboardingWalletFunded || state is OnboardingWatcherCreated || state is OnboardingSuccess;
         final isLoading = state is OnboardingGeneratingWallet || state is OnboardingFundingWallet || state is OnboardingInitial;
 
-        // Extract user from state if possible to show public key
         if (state is OnboardingWalletCreated) _publicKey = state.user.stellarPublicKey;
         if (state is OnboardingSuccess) _publicKey = state.user.stellarPublicKey;
-        
+
         return Container(
           color: AppTheme.background,
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -77,28 +76,28 @@ class _WalletSetupPageState extends State<WalletSetupPage> {
                 ),
               ),
               const SizedBox(height: 48),
-              
+
               _buildStepItem(
-                'Generating Stellar Keys', 
+                'Generating Stellar Keys',
                 state is! OnboardingInitial && state is! OnboardingGeneratingWallet,
                 isCurrent: state is OnboardingGeneratingWallet,
               ),
               _buildStepItem(
-                'Provisioning Testnet XLM', 
+                'Provisioning Testnet XLM',
                 isFunded,
                 isCurrent: state is OnboardingFundingWallet,
               ),
               _buildStepItem(
-                'Loading USDC Balance', 
+                'Loading USDC Balance',
                 isFunded,
                 isCurrent: state is OnboardingFundingWallet,
               ),
               _buildStepItem(
-                'Syncing with Network', 
+                'Syncing with Network',
                 isFunded,
                 isCurrent: isFunded && state is! OnboardingSuccess,
               ),
-              
+
               if (isFunded) ...[
                 const SizedBox(height: 48),
                 Container(
@@ -152,7 +151,7 @@ class _WalletSetupPageState extends State<WalletSetupPage> {
                   ),
                 ),
               ],
-              
+
               const SizedBox(height: 60),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -182,7 +181,7 @@ class _WalletSetupPageState extends State<WalletSetupPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: isLoading 
+                      child: isLoading
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary))
                         : Text('Next', style: TextStyle(fontWeight: FontWeight.w900, color: isFunded ? Colors.white : AppTheme.textSecondary)),
                     ),
@@ -210,9 +209,9 @@ class _WalletSetupPageState extends State<WalletSetupPage> {
               shape: BoxShape.circle,
             ),
             child: Center(
-              child: isDone 
-                ? const Icon(Icons.check_rounded, color: Colors.green, size: 14) 
-                : (isCurrent 
+              child: isDone
+                ? const Icon(Icons.check_rounded, color: Colors.green, size: 14)
+                : (isCurrent
                    ? const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary))
                    : Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppTheme.background, shape: BoxShape.circle))),
             ),

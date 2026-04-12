@@ -44,7 +44,7 @@ class MarkBriefingRead extends BriefingEvent {
 class LoadBriefingByDate extends BriefingEvent {
   final String userId;
   final DateTime date;
-  
+
   const LoadBriefingByDate(this.userId, this.date);
 
   @override

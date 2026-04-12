@@ -119,8 +119,8 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
               ),
           ],
         ),
-        body: _isLoading 
-            ? const Center(child: CircularProgressIndicator()) 
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
             : _buildContent(),
       ),
     );
@@ -246,9 +246,9 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
             {
               2: 'Every 2 minutes',
               5: 'Every 5 minutes',
-              15: 'Every 15 minutes', 
-              60: 'Every hour', 
-              360: 'Every 6 hours', 
+              15: 'Every 15 minutes',
+              60: 'Every hour',
+              360: 'Every 6 hours',
               720: 'Every 12 hours',
               1440: 'Once a day'
             },
@@ -312,7 +312,7 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: AppTheme.background, 
+        color: AppTheme.background,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.black.withValues(alpha: 0.02)),
       ),
@@ -321,7 +321,7 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
           value: _formData[key],
           items: () {
             final items = options.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)))).toList();
-            // Safety: if the value is not in the list, add it to prevent the "exactly one item" assertion crash
+
             final currentValue = _formData[key];
             if (currentValue != null && !options.containsKey(currentValue)) {
               items.add(DropdownMenuItem(value: currentValue, child: Text('Custom ($currentValue min)', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))));
@@ -394,7 +394,7 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
                shape: BoxShape.circle,
              ),
              child: Icon(
-              isCritical ? Icons.delete_outline_rounded : Icons.pause_circle_outline_rounded, 
+              isCritical ? Icons.delete_outline_rounded : Icons.pause_circle_outline_rounded,
               color: isCritical ? Colors.red : AppTheme.textSecondary,
               size: 20,
             ),
@@ -414,7 +414,7 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
         content: Text('You\'ve spent \$${_watcher!.totalSpentUsdc.toStringAsFixed(3)} on ${_watcher!.totalChecks} checks so far. This action cannot be undone.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context), 
+            onPressed: () => Navigator.pop(context),
             child: const Text('Keep Agent', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold))
           ),
           TextButton(
@@ -422,7 +422,7 @@ class _EditWatcherScreenState extends State<EditWatcherScreen> {
                context.read<WatchersBloc>().add(DeleteWatcher(widget.watcherId));
                Navigator.pop(context);
                context.pop();
-            }, 
+            },
             child: const Text('Delete Permanently', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
           ),
         ],

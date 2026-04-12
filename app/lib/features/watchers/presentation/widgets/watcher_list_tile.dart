@@ -208,9 +208,9 @@ class WatcherListTile extends StatelessWidget {
                              StatusIndicator(status: watcher.status, size: 6),
                              const SizedBox(width: 6),
                              Text(
-                              isActive 
+                              isActive
                                   ? 'Active · Every ${watcher.checkIntervalMinutes}m'
-                                  : watcher.status == 'paused' 
+                                  : watcher.status == 'paused'
                                       ? 'Paused'
                                       : 'Error',
                               style: TextStyle(
@@ -238,7 +238,7 @@ class WatcherListTile extends StatelessWidget {
                   Text(
                     '${(percentUsed * 100).toInt()}% budget used',
                     style: TextStyle(
-                      fontSize: 11, 
+                      fontSize: 11,
                       color: percentUsed > 0.8 ? Colors.red : AppTheme.textSecondary,
                       fontWeight: FontWeight.bold,
                     ),

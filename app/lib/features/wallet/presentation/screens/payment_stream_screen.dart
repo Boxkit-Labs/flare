@@ -102,7 +102,7 @@ class _PaymentStreamScreenState extends State<PaymentStreamScreen> with SingleTi
               backgroundColor: Colors.black,
               body: Stack(
         children: [
-          // Background Animation
+
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _controller,
@@ -115,7 +115,6 @@ class _PaymentStreamScreenState extends State<PaymentStreamScreen> with SingleTi
             ),
           ),
 
-          // Header
           Positioned(
             top: 60,
             left: 24,
@@ -154,7 +153,6 @@ class _PaymentStreamScreenState extends State<PaymentStreamScreen> with SingleTi
             ),
           ),
 
-          // Main Stats
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -181,7 +179,6 @@ class _PaymentStreamScreenState extends State<PaymentStreamScreen> with SingleTi
             ),
           ),
 
-          // Footer Info
           Positioned(
             bottom: 60,
             left: 24,
@@ -262,8 +259,7 @@ class StreamPainter extends CustomPainter {
 
     for (var p in particles) {
       final pos = Offset(p.x * size.width, p.y * size.height);
-      
-      // Draw continuous stream tail
+
       final tailPaint = Paint()
         ..shader = LinearGradient(
           colors: [p.color.withValues(alpha: 0.0), p.color.withValues(alpha: 0.4), p.color.withValues(alpha: 0.8)],
@@ -272,20 +268,17 @@ class StreamPainter extends CustomPainter {
           end: Alignment.bottomCenter,
         ).createShader(Rect.fromLTWH(pos.dx, 0, 4, pos.dy))
         ..strokeWidth = 3.0;
-      
+
       canvas.drawLine(Offset(pos.dx, 0), pos, tailPaint);
 
-      // Draw shiny head core
       paint.color = Colors.white;
       canvas.drawCircle(pos, 3, paint);
-      
-      // Draw strong Glow
+
       paint.color = p.color.withValues(alpha: 0.6);
       canvas.drawCircle(pos, 10, paint);
       paint.color = p.color.withValues(alpha: 0.2);
       canvas.drawCircle(pos, 20, paint);
 
-      // Draw Text (TX id)
       if (p.y > 0.2 && p.y < 0.8) {
          TextPainter(
            text: TextSpan(
@@ -297,7 +290,6 @@ class StreamPainter extends CustomPainter {
       }
     }
 
-    // Draw Grid Nodes
     final nodePaint = Paint()..color = Colors.white.withValues(alpha: 0.02);
     for (int i = 0; i < 10; i++) {
       for (int j = 0; j < 20; j++) {

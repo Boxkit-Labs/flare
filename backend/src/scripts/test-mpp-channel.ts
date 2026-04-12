@@ -31,10 +31,6 @@ const OPERATOR_SECRET    = process.env.OPERATOR_SECRET!;
 const CONTRACT_ID        = process.env.MPP_CHANNEL_CONTRACT_ID!;
 const USDC_FACTOR        = 10_000_000n;
 
-// ─────────────────────────────────────────────────────
-// Raw RPC Helpers (Avoid SDK "Bad union switch" bugs)
-// ─────────────────────────────────────────────────────
-
 async function rpcFetch(method: string, params: any) {
   let attempts = 0;
   while (attempts < 3) {
@@ -58,7 +54,7 @@ async function rpcFetch(method: string, params: any) {
 }
 
 async function getAccount(address: string): Promise<Account> {
-  // Use Horizon for account sequence - it's much more stable than raw getLedgerEntries
+
   let attempts = 0;
   while (attempts < 3) {
     try {
@@ -95,7 +91,7 @@ async function pollTx(hash: string): Promise<any> {
 }
 
 async function simulateAndSend(account: Account, op: any, keypair: Keypair) {
-    // 1. Simulation
+
     const tempTx = new TransactionBuilder(account, {
         fee: '100000',
         networkPassphrase: NETWORK_PASSPHRASE,
@@ -106,11 +102,10 @@ async function simulateAndSend(account: Account, op: any, keypair: Keypair) {
 
     const simulateRes = await rpcFetch('simulateTransaction', { transaction: tempTx.toXDR() });
     if (simulateRes.error) throw new Error(`Simulation Failed: ${simulateRes.error}`);
-    
-    // 2. Assembly
+
     const txData = xdr.SorobanTransactionData.fromXDR(simulateRes.transactionData, 'base64');
     const minFee = BigInt(simulateRes.minResourceFee);
-    
+
     const finalTx = new TransactionBuilder(account, {
         fee: (100000n + minFee).toString(),
         networkPassphrase: NETWORK_PASSPHRASE,
@@ -121,15 +116,11 @@ async function simulateAndSend(account: Account, op: any, keypair: Keypair) {
     .build();
 
     finalTx.sign(keypair);
-    
+
     const sendRes = await rpcFetch('sendTransaction', { transaction: finalTx.toXDR() });
     if (sendRes.error) throw new Error(`Send Failed: ${JSON.stringify(sendRes.error)}`);
     return await pollTx(sendRes.hash);
 }
-
-// ─────────────────────────────────────────────────────
-// Main Flow
-// ─────────────────────────────────────────────────────
 
 async function main() {
   console.log('\n--------------------------------------------------------');
@@ -140,8 +131,8 @@ async function main() {
 
   if (!CONTRACT_ID) throw new Error("MPP_CHANNEL_CONTRACT_ID is not set in .env!");
 
-  const senderKp = Keypair.fromSecret(OPERATOR_SECRET); // Operator has USDC and acts as SENDER
-  const receiverKp = Keypair.random(); // Generate a random user to receive
+  const senderKp = Keypair.fromSecret(OPERATOR_SECRET);
+  const receiverKp = Keypair.random();
   const commitmentKp = Keypair.random();
 
   console.log(`\nSTEP 0: Funding and Setting up RECEIVER (${receiverKp.publicKey()})...`);
@@ -155,31 +146,28 @@ async function main() {
   await pollTx(tRes.hash);
   console.log(`  OK: Receiver funded and USDC trustline established.`);
 
-  // STEP 1: Initialize Contract
   console.log('\nSTEP 1: Initializing with init()...');
   const initAccount = await getAccount(senderKp.publicKey());
   const initOp = new Contract(CONTRACT_ID).call(
       'init',
-      xdr.ScVal.scvBytes(commitmentKp.rawPublicKey()), // commitment_key
-      new Address(receiverKp.publicKey()).toScVal(),   // to
-      new Address(USDC_CONTRACT_ID).toScVal(),         // token
+      xdr.ScVal.scvBytes(commitmentKp.rawPublicKey()),
+      new Address(receiverKp.publicKey()).toScVal(),
+      new Address(USDC_CONTRACT_ID).toScVal(),
   );
 
-  await simulateAndSend(initAccount, initOp, senderKp); // SENDER calls and becomes funder
+  await simulateAndSend(initAccount, initOp, senderKp);
   console.log(`  OK: Channel Initialized. Sender=${senderKp.publicKey()}`);
 
-  // STEP 2: Fund Channel via top_up
   console.log('\nSTEP 2: Funding Channel with 1 USDC via top_up()...');
   const topUpAccount = await getAccount(senderKp.publicKey());
   const topUpOp = new Contract(CONTRACT_ID).call(
       'top_up',
       nativeToScVal(10_000_000n)
   );
-  
+
   await simulateAndSend(topUpAccount, topUpOp, senderKp);
   console.log(`  OK: Channel Funded at ${CONTRACT_ID}`);
 
-  // STEP 3: Off-chain Payments
   console.log('\nSTEP 3: Off-chain Micro-Payments via prepare_commitment()...');
   const payments = [0.005, 0.008, 0.005, 0.004, 0.006];
   let cumulative = 0n;
@@ -188,8 +176,7 @@ async function main() {
   for (let i = 0; i < payments.length; i++) {
     const amount = payments[i];
     cumulative += BigInt(Math.round(amount * 10_000_000));
-    
-    // Simulate prepare_commitment to get the bytes
+
     const prepOp = new Contract(CONTRACT_ID).call(
       'prepare_commitment',
       nativeToScVal(cumulative)
@@ -197,12 +184,12 @@ async function main() {
     const tempTx = new TransactionBuilder(await getAccount(senderKp.publicKey()), { fee: '100000', networkPassphrase: NETWORK_PASSPHRASE })
       .addOperation(prepOp)
       .setTimeout(60).build();
-    
+
     const simRes = await rpcFetch('simulateTransaction', { transaction: tempTx.toXDR() });
     if (!simRes.results || simRes.results.length === 0) throw new Error('Simulation failed for prepare_commitment');
-    
+
     const resultXdr = xdr.ScVal.fromXDR(simRes.results[0].xdr, 'base64');
-    const commitmentBytes = resultXdr.bytes(); // The bytes returned by the contract!
+    const commitmentBytes = resultXdr.bytes();
 
     const secretKey = commitmentKp.rawSecretKey();
     const pkcs8 = Buffer.concat([Buffer.from('302e020100300506032b657004220420', 'hex'), secretKey]);
@@ -213,7 +200,6 @@ async function main() {
     console.log(`  Payment ${i+1}: ${amount} USDC. Cumulative: ${Number(cumulative)/10_000_000} USDC`);
   }
 
-  // STEP 4: Close Channel
   console.log('\nSTEP 4: Closing Channel (Claiming Proof)...');
   const closeAccount = await getAccount(receiverKp.publicKey());
   const closeOp = new Contract(CONTRACT_ID).call(
@@ -222,7 +208,6 @@ async function main() {
       xdr.ScVal.scvBytes(Buffer.from(lastProof.signature, 'hex')),
   );
 
-  // RECEIVER signs the transaction to claim the funds!
   await simulateAndSend(closeAccount, closeOp, receiverKp);
   console.log(`\n  OK: CHANNEL CLOSED SUCCESSFULLY!`);
   console.log(`  Proof verified on-chain. Receiver claimed off-chain payments.`);

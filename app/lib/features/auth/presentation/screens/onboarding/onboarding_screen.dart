@@ -66,8 +66,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                    VoiceTeaserPage(onBack: _previousPage),
                 ],
               ),
-              
-              // Top Progress Line
+
               Positioned(
                 top: MediaQuery.of(context).padding.top + 16,
                 left: 20,
@@ -94,7 +93,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
 
-              // Bottom Indicators
               Positioned(
                 bottom: 60,
                 left: 0,

@@ -10,9 +10,6 @@ export interface PaywallOptions {
   rpcUrl: string;
 }
 
-/**
- * Helper to fetch transaction status directly from JSON-RPC to avoid SDK deserialization bugs.
- */
 async function getTransactionStatus(rpcUrl: string, txHash: string): Promise<any> {
     try {
         const response = await fetch(rpcUrl, {
@@ -33,7 +30,6 @@ async function getTransactionStatus(rpcUrl: string, txHash: string): Promise<any
     }
 }
 
-// In-memory cache for fast MPP verification without DB/RPC lookups on every request
 const channelCache = new Map<string, { publicKey: string, lastAmount: number }>();
 const usedTxHashes = new Set<string>();
 
@@ -41,12 +37,12 @@ export function stellarPaywall(options: PaywallOptions) {
   const usedTxHashes = new Set<string>();
 
   return async (req: any, res: any, next: NextFunction) => {
-    // 1. Check for MPP proof FIRST (Off-chain flow)
+
     const mppProof = req.headers['x-mpp-proof'] as string;
     if (mppProof) {
       try {
         const proof = JSON.parse(mppProof);
-        // Basic validation: proof has required fields for the hackathon
+
         if (proof.signature && proof.cumulativeAmount !== undefined && proof.channelId) {
           console.log('[Paywall] MPP proof accepted. Channel:', proof.channelId, 'Amount:', proof.cumulativeAmount);
           req.stellarTxHash = 'mpp-offchain-' + proof.channelId;
@@ -61,7 +57,6 @@ export function stellarPaywall(options: PaywallOptions) {
 
     const txHash = req.headers['x-stellar-tx'] as string;
 
-    // 2. Check for x-stellar-tx header (X402 flow)
     if (txHash) {
       if (usedTxHashes.has(txHash)) {
         res.status(402).json({ error: 'tx_already_used' });
@@ -83,7 +78,6 @@ export function stellarPaywall(options: PaywallOptions) {
       }
     }
 
-    // 3. Neither header present -> Payment Required
     res.status(402).json({
       x402Version: 2,
       mppVersion: 1,
@@ -100,5 +94,4 @@ export function stellarPaywall(options: PaywallOptions) {
     });
   };
 }
-
 

@@ -61,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen> with AutoRefreshMixin {
         child: BlocListener<WatchersBloc, WatchersState>(
           listener: (context, state) {
             if (state is WatcherActionSuccess) {
-              // Delay slightly to allow the backend blockchain transaction to settle
+
               Future.delayed(const Duration(milliseconds: 500), () {
                 if (!mounted) return;
                 _refreshData(force: true);
@@ -71,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> with AutoRefreshMixin {
           child: RefreshIndicator(
             onRefresh: () async {
               _refreshData(force: true);
-              // Wait for at least one bloc to finish or a small delay
+
               await Future.delayed(const Duration(milliseconds: 800));
             },
             child: const HomeContent(),

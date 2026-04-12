@@ -1,5 +1,5 @@
 import pg from "pg";
-// sqlite3 removed from top-level to avoid GLIBC errors on Render
+
 import { promisify } from "node:util";
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -18,10 +18,6 @@ const defaultConnectionString =
 let pool: any;
 let isSqlite = false;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Database Initialization
-// ─────────────────────────────────────────────────────────────────────────────
-
 async function getPool() {
   if (pool) return pool;
 
@@ -33,7 +29,6 @@ async function getPool() {
       connectionTimeoutMillis: 10000,
     });
 
-    // Test connection immediately
     await p.query("SELECT 1");
     console.log("[Database] Connected to PostgreSQL.");
 
@@ -52,7 +47,6 @@ async function getPool() {
     const dbPath = process.env.DB_PATH || "flare.sqlite";
     const db = new sqlite3.Database(dbPath);
 
-    // Promisify sqlite methods
     const run = promisify(db.run.bind(db)) as any;
     const all = promisify(db.all.bind(db)) as any;
     const get = promisify(db.get.bind(db)) as any;
@@ -71,7 +65,7 @@ async function getPool() {
 
         try {
           if (sql.includes(';') && (sql.match(/;/g) || []).length > 1) {
-            // Multi-statement query (e.g. schema loading)
+
             await exec(sql);
             return { rows: [], rowCount: 1 };
           } else if (sql.trim().toUpperCase().startsWith("SELECT")) {
@@ -82,7 +76,7 @@ async function getPool() {
             return { rows: [], rowCount: 1 };
           }
         } catch (err: any) {
-          // Silently ignore 'already exists' errors during migration fallbacks
+
           if (
             err.message.includes("already exists") ||
             err.message.includes("duplicate column")
@@ -111,7 +105,7 @@ export const initializeDatabase = async () => {
     } else {
       const tableCheck = await p.query(`
                 SELECT EXISTS (
-                    SELECT FROM information_schema.tables 
+                    SELECT FROM information_schema.tables
                     WHERE table_name = 'users'
                 );
             `);

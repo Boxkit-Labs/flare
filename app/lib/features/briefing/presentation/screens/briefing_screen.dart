@@ -45,7 +45,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
     setState(() {
       _selectedDate = date;
     });
-    
+
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       context.read<BriefingBloc>().add(LoadBriefingByDate(authState.user.userId, date));
@@ -141,7 +141,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
 
     if (state is BriefingLoaded || state is BriefingGenerating) {
       final isToday = dateKey == DateTime.now().toIso8601String().split('T')[0];
-      
+
       BriefingModel? briefing;
       if (state is BriefingLoaded) {
         if (isToday) {
@@ -185,7 +185,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
 
   bool _isSelectingNewDate(BriefingState state, String currentKey) {
     if (state is BriefingLoaded) {
-      // If we are looking for a historical date, but the state doesn't have it yet, show shimmer
+
       final isToday = currentKey == DateTime.now().toIso8601String().split('T')[0];
       if (!isToday && !state.briefingsByDate.containsKey(currentKey)) {
           return true;
@@ -253,8 +253,8 @@ class _BriefingScreenState extends State<BriefingScreen> {
              const Text('Daily Digest', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.8)),
              const SizedBox(height: 12),
              const Text(
-               'Ready for your briefing? Your agents have been active. Generate your intel report now.', 
-               textAlign: TextAlign.center, 
+               'Ready for your briefing? Your agents have been active. Generate your intel report now.',
+               textAlign: TextAlign.center,
                style: TextStyle(color: AppTheme.textSecondary, height: 1.5, fontSize: 15),
              ),
              const SizedBox(height: 40),
@@ -313,7 +313,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
            crossAxisAlignment: CrossAxisAlignment.start,
            children: [
              Text(
-               DateFormat('EEEE, MMM d').format(DateTime.parse(briefing.date)), 
+               DateFormat('EEEE, MMM d').format(DateTime.parse(briefing.date)),
                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, height: 1.1, letterSpacing: -1.0),
              ),
              const SizedBox(height: 12),
@@ -323,13 +323,13 @@ class _BriefingScreenState extends State<BriefingScreen> {
                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                    decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)),
                    child: Text(
-                     '${briefing.totalChecks} AGENT SCANS', 
+                     '${briefing.totalChecks} AGENT SCANS',
                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                    ),
                  ),
                  const SizedBox(width: 12),
                  Text(
-                   'Status: Optimized', 
+                   'Status: Optimized',
                    style: const TextStyle(color: AppTheme.primary, fontSize: 13, fontWeight: FontWeight.w700),
                  ),
                ],
@@ -337,7 +337,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
              const SizedBox(height: 32),
            ],
          ),
-         
+
          if (findings.isNotEmpty) ...[
            _buildSectionHeader('Intelligence Findings', count: findings.length),
            const SizedBox(height: 16),
@@ -404,7 +404,7 @@ class _BriefingScreenState extends State<BriefingScreen> {
             ),
             title: Text(summary.watcherName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             subtitle: Text(
-              latestData, 
+              latestData,
               style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -413,8 +413,8 @@ class _BriefingScreenState extends State<BriefingScreen> {
                Padding(
                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                  child: Text(
-                   summary.latestDataSummary.isNotEmpty 
-                      ? summary.latestDataSummary 
+                   summary.latestDataSummary.isNotEmpty
+                      ? summary.latestDataSummary
                       : 'Your agent scanned ${summary.type} and verified all nodes were stable. Flare Score remains constant.',
                    style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.5),
                  ),

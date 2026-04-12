@@ -166,7 +166,7 @@ class _FlightWatcherFormState extends State<FlightWatcherForm> {
                 label: Text(_departureDate == null ? 'Departure' : DateFormat('MMM d').format(_departureDate!)),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), // match input border
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
               ),
             ),

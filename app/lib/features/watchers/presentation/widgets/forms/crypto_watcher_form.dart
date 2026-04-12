@@ -24,6 +24,7 @@ class _CryptoWatcherFormState extends State<CryptoWatcherForm> {
   void initState() {
     super.initState();
     _nameController.text = 'Crypto Watch';
+    _changeController.text = '5';
 
     if (widget.initialData != null) {
       if (widget.initialData!['coins'] != null) {

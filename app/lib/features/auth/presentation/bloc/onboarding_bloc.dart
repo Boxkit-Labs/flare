@@ -12,7 +12,6 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
       try {
         final user = await apiService.register(event.deviceId);
 
-        // SMART RESUMPTION: Check if user already has funds/key
         if (user.stellarPublicKey.isNotEmpty) {
           try {
             final wallet = await apiService.getWallet(user.userId);
@@ -21,7 +20,7 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
               return;
             }
           } catch (e) {
-            // If wallet fetch fails (e.g. account not created yet), just proceed normally
+
           }
         }
 
@@ -58,7 +57,7 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
           'briefing_time': event.briefingTime,
         });
       } catch (e) {
-        // Non-critical during onboarding, don't emit failure to avoid breaking flow
+
         print('Failed to update briefing time: $e');
       }
     });

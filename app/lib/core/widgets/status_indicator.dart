@@ -67,11 +67,11 @@ class _StatusIndicatorState extends State<StatusIndicator> with SingleTickerProv
   Color _getStatusColor() {
     switch (widget.status.toLowerCase()) {
       case 'active':
-        return const Color(0xFF10B981); // Emerald 500
+        return const Color(0xFF10B981);
       case 'paused':
-        return const Color(0xFFF59E0B); // Amber 500
+        return const Color(0xFFF59E0B);
       case 'error':
-        return const Color(0xFFEF4444); // Red 500
+        return const Color(0xFFEF4444);
       default:
         return Colors.grey;
     }

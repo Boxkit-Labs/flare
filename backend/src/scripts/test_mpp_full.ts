@@ -32,14 +32,13 @@ async function testFull() {
   const userKp = Keypair.fromSecret(decrypt(user.stellar_secret_key_encrypted, encryptionKey));
 
   console.log("Sender:", userKp.publicKey());
-  
+
   const wasmHashBuffer = Buffer.from(process.env.MPP_CHANNEL_WASM_HASH!, "hex");
   const salt = crypto.randomBytes(32);
   const NETWORK_PASSPHRASE = Networks.TESTNET;
 
   const usdcAddress = 'CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA';
 
-  // 1. Create Contract
   let account = await rpc.getAccount(userKp.publicKey());
   const createContractArgs = new xdr.CreateContractArgsV2({
       contractIdPreimage: xdr.ContractIdPreimage.contractIdPreimageFromAddress(
@@ -59,10 +58,10 @@ async function testFull() {
 
   const createTx = new TransactionBuilder(account, { fee: "100000", networkPassphrase: NETWORK_PASSPHRASE })
       .addOperation(createOp).setTimeout(60).build();
-  
+
   const simCreate = await rpc.simulateTransaction(createTx);
   if (Api.isSimulationError(simCreate)) throw new Error("Create sim err");
-  
+
   const preparedCreate = assembleTransaction(createTx, simCreate).build();
   preparedCreate.sign(userKp);
   const sendRes = await rpc.sendTransaction(preparedCreate);
@@ -70,7 +69,6 @@ async function testFull() {
   const contractAddress = Address.fromScVal((txRes as any).returnValue).toString();
   console.log("Deployed:", contractAddress);
 
-  // 2. Init
   account = await rpc.getAccount(userKp.publicKey());
   const channelContract = new Contract(contractAddress);
   const commitmentKeypair = Keypair.random();
@@ -84,17 +82,16 @@ async function testFull() {
           new Address(usdcAddress).toScVal(),
         ),
       ).setTimeout(60).build();
-  
+
   const simInit = await rpc.simulateTransaction(initTx);
   if (Api.isSimulationError(simInit)) throw new Error("Init sim err");
-  
+
   const preparedInit = assembleTransaction(initTx, simInit).build();
   preparedInit.sign(userKp);
   const sendInit = await rpc.sendTransaction(preparedInit);
   await waitForTransaction(rpc, sendInit.hash);
   console.log("Initialized!");
 
-  // 3. Top up
   account = await rpc.getAccount(userKp.publicKey());
   const topupTx = new TransactionBuilder(account, { fee: "100000", networkPassphrase: NETWORK_PASSPHRASE })
       .addOperation(
@@ -103,7 +100,7 @@ async function testFull() {
           nativeToScVal(BigInt(100000), { type: 'i128' }),
         ),
       ).setTimeout(60).build();
-  
+
   console.log("Simulating top_up...");
   const simTopup = await rpc.simulateTransaction(topupTx);
   if (Api.isSimulationError(simTopup)) {
@@ -113,7 +110,7 @@ async function testFull() {
 
   const preparedTopup = assembleTransaction(topupTx, simTopup).build();
   preparedTopup.sign(userKp);
-  
+
   console.log("Sending top_up...");
   const sendTopup = await rpc.sendTransaction(preparedTopup);
   console.log("Topup sent:", sendTopup.hash);

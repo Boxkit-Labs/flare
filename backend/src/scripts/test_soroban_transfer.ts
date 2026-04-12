@@ -43,7 +43,7 @@ async function testTransfer() {
   if (Api.isSimulationError(simResult)) {
     throw new Error(JSON.stringify(simResult));
   }
-  
+
   const preparedTx = assembleTransaction(tx, simResult).build();
   preparedTx.sign(userKp);
 

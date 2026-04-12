@@ -1,14 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import pool from './database.js';
 
-/**
- * Data Access Layer for Flare Backend.
- * All functions use parameterized queries and handle JSON stringification/parsing.
- * Updated for PostgreSQL (async/await, $ placeholders).
- */
-
-// --- USER QUERIES ---
-
 export const createUser = async (user: any) => {
   const query = `
     INSERT INTO users (user_id, device_id, stellar_public_key, stellar_secret_key_encrypted, fcm_token, briefing_time, timezone, dnd_start, dnd_end, global_daily_cap)
@@ -48,8 +40,6 @@ export const updateUser = async (id: string, fields: any) => {
   return pool.query(query, [...values, id]);
 };
 
-// --- WATCHER QUERIES ---
-
 export const createWatcher = async (watcher: any) => {
   const query = `
     INSERT INTO watchers (watcher_id, user_id, name, type, parameters, alert_conditions, check_interval_minutes, weekly_budget_usdc, priority, status)
@@ -82,11 +72,11 @@ export const getWatchersByUserId = async (userId: string) => {
 };
 
 export const updateWatcher = async (id: string, fields: any) => {
-  // Filter out updated_at if it's already in fields to prevent duplicate assignment error
+
   const { updated_at, ...updateFields } = fields;
   const keys = Object.keys(updateFields);
   if (keys.length === 0) {
-      // If only updated_at was provided, just update that timestamp
+
       return pool.query('UPDATE watchers SET updated_at = NOW() WHERE watcher_id = $1', [id]);
   }
   const assignments = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
@@ -102,6 +92,25 @@ export const deleteWatcher = async (id: string) => {
   return pool.query('DELETE FROM watchers WHERE watcher_id = $1', [id]);
 };
 
+export const incrementWatcherChecks = async (id: string) => {
+  return pool.query(`
+    UPDATE watchers
+    SET total_checks = total_checks + 1,
+        last_check_at = NOW(),
+        updated_at = NOW()
+    WHERE watcher_id = $1
+  `, [id]);
+};
+
+export const incrementWatcherFindings = async (id: string) => {
+  return pool.query(`
+    UPDATE watchers
+    SET total_findings = total_findings + 1,
+        updated_at = NOW()
+    WHERE watcher_id = $1
+  `, [id]);
+};
+
 export const getActiveWatchers = async () => {
     const res = await pool.query("SELECT * FROM watchers WHERE status = 'active'");
     return res.rows.map((row: any) => ({
@@ -110,8 +119,6 @@ export const getActiveWatchers = async () => {
       alert_conditions: typeof row.alert_conditions === 'string' ? JSON.parse(row.alert_conditions) : row.alert_conditions
     }));
 };
-
-// --- CHECK QUERIES ---
 
 export const createCheck = async (check: any) => {
   const query = `
@@ -144,32 +151,30 @@ export const getChecksSince = async (userId: string, since: string) => {
   }));
 };
 
-// --- FINDING QUERIES ---
-
 export const createFinding = async (finding: any) => {
   const query = `
     INSERT INTO findings (
-      finding_id, watcher_id, check_id, user_id, type, 
-      headline, detail, data, action_url, cost_usdc, 
+      finding_id, watcher_id, check_id, user_id, type,
+      headline, detail, data, action_url, cost_usdc,
       stellar_tx_hash, verified, verification_tx_hash, verification_check_id,
       collaboration_result, confidence_score, confidence_tier
     )
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
   `;
-  
+
   const fId = (finding.finding_id && finding.finding_id.length > 0) ? finding.finding_id : (finding.findingId || uuidv4());
-  
+
   return pool.query(query, [
     fId,
-    finding.watcher_id || finding.watcherId, 
-    finding.check_id || finding.checkId, 
+    finding.watcher_id || finding.watcherId,
+    finding.check_id || finding.checkId,
     finding.user_id || finding.userId,
-    finding.type, 
-    finding.headline, 
-    finding.detail, 
+    finding.type,
+    finding.headline,
+    finding.detail,
     JSON.stringify(finding.data),
-    finding.action_url || finding.actionUrl || null, 
-    finding.cost_usdc || finding.costUsdc || 0, 
+    finding.action_url || finding.actionUrl || null,
+    finding.cost_usdc || finding.costUsdc || 0,
     finding.stellar_tx_hash || finding.stellarTxHash || null,
     finding.verified || false,
     finding.verification_tx_hash || null,
@@ -189,10 +194,10 @@ export const getFindingById = async (id: string) => {
 
 export const getFindingsByUserId = async (userId: string, limit: number = 50, offset: number = 0) => {
   const res = await pool.query(`
-    SELECT f.*, w.name as watcher_name, w.type as watcher_type 
+    SELECT f.*, w.name as watcher_name, w.type as watcher_type
     FROM findings f
     JOIN watchers w ON f.watcher_id = w.watcher_id
-    WHERE f.user_id = $1 
+    WHERE f.user_id = $1
     ORDER BY f.found_at DESC LIMIT $2 OFFSET $3
   `, [userId, limit, offset]);
   return res.rows.map((row: any) => ({ ...row, data: typeof row.data === 'string' ? JSON.parse(row.data) : row.data }));
@@ -226,8 +231,6 @@ export const markFindingRead = async (id: string) => {
 export const markFindingNotified = async (id: string) => {
   return pool.query('UPDATE findings SET notified = true WHERE finding_id = $1', [id]);
 };
-
-// --- BRIEFING QUERIES ---
 
 export const createBriefing = async (briefing: any) => {
   const query = `
@@ -271,15 +274,13 @@ export const getBriefingByDate = async (userId: string, date: string) => {
     return row;
 };
 
-// --- TRANSACTION QUERIES ---
-
 export const createTransaction = async (tx: any) => {
   const query = `
     INSERT INTO transactions (tx_id, user_id, watcher_id, check_id, amount_usdc, service_name, stellar_tx_hash, tx_type, payment_method, channel_id)
     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
   `;
   return pool.query(query, [
-    tx.txId, tx.userId, tx.watcherId, tx.checkId || null, 
+    tx.txId, tx.userId, tx.watcherId, tx.checkId || null,
     tx.amountUsdc, tx.serviceName, tx.stellarTxHash, tx.txType || 'check',
     tx.paymentMethod || 'x402', tx.channelId || null
   ]);
@@ -291,7 +292,7 @@ export const getTransactionsByUserId = async (userId: string, limit: number = 20
     FROM transactions t
     LEFT JOIN watchers w ON t.watcher_id = w.watcher_id
     LEFT JOIN checks c ON t.check_id = c.check_id
-    WHERE t.user_id = $1 
+    WHERE t.user_id = $1
     ORDER BY t.timestamp DESC LIMIT $2 OFFSET $3
   `, [userId, limit, offset]);
   return res.rows;
@@ -302,7 +303,7 @@ export const getTransactionsByWatcherId = async (watcherId: string, limit: numbe
     SELECT t.*, c.finding_detected
     FROM transactions t
     LEFT JOIN checks c ON t.check_id = c.check_id
-    WHERE t.watcher_id = $1 
+    WHERE t.watcher_id = $1
     ORDER BY t.timestamp DESC LIMIT $2 OFFSET $3
   `, [watcherId, limit, offset]);
   return res.rows;
@@ -310,11 +311,11 @@ export const getTransactionsByWatcherId = async (watcherId: string, limit: numbe
 
 export const getSpendingStats = async (userId: string) => {
     const res = await pool.query(`
-      SELECT 
+      SELECT
         COALESCE(SUM(amount_usdc), 0) as total_spent,
         COALESCE(SUM(CASE WHEN timestamp >= date_trunc('day', NOW()) THEN amount_usdc ELSE 0 END), 0) as spent_today,
         COALESCE(SUM(CASE WHEN timestamp >= NOW() - INTERVAL '7 days' THEN amount_usdc ELSE 0 END), 0) as spent_this_week
-      FROM transactions 
+      FROM transactions
       WHERE user_id = $1
     `, [userId]);
     return res.rows[0];
@@ -338,7 +339,7 @@ export const getWalletAnalytics = async (userId: string) => {
   `, [userId]);
 
   const totalsRes = await pool.query(`
-    SELECT 
+    SELECT
       (SELECT COUNT(*) FROM checks WHERE user_id = $1 AND checked_at >= date_trunc('day', NOW())) as total_checks_today,
       (SELECT COUNT(*) FROM findings WHERE user_id = $2 AND found_at >= date_trunc('day', NOW())) as total_findings_today,
       (SELECT COUNT(*) FROM findings WHERE user_id = $3) as total_findings_all_time,
@@ -354,8 +355,6 @@ export const getWalletAnalytics = async (userId: string) => {
     total_spent_all_time: totalsRes.rows[0].total_spent_all_time
   };
 };
-
-// --- NOTIFICATION QUERIES ---
 
 export const createNotification = async (notification: any) => {
   const query = `

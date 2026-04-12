@@ -29,13 +29,12 @@ class _FirstWatcherPageState extends State<FirstWatcherPage> {
 
   void _createWatcher() {
     if (_selectedType == null) return;
-    
+
     final state = context.read<OnboardingBloc>().state;
     String? userId;
     if (state is OnboardingWalletFunded) userId = state.userId;
     if (userId == null) return;
 
-    // Map UI labels to backend-expected singular types
     String backendType = _selectedType!.toLowerCase();
     if (backendType == 'flights') backendType = 'flight';
     if (backendType == 'products') backendType = 'product';
@@ -119,7 +118,7 @@ class _FirstWatcherPageState extends State<FirstWatcherPage> {
                   if (_selectedType != null)
                     ElevatedButton(
                       onPressed: isLoading ? null : _createWatcher,
-                      child: isLoading 
+                      child: isLoading
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                         : const Text('Create & Launch'),
                     ),

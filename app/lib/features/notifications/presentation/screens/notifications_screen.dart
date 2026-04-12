@@ -138,7 +138,6 @@ class _NotificationItem extends StatelessWidget {
       ),
     );
 
-    // Navigation logic based on data_id
     if (notification.type == 'finding' && notification.dataId != null) {
       context.push('/findings/${notification.dataId}');
     } else if (notification.type == 'briefing') {

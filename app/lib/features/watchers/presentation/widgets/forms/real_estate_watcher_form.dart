@@ -11,8 +11,8 @@ class RealEstateWatcherForm extends StatefulWidget {
 }
 
 class _RealEstateWatcherFormState extends State<RealEstateWatcherForm> {
-  String _mode = 'purchase'; // rental, purchase
-  String _propertyType = 'any'; // apartment, house, condo, any
+  String _mode = 'purchase';
+  String _propertyType = 'any';
   final _cityController = TextEditingController();
   final _maxPriceController = TextEditingController();
   int _bedrooms = 2;

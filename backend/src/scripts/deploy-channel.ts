@@ -37,7 +37,6 @@ async function deployChannel() {
   try {
     const account = await server.getAccount(funderKeypair.publicKey());
 
-    // Generate a random commitment keypair for the channel
     const commitmentKeypair = Keypair.random();
     console.log(`Commitment Public Key: ${commitmentKeypair.publicKey()}`);
     console.log(`Commitment Secret Key: ${commitmentKeypair.secret()} (SAVE THIS!)`);
@@ -70,30 +69,29 @@ async function deployChannel() {
       .setTimeout(30)
       .build();
 
-    
     console.log('Simulating CreateContract transaction...');
     const simResult = await server.simulateTransaction(tx);
     const { assembleTransaction } = await import('@stellar/stellar-sdk/rpc');
     const preparedTx = assembleTransaction(tx, simResult).build();
     preparedTx.sign(funderKeypair);
-    
+
     console.log('Submitting CreateContract transaction to Testnet...');
     const sendResponse = await server.sendTransaction(preparedTx);
-    
+
     if (sendResponse.status !== 'PENDING') {
       console.error('Transaction failed to submit:', sendResponse);
       return;
     }
-    
+
     console.log(`Transaction Hash: ${sendResponse.hash}`);
     console.log('Waiting for completion...');
     let res = await server.getTransaction(sendResponse.hash);
-    
+
     while (res.status === 'NOT_FOUND') {
       await new Promise(r => setTimeout(r, 2000));
       res = await server.getTransaction(sendResponse.hash);
     }
-    
+
     if (res.status === 'SUCCESS') {
       console.log('Channel contract deployed successfully!');
       if (res.returnValue) {

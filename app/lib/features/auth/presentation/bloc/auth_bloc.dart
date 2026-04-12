@@ -19,8 +19,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }) : super(AuthInitial()) {
     on<AppStarted>((event, emit) async {
       emit(const AuthLoading(message: 'Waking up Flare server... (Takes ~40s on first launch)'));
-      
-      // 1. Wake up the backend (handling cold starts)
+
       final stopwatch = Stopwatch()..start();
       final isHealthy = await apiService.checkHealth();
       stopwatch.stop();
@@ -31,7 +30,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(const AuthLoading(message: 'Flare has awakened! Finalizing setup...'));
         await Future.delayed(const Duration(milliseconds: 1000));
       }
-
 
       emit(const AuthLoading(message: 'Checking session...'));
       try {

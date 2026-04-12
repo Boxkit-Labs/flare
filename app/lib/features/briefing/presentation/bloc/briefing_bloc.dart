@@ -34,8 +34,7 @@ class BriefingBloc extends Bloc<BriefingEvent, BriefingState> {
       try {
         final briefing = await apiService.generateBriefing(event.userId);
         emit(BriefingGenerated(briefing));
-        // No auto-dispatch of LoadTodayBriefing here to avoid state flicker
-        // but the generated briefing is sent to the success state
+
       } catch (e) {
         emit(BriefingError(ErrorFormatter.format(e)));
       }
@@ -47,22 +46,21 @@ class BriefingBloc extends Bloc<BriefingEvent, BriefingState> {
         if (state is BriefingLoaded) {
           final cur = (state as BriefingLoaded);
           if (cur.todayBriefing?.briefingId == event.briefingId) {
-             // In-place update (simple)
+
              emit(BriefingLoaded(
-               todayBriefing: null, // Just hide it from dashboard
+               todayBriefing: null,
                history: cur.history,
              ));
           }
         }
       } catch (e) {
-        // Silent fail for UX
+
       }
     });
 
     on<LoadBriefingByDate>((event, emit) async {
       final dateKey = event.date.toIso8601String().split('T')[0];
-      
-      // If we already have it in the map, don't refetch
+
       if (state is BriefingLoaded) {
         final current = state as BriefingLoaded;
         if (current.briefingsByDate.containsKey(dateKey)) {
@@ -71,15 +69,15 @@ class BriefingBloc extends Bloc<BriefingEvent, BriefingState> {
       }
 
       emit(state is BriefingLoaded ? state : BriefingLoading());
-      
+
       try {
         final briefing = await apiService.getBriefingByDate(event.userId, dateKey);
-        
+
         if (state is BriefingLoaded) {
           final current = state as BriefingLoaded;
           final updatedMap = Map<String, BriefingModel?>.from(current.briefingsByDate);
           updatedMap[dateKey] = briefing;
-          
+
           emit(BriefingLoaded(
             todayBriefing: current.todayBriefing,
             history: current.history,

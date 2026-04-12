@@ -18,35 +18,32 @@ export class StellarService {
         this.usdcAsset = new Asset(usdcCode, usdcIssuer);
     }
 
-    /**
-     * Helper to retry transient network/DNS errors.
-     */
     private async withRetry<T>(fn: () => Promise<T>, label: string, retries: number = 10): Promise<T> {
         for (let i = 0; i < retries; i++) {
             try {
                 return await fn();
             } catch (error: any) {
-                const isTransient = 
-                    error.message.includes('EAI_AGAIN') || 
-                    error.message.includes('getaddrinfo') || 
+                const isTransient =
+                    error.message.includes('EAI_AGAIN') ||
+                    error.message.includes('getaddrinfo') ||
                     error.message.includes('ENOTFOUND') ||
                     error.message.includes('ETIMEDOUT') ||
                     error.message.includes('ECONNREFUSED') ||
                     error.message.includes('ECONNRESET') ||
                     error.message.includes('fetch failed') ||
                     error.message.includes('timeout') ||
-                    error.response?.status === 504 || 
+                    error.response?.status === 504 ||
                     error.response?.status === 502;
 
                 if (isTransient && i < retries - 1) {
-                    const waitTime = Math.pow(2, i) * 1000 + (Math.random() * 1000); // Add jitter
-                    // Cap wait time at 30 seconds
+                    const waitTime = Math.pow(2, i) * 1000 + (Math.random() * 1000);
+
                     const actualWait = Math.min(waitTime, 30000);
                     console.warn(`[STELLAR] ${label} attempt ${i + 1} failed. Retrying in ${Math.round(actualWait)}ms... (${error.message})`);
                     await new Promise(resolve => setTimeout(resolve, actualWait));
                     continue;
                 }
-                
+
                 if (!isTransient) {
                     console.error(`[STELLAR] Non-transient error in ${label}:`, error.message, error.name);
                 }
@@ -56,9 +53,6 @@ export class StellarService {
         throw new Error(`[STELLAR] ${label} failed after ${retries} attempts`);
     }
 
-    /**
-     * Generates a new random Stellar keypair.
-     */
     generateKeypair(): { publicKey: string, secretKey: string } {
         const keypair = Keypair.random();
         return {
@@ -67,9 +61,6 @@ export class StellarService {
         };
     }
 
-    /**
-     * Funds an account using the Testnet friendbot. Includes retry logic.
-     */
     async fundWithFriendbot(publicKey: string, retries: number = 10): Promise<boolean> {
         try {
             await this.withRetry(async () => {
@@ -87,17 +78,13 @@ export class StellarService {
         }
     }
 
-    /**
-     * Submits a transaction to add a trustline for USDC.
-     */
     async addUsdcTrustline(secretKey: string): Promise<string> {
         const sourceKeypair = Keypair.fromSecret(secretKey);
         const sourcePublicKey = sourceKeypair.publicKey();
 
         const account = await this.withRetry(() => this.server.loadAccount(sourcePublicKey), "loadAccount");
-        
-        // Check if trustline already exists
-        const hasTrustline = account.balances.some(b => 
+
+        const hasTrustline = account.balances.some(b =>
             'asset_code' in b && b.asset_code === this.usdcAsset.code && b.asset_issuer === this.usdcAsset.issuer
         );
         if (hasTrustline) {
@@ -123,7 +110,7 @@ export class StellarService {
             return response.hash;
         } catch (error: any) {
             console.error(`[STELLAR] Trustline failed for ${sourcePublicKey}:`, error.response?.data || error.message);
-            // Check for op_already_exists error in Horizon response
+
             const resultCodes = error?.response?.data?.extras?.result_codes;
             if (resultCodes?.operations?.includes('op_already_exists') || resultCodes?.transaction === 'tx_bad_seq') {
                  console.log(`[STELLAR] Redundant trustline or sequence error (likely already exists), skipping.`);
@@ -133,9 +120,6 @@ export class StellarService {
         }
     }
 
-    /**
-     * Sends USDC from one account to another.
-     */
     async sendUsdc(fromSecret: string, toPublic: string, amount: string): Promise<string> {
         const sourceKeypair = Keypair.fromSecret(fromSecret);
         const sourcePublicKey = sourceKeypair.publicKey();
@@ -165,13 +149,10 @@ export class StellarService {
         }
     }
 
-    /**
-     * Returns the XLM and USDC balances for a public key.
-     */
     async getBalances(publicKey: string): Promise<{ xlm: string, usdc: string }> {
         try {
             const account = await this.withRetry(() => this.server.loadAccount(publicKey), "loadAccount");
-            
+
             let xlmBalance = '0';
             let usdcBalance = '0';
 
@@ -186,15 +167,12 @@ export class StellarService {
             return { xlm: xlmBalance, usdc: usdcBalance };
         } catch (error: any) {
              if (error?.response?.status === 404) {
-                 return { xlm: '0', usdc: '0' }; // Account not found/unfunded
+                 return { xlm: '0', usdc: '0' };
              }
              throw error;
         }
     }
 
-    /**
-     * Funds a new user account with USDC from the operator wallet.
-     */
     async fundNewUserWithUsdc(userPublicKey: string, amount: string): Promise<string> {
         const operatorSecret = process.env.OPERATOR_SECRET;
         if (!operatorSecret) {
@@ -203,13 +181,9 @@ export class StellarService {
         return this.sendUsdc(operatorSecret, userPublicKey, amount);
     }
 
-    /**
-     * Fetches details for a specific transaction hash.
-     */
     async getTransaction(txHash: string): Promise<Horizon.ServerApi.TransactionRecord> {
         return this.withRetry(() => this.server.transactions().transaction(txHash).call(), "getTransaction");
     }
 }
 
-// Export a singleton instance
 export const stellarService = new StellarService();
