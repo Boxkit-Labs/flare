@@ -327,11 +327,29 @@ export const getSpendingStats = async (userId: string) => {
 
 export const getWalletAnalytics = async (userId: string) => {
   const dailySpendingRes = await pool.query(`
-    SELECT date(timestamp) as date, SUM(amount_usdc) as amount
-    FROM transactions
-    WHERE user_id = $1 AND timestamp >= NOW() - INTERVAL '7 days'
-    GROUP BY date(timestamp)
-    ORDER BY date ASC
+    WITH daily_spending AS (
+      SELECT 
+        date(timestamp) as date, 
+        SUM(amount_usdc) as amount,
+        SUM(CASE WHEN is_off_chain = false THEN amount_usdc ELSE 0 END) as on_chain_amount
+      FROM transactions
+      WHERE user_id = $1 AND timestamp >= NOW() - INTERVAL '90 days'
+      GROUP BY date(timestamp)
+    ),
+    daily_findings AS (
+      SELECT date(found_at) as date, COUNT(*) as findings_count
+      FROM findings
+      WHERE user_id = $1 AND found_at >= NOW() - INTERVAL '90 days'
+      GROUP BY date(found_at)
+    )
+    SELECT 
+      s.date, 
+      s.amount, 
+      s.on_chain_amount,
+      COALESCE(f.findings_count, 0) as findings
+    FROM daily_spending s
+    LEFT JOIN daily_findings f ON s.date = f.date
+    ORDER BY s.date ASC
   `, [userId]);
 
   const perWatcherSpendingRes = await pool.query(`

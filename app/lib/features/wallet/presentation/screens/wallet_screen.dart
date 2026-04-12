@@ -1,3 +1,4 @@
+import 'package:flare_app/features/findings/presentation/bloc/findings_event.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -37,13 +38,18 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   void _refresh({bool force = false}) {
-    final walletState = context.read<WalletBloc>().state;
-    if (!force && walletState is WalletLoaded && walletState.wallet != null) return;
-
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) {
       final userId = authState.user.userId;
-      context.read<WalletBloc>().add(LoadAllWalletData(userId, isRefresh: true));
+
+      final walletState = context.read<WalletBloc>().state;
+      if (force || walletState is! WalletLoaded) {
+        context.read<WalletBloc>().add(
+          LoadAllWalletData(userId, isRefresh: true),
+        );
+      }
+
+      context.read<FindingsBloc>().add(LoadFindings(userId, isRefresh: true));
     }
   }
 
@@ -63,9 +69,7 @@ class _WalletScreenState extends State<WalletScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined, size: 20),
-            onPressed: () {
-
-            },
+            onPressed: () {},
           ),
           const SizedBox(width: 8),
         ],
@@ -110,7 +114,6 @@ class _WalletScreenState extends State<WalletScreen> {
             const SizedBox(height: 32),
             _buildTransactionHistory(state.transactions),
             const SizedBox(height: 100),
-
           ],
         ),
       );
@@ -141,11 +144,19 @@ class _WalletScreenState extends State<WalletScreen> {
           ),
         ),
         const SizedBox(height: 48),
-        const ShimmerGrid(itemCount: 3, itemHeight: 80, padding: EdgeInsets.zero),
+        const ShimmerGrid(
+          itemCount: 3,
+          itemHeight: 80,
+          padding: EdgeInsets.zero,
+        ),
         const SizedBox(height: 48),
         const ShimmerPlaceholder(width: 150, height: 24),
         const SizedBox(height: 24),
-        const ShimmerPlaceholder(width: double.infinity, height: 200, borderRadius: 28),
+        const ShimmerPlaceholder(
+          width: double.infinity,
+          height: 200,
+          borderRadius: 28,
+        ),
         const SizedBox(height: 48),
         const ShimmerHeader(),
         const SizedBox(height: 16),
@@ -162,7 +173,11 @@ class _WalletScreenState extends State<WalletScreen> {
       children: [
         const Text(
           'USDC on Stellar Testnet',
-          style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+          style: TextStyle(
+            color: AppTheme.textSecondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 12),
         TweenAnimationBuilder<double>(
@@ -172,7 +187,11 @@ class _WalletScreenState extends State<WalletScreen> {
           builder: (context, value, child) {
             return Text(
               StringUtils.formatCurrency(value, decimals: 4),
-              style: const TextStyle(fontSize: 56, fontWeight: FontWeight.w900, letterSpacing: -2.0),
+              style: const TextStyle(
+                fontSize: 56,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -2.0,
+              ),
             );
           },
         ),
@@ -185,24 +204,48 @@ class _WalletScreenState extends State<WalletScreen> {
                 gradient: AppTheme.primaryGradient,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
-                  BoxShadow(color: AppTheme.primary.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4)),
+                  BoxShadow(
+                    color: AppTheme.primary.withValues(alpha: 0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
                 ],
               ),
               child: ElevatedButton.icon(
                 onPressed: () {
                   final authState = context.read<AuthBloc>().state;
                   if (authState is AuthAuthenticated) {
-                    context.read<WalletBloc>().add(FundWalletUser(authState.user.userId));
-                    TopSnackbar.showSuccess(context, 'Requesting Testnet funds...');
+                    context.read<WalletBloc>().add(
+                      FundWalletUser(authState.user.userId),
+                    );
+                    TopSnackbar.showSuccess(
+                      context,
+                      'Requesting Testnet funds...',
+                    );
                   }
                 },
-                icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
-                label: const Text('Add Funds', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+                icon: const Icon(
+                  Icons.add_rounded,
+                  size: 18,
+                  color: Colors.white,
+                ),
+                label: const Text(
+                  'Add Funds',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
                 ),
               ),
             ),
@@ -227,10 +270,19 @@ class _WalletScreenState extends State<WalletScreen> {
               children: [
                 Text(
                   StringUtils.formatHash(address),
-                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textSecondary,
+                  ),
                 ),
                 const SizedBox(width: 8),
-                const Icon(Icons.copy_rounded, size: 14, color: AppTheme.primary),
+                const Icon(
+                  Icons.copy_rounded,
+                  size: 14,
+                  color: AppTheme.primary,
+                ),
               ],
             ),
           ),
@@ -282,13 +334,21 @@ class _WalletScreenState extends State<WalletScreen> {
                 : Colors.black.withValues(alpha: 0.04),
           ),
           boxShadow: [
-             BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4)),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 14, color: isHighlight ? AppTheme.primary : AppTheme.textSecondary),
+            Icon(
+              icon,
+              size: 14,
+              color: isHighlight ? AppTheme.primary : AppTheme.textSecondary,
+            ),
             const SizedBox(height: 8),
             Text(
               label,
@@ -302,7 +362,11 @@ class _WalletScreenState extends State<WalletScreen> {
             const SizedBox(height: 4),
             Text(
               value,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
             ),
           ],
         ),
@@ -319,14 +383,39 @@ class _WalletScreenState extends State<WalletScreen> {
           children: [
             const Text(
               'Spending Trend',
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+                letterSpacing: -0.5,
+              ),
             ),
             Container(
-              decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: SegmentedButton<int>(
                 segments: const [
-                  ButtonSegment(value: 7, label: Text('7D', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                  ButtonSegment(value: 30, label: Text('30D', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                  ButtonSegment(
+                    value: 7,
+                    label: Text(
+                      '7D',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  ButtonSegment(
+                    value: 30,
+                    label: Text(
+                      '30D',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ],
                 selected: {_chartDays},
                 onSelectionChanged: (set) =>
@@ -346,13 +435,41 @@ class _WalletScreenState extends State<WalletScreen> {
         const SizedBox(height: 16),
         Row(
           children: [
-            Container(width: 8, height: 8, decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(4))),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: Colors.blue,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
             const SizedBox(width: 6),
-            const Text('On-chain', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.bold)),
+            const Text(
+              'On-chain',
+              style: TextStyle(
+                fontSize: 11,
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(width: 16),
-            Container(width: 8, height: 8, decoration: BoxDecoration(color: Colors.purple, borderRadius: BorderRadius.circular(4))),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: Colors.purple,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
             const SizedBox(width: 6),
-            const Text('MPP Channels', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.bold)),
+            const Text(
+              'MPP Channels',
+              style: TextStyle(
+                fontSize: 11,
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 24),
@@ -378,22 +495,46 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   List<BarChartGroupData> _generateBarGroups(SpendingStatsModel? stats) {
+    final daily = stats?.dailySpending ?? [];
+    final now = DateTime.now();
+
     return List.generate(_chartDays, (index) {
-      final isLast = index == _chartDays - 1;
-      final blueValue = 0.03 + (index % 3) * 0.010;
-      final purpleValue = 0.01 + (index % 5) * 0.015;
-      final totalY = blueValue + purpleValue;
+      final date = now.subtract(Duration(days: _chartDays - 1 - index));
+      final dateStr = DateFormat('yyyy-MM-dd').format(date);
+
+      final dayData = daily.firstWhere(
+        (d) => d['date'] == dateStr,
+        orElse: () => {'amount': 0.0, 'on_chain_amount': 0.0},
+      );
+
+      final total = (dayData['amount'] as num).toDouble();
+      final onChain =
+          (dayData['on_chain_amount'] as num?)?.toDouble() ?? (total * 0.4);
+      final offChain = total - onChain;
+
       return BarChartGroupData(
         x: index,
         barRods: [
           BarChartRodData(
-            toY: totalY,
+            toY: total > 0 ? total : 0.001,
             width: 14,
             borderRadius: BorderRadius.circular(4),
             color: Colors.transparent,
             rodStackItems: [
-               BarChartRodStackItem(0.0, blueValue, isLast ? Colors.blue : Colors.blue.withValues(alpha: 0.4)),
-               BarChartRodStackItem(blueValue, totalY, isLast ? Colors.purple : Colors.purple.withValues(alpha: 0.4)),
+              BarChartRodStackItem(
+                0.0,
+                onChain,
+                index == _chartDays - 1
+                    ? Colors.blue
+                    : Colors.blue.withValues(alpha: 0.4),
+              ),
+              BarChartRodStackItem(
+                onChain,
+                total,
+                index == _chartDays - 1
+                    ? Colors.purple
+                    : Colors.purple.withValues(alpha: 0.4),
+              ),
             ],
           ),
         ],
@@ -402,12 +543,18 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   Widget _buildWatcherBreakdown(SpendingStatsModel? stats) {
+    final allocations = stats?.perWatcherSpending ?? [];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Operational Allocation',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+            letterSpacing: -0.5,
+          ),
         ),
         const SizedBox(height: 20),
         Container(
@@ -417,18 +564,69 @@ class _WalletScreenState extends State<WalletScreen> {
             borderRadius: BorderRadius.circular(28),
             border: Border.all(color: Colors.black.withValues(alpha: 0.04)),
           ),
-          child: Column(
-            children: [
-              _buildWatcherRow('✈️ Tokyo Trip', '\$0.42', 45, Colors.blue),
-              const Divider(height: 24, color: AppTheme.background),
-              _buildWatcherRow('💰 Bitcoin Alert', '\$0.28', 30, Colors.purple),
-              const Divider(height: 24, color: AppTheme.background),
-              _buildWatcherRow('🛍️ iPhone Watch', '\$0.15', 25, Colors.orange),
-            ],
-          ),
+          child: allocations.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Text(
+                      'No active allocations yet',
+                      style: TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                )
+              : Column(
+                  children: allocations.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
+                    final double amount = (item['amount'] as num).toDouble();
+                    final double total = (stats?.totalSpentAllTime ?? 0.0) > 0
+                        ? (stats?.totalSpentAllTime ?? 1.0)
+                        : 1.0;
+                    final percent = (amount / total) * 100;
+
+                    final isLast = index == allocations.length - 1;
+
+                    return Column(
+                      children: [
+                        _buildWatcherRow(
+                          '${_getEmojiByWatcherName(item['watcher_name'])} ${item['watcher_name']}',
+                          '\$${amount.toStringAsFixed(2)}',
+                          percent,
+                          _getColorByIndex(index),
+                        ),
+                        if (!isLast)
+                          const Divider(height: 24, color: AppTheme.background),
+                      ],
+                    );
+                  }).toList(),
+                ),
         ),
       ],
     );
+  }
+
+  String _getEmojiByWatcherName(String name) {
+    final n = name.toLowerCase();
+    if (n.contains('flight')) return '✈️';
+    if (n.contains('crypto') || n.contains('bitcoin') || n.contains('eth'))
+      return '💰';
+    if (n.contains('news')) return '📰';
+    if (n.contains('product') || n.contains('watch')) return '🛍️';
+    return '🤖';
+  }
+
+  Color _getColorByIndex(int index) {
+    final colors = [
+      Colors.blue,
+      Colors.purple,
+      Colors.orange,
+      Colors.teal,
+      Colors.pink,
+    ];
+    return colors[index % colors.length];
   }
 
   Widget _buildWatcherRow(
@@ -444,10 +642,7 @@ class _WalletScreenState extends State<WalletScreen> {
           children: [
             Text(
               name,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
             ),
             Text(
               amount,
@@ -462,16 +657,22 @@ class _WalletScreenState extends State<WalletScreen> {
         const SizedBox(height: 12),
         Stack(
           children: [
-             Container(
-               height: 6,
-               width: double.infinity,
-               decoration: BoxDecoration(color: AppTheme.background, borderRadius: BorderRadius.circular(3)),
-             ),
-             Container(
-               height: 6,
-               width: (MediaQuery.of(context).size.width - 88) * (percent / 100),
-               decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3)),
-             ),
+            Container(
+              height: 6,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppTheme.background,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            Container(
+              height: 6,
+              width: (MediaQuery.of(context).size.width - 88) * (percent / 100),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
           ],
         ),
       ],
@@ -486,18 +687,34 @@ class _WalletScreenState extends State<WalletScreen> {
 
     final withMppTx = onChainCount;
     final withoutMppTx = onChainCount + offChainCount;
-    final savedPercent = withoutMppTx > 0 ? ((offChainCount / withoutMppTx) * 100).round() : 0;
+    final savedPercent = withoutMppTx > 0
+        ? ((offChainCount / withoutMppTx) * 100).round()
+        : 0;
 
-    final channelsOpened = txs.where((t) => t.txType == 'channel_open' || (t.channelId != null && t.channelId!.isNotEmpty)).map((t) => t.channelId).toSet().length;
+    final channelsOpened = txs
+        .where(
+          (t) =>
+              t.txType == 'channel_open' ||
+              (t.channelId != null && t.channelId!.isNotEmpty),
+        )
+        .map((t) => t.channelId)
+        .toSet()
+        .length;
     final activeChannels = channelsOpened > 0 ? 1 : 0;
-    final settledChannels = channelsOpened > 0 ? channelsOpened - activeChannels : 0;
+    final settledChannels = channelsOpened > 0
+        ? channelsOpened - activeChannels
+        : 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'Payment Efficiency',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 18,
+            letterSpacing: -0.5,
+          ),
         ),
         const SizedBox(height: 20),
         Container(
@@ -513,46 +730,102 @@ class _WalletScreenState extends State<WalletScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Without MPP:', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold, fontSize: 13)),
-                  Text('$withoutMppTx transactions', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+                  const Text(
+                    'Without MPP:',
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    '$withoutMppTx transactions',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('With MPP:', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold, fontSize: 13)),
-                  Text('$withMppTx transactions', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.blue)),
+                  const Text(
+                    'With MPP:',
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    '$withMppTx transactions',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      color: Colors.blue,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Saved:', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold, fontSize: 13)),
-                  Text('$savedPercent% fewer tx', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.purple)),
+                  const Text(
+                    'Saved:',
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  Text(
+                    '$savedPercent% fewer tx',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      color: Colors.purple,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
 
               Stack(
                 children: [
-                   Container(
-                     height: 14,
-                     width: double.infinity,
-                     decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(7)),
-                   ),
-                   Container(
-                     height: 14,
-                     width: (MediaQuery.of(context).size.width - 88) * (withMppTx / (withoutMppTx > 0 ? withoutMppTx : 1)),
-                     decoration: BoxDecoration(color: Colors.blue, borderRadius: BorderRadius.circular(7)),
-                   ),
+                  Container(
+                    height: 14,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                  ),
+                  Container(
+                    height: 14,
+                    width:
+                        (MediaQuery.of(context).size.width - 88) *
+                        (withMppTx / (withoutMppTx > 0 ? withoutMppTx : 1)),
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerRight,
-                child: Text('$withMppTx/$withoutMppTx on-chain', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+                child: Text(
+                  '$withMppTx/$withoutMppTx on-chain',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
               ),
               const SizedBox(height: 24),
               const Divider(color: AppTheme.background),
@@ -562,7 +835,11 @@ class _WalletScreenState extends State<WalletScreen> {
                 children: [
                   _buildChannelStat('Opened', channelsOpened.toString()),
                   _buildChannelStat('Settled', settledChannels.toString()),
-                  _buildChannelStat('Active', activeChannels.toString(), isHighlight: true),
+                  _buildChannelStat(
+                    'Active',
+                    activeChannels.toString(),
+                    isHighlight: true,
+                  ),
                 ],
               ),
             ],
@@ -572,84 +849,139 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  Widget _buildChannelStat(String label, String value, {bool isHighlight = false}) {
+  Widget _buildChannelStat(
+    String label,
+    String value, {
+    bool isHighlight = false,
+  }) {
     return Column(
       children: [
-        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: isHighlight ? Colors.purple : Colors.black)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: isHighlight ? Colors.purple : Colors.black,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textSecondary,
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildChannelHistorySection(List<TransactionModel>? transactions) {
-     if (transactions == null || transactions.isEmpty) return const SizedBox.shrink();
+    if (transactions == null || transactions.isEmpty)
+      return const SizedBox.shrink();
 
-     final offChain = transactions.where((t) => t.isOffChain && t.channelId != null).toList();
-     if (offChain.isEmpty) return const SizedBox.shrink();
+    final offChain = transactions
+        .where((t) => t.isOffChain && t.channelId != null)
+        .toList();
+    if (offChain.isEmpty) return const SizedBox.shrink();
 
-     final Map<String, List<TransactionModel>> channelGroups = {};
-     for (var tx in offChain) {
-        if (!channelGroups.containsKey(tx.channelId!)) {
-           channelGroups[tx.channelId!] = [];
-        }
-        channelGroups[tx.channelId!]!.add(tx);
-     }
+    final Map<String, List<TransactionModel>> channelGroups = {};
+    for (var tx in offChain) {
+      if (!channelGroups.containsKey(tx.channelId!)) {
+        channelGroups[tx.channelId!] = [];
+      }
+      channelGroups[tx.channelId!]!.add(tx);
+    }
 
-     return Column(
-       crossAxisAlignment: CrossAxisAlignment.start,
-       children: [
-         const Text(
-            'Channel History',
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5),
-         ),
-         const SizedBox(height: 16),
-         ...channelGroups.entries.map((entry) {
-             final channelId = entry.key;
-             final channelTxs = entry.value;
-             final depositAmount = (channelTxs.length * 0.005).toStringAsFixed(3);
-             final totalSpent = channelTxs.fold(0.0, (sum, tx) => sum + tx.amountUsdc);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Channel History',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...channelGroups.entries.map((entry) {
+          final channelId = entry.key;
+          final channelTxs = entry.value;
+          final depositAmount = (channelTxs.length * 0.005).toStringAsFixed(3);
+          final totalSpent = channelTxs.fold(
+            0.0,
+            (sum, tx) => sum + tx.amountUsdc,
+          );
 
-             const isClosed = false;
+          const isClosed = false;
 
-             return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.purple.withValues(alpha: 0.1), width: 1.5),
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.purple.withValues(alpha: 0.1),
+                width: 1.5,
+              ),
+            ),
+            child: ExpansionTile(
+              collapsedIconColor: Colors.purple,
+              iconColor: Colors.purple,
+              shape: const RoundedRectangleBorder(side: BorderSide.none),
+              title: Text(
+                channelTxs.first.watcherName ?? 'MPP Channel',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 15,
                 ),
-                child: ExpansionTile(
-                   collapsedIconColor: Colors.purple,
-                   iconColor: Colors.purple,
-                   shape: const RoundedRectangleBorder(side: BorderSide.none),
-                   title: Text(
-                     channelTxs.first.watcherName ?? 'MPP Channel',
-                     style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
-                   ),
-                   subtitle: Text('${channelTxs.length} checks · $channelId', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w600)),
-                   children: [
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                           crossAxisAlignment: CrossAxisAlignment.start,
-                           children: [
-                              _buildDetailRow('STATUS', isClosed ? 'CLOSED' : 'OPEN', isCopyable: false),
-                              _buildDetailRow('DEPOSIT', '\$$depositAmount USDC'),
-                              _buildDetailRow('DURATION', 'Open for 1h 22m'),
-                              _buildDetailRow('EFFICIENCY', '${channelTxs.length} checks via 2 on-chain tx'),
-                              _buildDetailRow('TOTAL SPENT', '\$${totalSpent.toStringAsFixed(3)} USDC'),
-                              _buildDetailRow('OPEN TX', 'Loading...', isCopyable: true),
-                           ]
-                        )
-                      )
-                   ],
-                )
-             );
-         }),
-         const SizedBox(height: 32),
-       ],
-     );
+              ),
+              subtitle: Text(
+                '${channelTxs.length} checks · $channelId',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDetailRow(
+                        'STATUS',
+                        isClosed ? 'CLOSED' : 'OPEN',
+                        isCopyable: false,
+                      ),
+                      _buildDetailRow('DEPOSIT', '\$$depositAmount USDC'),
+                      _buildDetailRow('DURATION', 'Open for 1h 22m'),
+                      _buildDetailRow(
+                        'EFFICIENCY',
+                        '${channelTxs.length} checks via 2 on-chain tx',
+                      ),
+                      _buildDetailRow(
+                        'TOTAL SPENT',
+                        '\$${totalSpent.toStringAsFixed(3)} USDC',
+                      ),
+                      _buildDetailRow(
+                        'OPEN TX',
+                        'Loading...',
+                        isCopyable: true,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 32),
+      ],
+    );
   }
 
   Widget _buildTransactionHistory(List<TransactionModel>? transactions) {
@@ -662,11 +994,18 @@ class _WalletScreenState extends State<WalletScreen> {
           children: [
             const Text(
               'Activity Ledger',
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: -0.5),
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
+                letterSpacing: -0.5,
+              ),
             ),
             TextButton(
               onPressed: () {},
-              child: const Text('View All', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+              child: const Text(
+                'View All',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+              ),
             ),
           ],
         ),
@@ -681,14 +1020,17 @@ class _WalletScreenState extends State<WalletScreen> {
                   const SizedBox(height: 12),
                   const Text(
                     'No transaction activity',
-                    style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
             ),
           )
         else
-          ...transactions.where((t) => !t.isOffChain).map((tx) => _buildTransactionTile(tx)),
+          ...transactions.map((tx) => _buildTransactionTile(tx)),
       ],
     );
   }
@@ -708,8 +1050,8 @@ class _WalletScreenState extends State<WalletScreen> {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-             color: AppTheme.background,
-             borderRadius: BorderRadius.circular(14),
+            color: AppTheme.background,
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Center(
             child: Text(
@@ -720,11 +1062,41 @@ class _WalletScreenState extends State<WalletScreen> {
         ),
         title: Text(
           tx.watcherName ?? tx.serviceName,
-          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: -0.3),
+          style: const TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 15,
+            letterSpacing: -0.3,
+          ),
         ),
-        subtitle: Text(
-          DateFormat('MMM d, HH:mm').format(DateTime.parse(tx.timestamp)),
-          style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
+        subtitle: Row(
+          children: [
+            Text(
+              DateFormat('MMM d, HH:mm').format(DateTime.parse(tx.timestamp)),
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (tx.isOffChain) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'OFF-CHAIN',
+                  style: TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.blue,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -732,14 +1104,28 @@ class _WalletScreenState extends State<WalletScreen> {
           children: [
             Text(
               '-\$${tx.amountUsdc.toStringAsFixed(4)}',
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.black),
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 15,
+                color: Colors.black,
+              ),
             ),
             if (tx.findingDetected == true)
               Container(
                 margin: const EdgeInsets.only(top: 4),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                child: const Text('DETECTED', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.amber)),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'DETECTED',
+                  style: TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.amber,
+                  ),
+                ),
               ),
           ],
         ),
@@ -748,13 +1134,13 @@ class _WalletScreenState extends State<WalletScreen> {
   }
 
   String _getEmojiByServiceName(String service) {
-     final s = service.toLowerCase();
-     if (s.contains('flight')) return '✈️';
-     if (s.contains('crypto')) return '💰';
-     if (s.contains('news')) return '📰';
-     if (s.contains('product')) return '🛍️';
-     if (s.contains('job')) return '💼';
-     return '🤖';
+    final s = service.toLowerCase();
+    if (s.contains('flight')) return '✈️';
+    if (s.contains('crypto')) return '💰';
+    if (s.contains('news')) return '📰';
+    if (s.contains('product')) return '🛍️';
+    if (s.contains('job')) return '💼';
+    return '🤖';
   }
 
   void _showTransactionDetail(TransactionModel tx) {
@@ -773,22 +1159,37 @@ class _WalletScreenState extends State<WalletScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-               child: Container(
-                 width: 40,
-                 height: 4,
-                 decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(2)),
-               ),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
             const SizedBox(height: 24),
             const Text(
               'Transaction Receipt',
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: -0.8),
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 24,
+                letterSpacing: -0.8,
+              ),
             ),
             const SizedBox(height: 32),
             _buildDetailRow('AGENT NAME', tx.watcherName ?? 'General Scanner'),
             _buildDetailRow('SERVICE LAYER', tx.serviceName.toUpperCase()),
-            _buildDetailRow('AMOUNT', '\$${tx.amountUsdc.toStringAsFixed(4)} USDC'),
-            _buildDetailRow('TIMESTAMP', DateFormat('MMMM d, yyyy HH:mm').format(DateTime.parse(tx.timestamp))),
+            _buildDetailRow(
+              'AMOUNT',
+              '\$${tx.amountUsdc.toStringAsFixed(4)} USDC',
+            ),
+            _buildDetailRow(
+              'TIMESTAMP',
+              DateFormat(
+                'MMMM d, yyyy HH:mm',
+              ).format(DateTime.parse(tx.timestamp)),
+            ),
             _buildDetailRow('STELLAR HASH', tx.stellarTxHash, isCopyable: true),
             const SizedBox(height: 40),
             Container(
@@ -798,17 +1199,30 @@ class _WalletScreenState extends State<WalletScreen> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: ElevatedButton.icon(
-                icon: const Icon(Icons.rocket_launch_rounded, size: 18, color: Colors.white),
+                icon: const Icon(
+                  Icons.rocket_launch_rounded,
+                  size: 18,
+                  color: Colors.white,
+                ),
                 onPressed: () {
-                  final url = 'https://stellar.expert/explorer/testnet/tx/${tx.stellarTxHash}';
+                  final url =
+                      'https://stellar.expert/explorer/testnet/tx/${tx.stellarTxHash}';
                   launchUrl(Uri.parse(url));
                 },
-                label: const Text('View on Stellar Expert', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white)),
+                label: const Text(
+                  'View on Stellar Expert',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
                   padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
               ),
             ),
@@ -829,7 +1243,15 @@ class _WalletScreenState extends State<WalletScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+            ),
+          ),
           const SizedBox(width: 24),
           Expanded(
             child: InkWell(
@@ -862,7 +1284,9 @@ class _WalletScreenState extends State<WalletScreen> {
     return BlocBuilder<FindingsBloc, FindingsState>(
       builder: (context, findingsState) {
         if (findingsState is FindingsLoaded) {
-          final savings = SavingsService.calculateTotalSavings(findingsState.findings);
+          final savings = SavingsService.calculateTotalSavings(
+            findingsState.findings,
+          );
           final totalS = savings['total'] ?? 0.0;
           final totalSpent = state.stats?.totalSpentAllTime ?? 0.0;
           final roi = SavingsService.calculateROI(totalS, totalSpent);
@@ -872,7 +1296,11 @@ class _WalletScreenState extends State<WalletScreen> {
             children: [
               const Text(
                 'Financial Performance',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  letterSpacing: -0.5,
+                ),
               ),
               const SizedBox(height: 20),
               Container(
@@ -886,17 +1314,34 @@ class _WalletScreenState extends State<WalletScreen> {
                   ),
                   borderRadius: BorderRadius.circular(32),
                   boxShadow: [
-                    BoxShadow(color: const Color(0xFF10B981).withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 10)),
+                    BoxShadow(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
                   ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('TOTAL SAVED BY GHOST', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
+                    const Text(
+                      'TOTAL SAVED BY GHOST',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Text(
                       '\$${totalS.toStringAsFixed(2)}',
-                      style: const TextStyle(color: Colors.white, fontSize: 44, fontWeight: FontWeight.w900, letterSpacing: -2.0),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 44,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -2.0,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     const Divider(color: Colors.white24),
@@ -904,9 +1349,15 @@ class _WalletScreenState extends State<WalletScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildRatioItem('Total Spent', '\$${totalSpent.toStringAsFixed(2)}'),
+                        _buildRatioItem(
+                          'Total Spent',
+                          '\$${totalSpent.toStringAsFixed(2)}',
+                        ),
                         _buildRatioItem('ROI', 'x${roi.round()}'),
-                        _buildRatioItem('Time Saved', '${(state.stats?.totalChecksToday ?? 0) * 2}min'),
+                        _buildRatioItem(
+                          'Time Saved',
+                          '${(state.stats?.totalChecksToday ?? 0) * 2}min',
+                        ),
                       ],
                     ),
                   ],
@@ -926,9 +1377,23 @@ class _WalletScreenState extends State<WalletScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w900)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white60,
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       ],
     );
   }
@@ -949,11 +1414,17 @@ class _WalletScreenState extends State<WalletScreen> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_getCategoryEmoji(e.key), style: const TextStyle(fontSize: 14)),
+              Text(
+                _getCategoryEmoji(e.key),
+                style: const TextStyle(fontSize: 14),
+              ),
               const SizedBox(width: 8),
               Text(
                 '\$${e.value.round()}',
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                ),
               ),
             ],
           ),
@@ -964,11 +1435,16 @@ class _WalletScreenState extends State<WalletScreen> {
 
   String _getCategoryEmoji(String type) {
     switch (type.toLowerCase()) {
-      case 'flights': return '✈️';
-      case 'products': return '🛍️';
-      case 'crypto': return '💰';
-      case 'sports': return '⚽';
-      default: return '✨';
+      case 'flights':
+        return '✈️';
+      case 'products':
+        return '🛍️';
+      case 'crypto':
+        return '💰';
+      case 'sports':
+        return '⚽';
+      default:
+        return '✨';
     }
   }
 
@@ -995,20 +1471,38 @@ class _WalletScreenState extends State<WalletScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-               child: Container(
-                 width: 40, height: 4,
-                 decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(2)),
-               ),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
             const SizedBox(height: 32),
             Text(
               DateFormat('MMMM d, yyyy').format(DateTime.parse(day['date'])),
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: -0.8),
+              style: const TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 24,
+                letterSpacing: -0.8,
+              ),
             ),
             const SizedBox(height: 32),
-            _buildDetailRowItem('TOTAL SPENT', '\$${(day['amount'] ?? 0.0).toStringAsFixed(3)} USDC'),
-            _buildDetailRowItem('FINDINGS DETECTED', '${day['findings'] ?? 0} FINDINGS', isHighlighted: (day['findings'] ?? 0) > 0),
-            _buildDetailRowItem('ACTIVITY LEVEL', (day['amount'] ?? 0) > 0.05 ? 'HIGH' : 'MODERATE'),
+            _buildDetailRowItem(
+              'TOTAL SPENT',
+              '\$${(day['amount'] ?? 0.0).toStringAsFixed(3)} USDC',
+            ),
+            _buildDetailRowItem(
+              'FINDINGS DETECTED',
+              '${day['findings'] ?? 0} FINDINGS',
+              isHighlighted: (day['findings'] ?? 0) > 0,
+            ),
+            _buildDetailRowItem(
+              'ACTIVITY LEVEL',
+              (day['amount'] ?? 0) > 0.05 ? 'HIGH' : 'MODERATE',
+            ),
             const SizedBox(height: 32),
           ],
         ),
@@ -1016,24 +1510,35 @@ class _WalletScreenState extends State<WalletScreen> {
     );
   }
 
-  Widget _buildDetailRowItem(String label, String value, {bool isHighlighted = false}) {
-     return Padding(
-       padding: const EdgeInsets.symmetric(vertical: 10),
-       child: Row(
-         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-         children: [
-           Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-           Text(
-             value,
-             style: TextStyle(
-               fontWeight: FontWeight.w900,
-               fontSize: 14,
-               color: isHighlighted ? AppTheme.primary : AppTheme.textPrimary,
-             ),
-           ),
-         ],
-       ),
-     );
+  Widget _buildDetailRowItem(
+    String label,
+    String value, {
+    bool isHighlighted = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppTheme.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 14,
+              color: isHighlighted ? AppTheme.primary : AppTheme.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
-
