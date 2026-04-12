@@ -8,6 +8,7 @@ import 'package:flare_app/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flare_app/services/api_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flare_app/core/utils/string_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flare_app/core/widgets/top_snackbar.dart';
 
@@ -180,7 +181,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const Text('Stellar Address', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                       const SizedBox(height: 4),
                       Text(
-                        '${address.substring(0, 8)}...${address.substring(address.length - 8)}',
+                        StringUtils.formatHash(address),
                         style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -205,7 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 const Text('Device ID', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                 Text(
-                  user.deviceId.length > 20 ? '${user.deviceId.substring(0, 10)}...' : user.deviceId,
+                  StringUtils.truncate(user.deviceId, 10),
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ],

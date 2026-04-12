@@ -12,6 +12,7 @@ import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_event.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_state.dart';
 import 'package:intl/intl.dart';
+import 'package:flare_app/core/utils/string_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flare_app/features/wallet/domain/services/savings_service.dart';
@@ -225,7 +226,7 @@ class _WalletScreenState extends State<WalletScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  '${address.substring(0, 8)}...${address.substring(address.length - 8)}',
+                  StringUtils.formatHash(address),
                   style: const TextStyle(fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
                 ),
                 const SizedBox(width: 8),

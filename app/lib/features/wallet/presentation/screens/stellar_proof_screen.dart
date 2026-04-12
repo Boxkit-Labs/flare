@@ -6,6 +6,7 @@ import 'package:flare_app/core/models/models.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_state.dart';
 import 'package:intl/intl.dart';
+import 'package:flare_app/core/utils/string_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -98,7 +99,7 @@ class _StellarProofScreenState extends State<StellarProofScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Wallet: ${wallet.substring(0, 8)}...${wallet.substring(wallet.length - 8)}',
+                  'Wallet: ${StringUtils.formatHash(wallet)}',
                   style: const TextStyle(color: Colors.white54, fontSize: 11, fontFamily: 'monospace'),
                 ),
               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flare_app/core/utils/string_utils.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:flare_app/core/models/models.dart';
@@ -146,7 +147,7 @@ class _FindingDetailScreenState extends State<FindingDetailScreen> {
                   InkWell(
                     onTap: () => launchUrl(Uri.parse('https://stellar.expert/explorer/testnet/tx/${finding.verificationTxHash}')),
                     child: Text(
-                      'Verify 2nd Check: ${finding.verificationTxHash!.substring(0, 16)}...',
+                      'Verify 2nd Check: ${StringUtils.truncate(finding.verificationTxHash, 16)}',
                       style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.8), decoration: TextDecoration.underline, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -251,7 +252,7 @@ class _FindingDetailScreenState extends State<FindingDetailScreen> {
              InkWell(
                onTap: () => launchUrl(Uri.parse('https://stellar.expert/explorer/testnet/tx/${res['tx_hash']}')),
                child: Text(
-                 'Collaboration Hash: ${res['tx_hash']!.substring(0, 12)}...',
+                 'Collaboration Hash: ${StringUtils.truncate(res['tx_hash'], 12)}',
                  style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: AppTheme.primary, decoration: TextDecoration.underline),
                ),
              ),
@@ -359,7 +360,7 @@ class _FindingDetailScreenState extends State<FindingDetailScreen> {
              InkWell(
                onTap: () => launchUrl(Uri.parse('https://stellar.expert/explorer/testnet/tx/$hash')),
                child: Text(
-                 '${hash.substring(0, 16)}...${hash.substring(hash.length - 8)}',
+                 StringUtils.formatHash(hash, startLen: 16, endLen: 8),
                  style: const TextStyle(fontSize: 10, fontFamily: 'monospace', color: AppTheme.primary, decoration: TextDecoration.underline),
                ),
              )
