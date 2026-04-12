@@ -331,7 +331,7 @@ export const getWalletAnalytics = async (userId: string) => {
       SELECT 
         date(timestamp) as date, 
         SUM(amount_usdc) as amount,
-        SUM(CASE WHEN is_off_chain = false THEN amount_usdc ELSE 0 END) as on_chain_amount
+        SUM(CASE WHEN payment_method != 'mpp' THEN amount_usdc ELSE 0 END) as on_chain_amount
       FROM transactions
       WHERE user_id = $1 AND timestamp >= NOW() - INTERVAL '90 days'
       GROUP BY date(timestamp)
