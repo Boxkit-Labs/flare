@@ -527,6 +527,11 @@ export class CheckExecutor {
                           channelId
                       });
 
+                      await incrementWatcherChecks(watcher.watcher_id, costUsdc);
+                      if (findingDetected) {
+                          await incrementWatcherFindings(watcher.watcher_id);
+                      }
+
                   } else if (message.type === 'payment_required') {
                       console.log(`[Stream Client] Payment required (${message.amount_due} USDC) for watcher ${watcher.watcher_id}`);
 

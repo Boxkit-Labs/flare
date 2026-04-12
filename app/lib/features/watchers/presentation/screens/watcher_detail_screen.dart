@@ -670,9 +670,14 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
     }
   }
 
+  void _safeSetState(VoidCallback fn) {
+    if (_disposed || !mounted) return;
+    setState(fn);
+  }
+
   void _connect() {
     if (_disposed || !mounted) return;
-    setState(() {
+    _safeSetState(() {
       _isReconnecting = true;
     });
 
@@ -683,63 +688,57 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
 
       _channel!.stream.listen(
         (message) {
-          if (_disposed || !mounted) return;
           try {
             final data = jsonDecode(message);
             if (data['type'] == 'data') {
-              if (!_disposed && mounted) {
-                setState(() {
-                  _isConnected = true;
-                  _isReconnecting = false;
-                  _latestFrame = data;
-                  final num val = data['payload']['price'] ?? 0.0;
-                  _prices.add(val.toDouble());
-                  if (_prices.length > 20) _prices.removeAt(0);
-                  _proofsSent++;
-                });
-              }
+              _safeSetState(() {
+                _isConnected = true;
+                _isReconnecting = false;
+                _latestFrame = data;
+                final num val = data['payload']['price'] ?? 0.0;
+                _prices.add(val.toDouble());
+                if (_prices.length > 20) _prices.removeAt(0);
+                _proofsSent++;
+              });
             }
           } catch (e) {
             debugPrint('Error parsing WS message: $e');
           }
         },
         onDone: () {
-          if (!_disposed && mounted) {
-            setState(() {
-              _isConnected = false;
-              if (!_isReconnecting) {
-                 _isReconnecting = true;
-                 Future.delayed(const Duration(seconds: 5), () {
-                   if (!_disposed && mounted) _connect();
-                 });
-              }
-            });
-          }
+          if (_disposed) return;
+          _safeSetState(() {
+            _isConnected = false;
+            if (!_isReconnecting) {
+              _isReconnecting = true;
+              Future.delayed(const Duration(seconds: 5), () {
+                if (!_disposed && mounted) _connect();
+              });
+            }
+          });
         },
         onError: (error) {
+          if (_disposed) return;
           debugPrint('WS Connection Error: $error');
-          if (!_disposed && mounted) {
-            setState(() {
-              _isConnected = false;
-              _isReconnecting = true;
-            });
-            Future.delayed(const Duration(seconds: 5), () {
-              if (!_disposed && mounted) _connect();
-            });
-          }
+          _safeSetState(() {
+            _isConnected = false;
+            _isReconnecting = true;
+          });
+          Future.delayed(const Duration(seconds: 5), () {
+            if (!_disposed && mounted) _connect();
+          });
         },
       );
     } catch (e) {
+      if (_disposed) return;
       debugPrint('WS Setup Error: $e');
-      if (!_disposed && mounted) {
-        setState(() {
-          _isConnected = false;
-          _isReconnecting = true;
-        });
-        Future.delayed(const Duration(seconds: 5), () {
-          if (!_disposed && mounted) _connect();
-        });
-      }
+      _safeSetState(() {
+        _isConnected = false;
+        _isReconnecting = true;
+      });
+      Future.delayed(const Duration(seconds: 5), () {
+        if (!_disposed && mounted) _connect();
+      });
     }
   }
 
