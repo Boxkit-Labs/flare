@@ -140,13 +140,19 @@ export class MPPStreamService {
 
     client.cumulativeCost += this.FRAME_COST_USDC;
 
+    const isFinancial = client.serviceId.includes('crypto') || client.serviceId.includes('stock');
+    const mockPrice = isFinancial ? (50000 + (Math.random() * 1000) - 500) : null;
+
     const dataFrame = {
       type: "data",
       service: client.serviceId,
       payload: {
         timestamp: new Date().toISOString(),
         status: "active",
-        data: `Mock data for ${client.serviceId} at ${Date.now()}`,
+        price: mockPrice,
+        data: isFinancial 
+          ? `Live ${client.serviceId} update: $${mockPrice?.toFixed(2)}`
+          : `Mock data for ${client.serviceId} at ${Date.now()}`,
       },
       cost_this_frame: this.FRAME_COST_USDC.toString(),
       total_session_cost: client.cumulativeCost.toFixed(4),
