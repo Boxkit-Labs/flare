@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:flare_app/core/models/models.dart';
-import 'package:flare_app/core/mixins/auto_refresh_mixin.dart';
 import 'package:flare_app/core/widgets/error_state.dart';
 import 'package:flare_app/core/widgets/shimmer_utilities.dart';
 import 'package:flare_app/core/widgets/status_indicator.dart';
@@ -30,7 +29,7 @@ class WatcherDetailScreen extends StatefulWidget {
 }
 
 class _WatcherDetailScreenState extends State<WatcherDetailScreen>
-    with TickerProviderStateMixin, AutoRefreshMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -38,16 +37,13 @@ class _WatcherDetailScreenState extends State<WatcherDetailScreen>
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _refresh();
-    startAutoRefresh(const Duration(seconds: 30), _onAutoRefresh);
   }
 
   void _refresh({bool silent = false}) {
     context.read<WatchersBloc>().add(
-      LoadWatcherDetail(widget.watcherId, isRefresh: silent),
-    );
+          LoadWatcherDetail(widget.watcherId, isRefresh: silent),
+        );
   }
-
-  void _onAutoRefresh() => _refresh(silent: true);
 
   @override
   void dispose() {
