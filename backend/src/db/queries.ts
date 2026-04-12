@@ -92,19 +92,23 @@ export const deleteWatcher = async (id: string) => {
   return pool.query('DELETE FROM watchers WHERE watcher_id = $1', [id]);
 };
 
-export const incrementWatcherChecks = async (id: string) => {
+export const incrementWatcherChecks = async (id: string, costUsdc: number = 0) => {
+  console.log(`[DB] Incrementing checks for watcher ${id} (cost: ${costUsdc})`);
   return pool.query(`
-    UPDATE watchers
-    SET total_checks = total_checks + 1,
-        last_check_at = NOW(),
-        updated_at = NOW()
-    WHERE watcher_id = $1
-  `, [id]);
+    UPDATE watchers 
+    SET total_checks = total_checks + 1, 
+        total_spent_usdc = total_spent_usdc + $1,
+        spent_this_week_usdc = spent_this_week_usdc + $1,
+        last_check_at = NOW(), 
+        updated_at = NOW() 
+    WHERE watcher_id = $2
+  `, [costUsdc, id]);
 };
 
 export const incrementWatcherFindings = async (id: string) => {
+  console.log(`[DB] Incrementing findings for watcher ${id}`);
   return pool.query(`
-    UPDATE watchers
+    UPDATE watchers 
     SET total_findings = total_findings + 1,
         updated_at = NOW()
     WHERE watcher_id = $1

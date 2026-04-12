@@ -674,56 +674,66 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
   }
 
   void _connect() {
+    if (!mounted) return;
+    setState(() {
+      _isReconnecting = true;
+    });
+
     try {
-      if (!mounted) return;
-      setState(() {
-        _isReconnecting = true;
-      });
       final wsUrl =
-          '${AppConstants.baseWsUrl}/ws/stream?watcherId=${widget.watcher.watcherId}&userId=${widget.watcher.userId}';
+          '${AppConstants.baseWsUrl}?watcherId=${widget.watcher.watcherId}&userId=${widget.watcher.userId}';
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
 
       _channel!.stream.listen(
         (message) {
-          final data = jsonDecode(message);
-          if (data['type'] == 'data') {
-            if (!mounted) return;
-            setState(() {
-              _isConnected = true;
-              _isReconnecting = false;
-              _latestFrame = data;
-              final num val = data['payload']['price'] ?? 0.0;
-              _prices.add(val.toDouble());
-              if (_prices.length > 20) _prices.removeAt(0);
-              _proofsSent++;
-            });
+          if (!mounted) return;
+          try {
+            final data = jsonDecode(message);
+            if (data['type'] == 'data') {
+              setState(() {
+                _isConnected = true;
+                _isReconnecting = false;
+                _latestFrame = data;
+                final num val = data['payload']['price'] ?? 0.0;
+                _prices.add(val.toDouble());
+                if (_prices.length > 20) _prices.removeAt(0);
+                _proofsSent++;
+              });
+            }
+          } catch (e) {
+            debugPrint('Error parsing WS message: $e');
           }
         },
         onDone: () {
           if (mounted) {
             setState(() {
               _isConnected = false;
-              _isReconnecting = true;
+              if (!_isReconnecting) {
+                 _isReconnecting = true;
+                 Future.delayed(const Duration(seconds: 5), _connect);
+              }
             });
-            Future.delayed(const Duration(seconds: 3), _connect);
           }
         },
         onError: (error) {
+          debugPrint('WS Connection Error: $error');
           if (mounted) {
             setState(() {
               _isConnected = false;
               _isReconnecting = true;
             });
-            Future.delayed(const Duration(seconds: 3), _connect);
+            Future.delayed(const Duration(seconds: 5), _connect);
           }
         },
       );
     } catch (e) {
+      debugPrint('WS Setup Error: $e');
       if (mounted) {
         setState(() {
           _isConnected = false;
           _isReconnecting = true;
         });
+        Future.delayed(const Duration(seconds: 5), _connect);
       }
     }
   }
@@ -737,28 +747,16 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
   @override
   Widget build(BuildContext context) {
     if (!['crypto', 'stock'].contains(widget.watcher.type)) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.waves, size: 40, color: AppTheme.textSecondary),
-            const SizedBox(height: 12),
-            const Text(
-              'Live Stream Unavailable',
-              style: TextStyle(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'High-frequency WebSocket streams are\ncurrently only supported for crypto/stocks.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: AppTheme.textSecondary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
+      return _buildUnavailableState(
+        'Live Stream Unavailable',
+        'High-frequency WebSocket streams are\ncurrently only supported for crypto/stocks.',
+      );
+    }
+
+    if (!_isConnected && !_isReconnecting) {
+       return _buildUnavailableState(
+        'Live Feed Connecting...',
+        'Attempting to establish a real-time secure stream.',
       );
     }
 
@@ -796,7 +794,7 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    _isConnected ? 'Connected' : 'Reconnecting...',
+                    _isConnected ? 'Connected' : 'Connecting...',
                     style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 13,
@@ -924,6 +922,32 @@ class _LiveFeedTabState extends State<_LiveFeedTab> {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUnavailableState(String title, String subtitle) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.waves, size: 40, color: AppTheme.textSecondary),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],

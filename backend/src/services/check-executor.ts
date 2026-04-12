@@ -291,30 +291,23 @@ export class CheckExecutor {
           await notificationService.sendFindingNotification(watcher.user_id, finalFindingToSave as any, watcher);
       }
 
-      await incrementWatcherChecks(watcherId);
+      await incrementWatcherChecks(watcherId, costUsdc);
 
-      const newSpentThisWeek = (watcher.spent_this_week_usdc || 0) + costUsdc;
-      const newTotalSpent = ((watcher as any).total_spent_usdc || 0) + costUsdc;
-      const nowStr = new Date().toISOString();
-
-      const percentUsed = (newSpentThisWeek / watcher.weekly_budget_usdc) * 100;
-      if (percentUsed >= 80 && watcher.spent_this_week_usdc / watcher.weekly_budget_usdc * 100 < 80) {
+      const percentUsed = ((watcher.spent_this_week_usdc || 0) + costUsdc) / watcher.weekly_budget_usdc * 100;
+      if (percentUsed >= 80 && (watcher.spent_this_week_usdc / watcher.weekly_budget_usdc * 100) < 80) {
           await notificationService.sendBudgetWarning(watcher.user_id, watcher, Math.round(percentUsed));
       }
 
-      const updates: any = {
-        updated_at: nowStr,
-        spent_this_week_usdc: newSpentThisWeek,
-        total_spent_usdc: newTotalSpent
-      };
-
+      const updates: any = {};
       if (watcher.check_interval_minutes) {
           const nextDate = new Date();
           nextDate.setMinutes(nextDate.getMinutes() + watcher.check_interval_minutes);
           updates.next_check_at = nextDate.toISOString();
       }
 
-      await updateWatcher(watcherId, updates);
+      if (Object.keys(updates).length > 0) {
+          await updateWatcher(watcherId, updates);
+      }
 
     } catch (e: any) {
 
