@@ -28,12 +28,15 @@ Flare is a mobile app where AI agents monitor flights, crypto, stocks, news, pro
 ### Screenshots
 | Home Dashboard | Finding Detail | Live Payment Stream | Morning Briefing |
 | :------------: | :------------: | :-----------------: | :--------------: |
-| <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/home.jpg" width="200"/> | <img src="finding.png" width="150"/> | <img src="stream.png" width="150"/> | <img src="briefing.png" width="150"/> |
+| <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/home.jpg" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/findingDetails.jpg" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/liveAgentStream.jpg" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/digets.jpg" width="200"/> |
 
-| Wallet and Savings | Watcher Creation | Confidence Score | Stellar Proof |
-| :----------------: | :--------------: | :--------------: | :-----------: |
-| <img src="wallet.png" width="150"/> | <img src="create.png" width="150"/> | <img src="confidence.png" width="150"/> | <img src="proof.png" width="150"/> |
----
+| Wallet and Savings | Watcher Creation | Confidence Score | Stellar Proof | Push Notification |
+| :----------------: | :--------------: | :--------------: | :-----------: | :---------------: |
+| <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/wallet.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/addWatcher.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/flareEfficency.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/transactionReciept.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/pushNotification.jpg?raw=true" width="200"/> |
+
+| Watchers | ROI Performance | Latest Activity | Notifications | Edit Watcher |
+| :------: | :-------------: | :-------------: | :-----------: | :----------: |
+| <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/AgentsScreen.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/ROI.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/SignalScreen.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/notification.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/editWatcher.jpg?raw=true" width="200"/> |
 
 ## Verified Stellar Transactions
 
