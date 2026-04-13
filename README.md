@@ -21,7 +21,7 @@ Flare is a mobile app where AI agents monitor flights, crypto, stocks, news, pro
 
 ### Demo and Links
 
-- **Demo Video**: [Watch the 3-minute demo](#https://youtu.be/rhtkt2cL0yw?si=ha7_68PWpmaqPGHZ) 
+- **Demo Video**: [Watch the demo](https://youtu.be/rhtkt2cL0yw?si=ha7_68PWpmaqPGHZ) 
 - **Live Backend**: [https://flare-f9yk.onrender.com](https://flare-f9yk.onrender.com)
 - **Live on**: Stellar Testnet with real USDC micropayments
 
