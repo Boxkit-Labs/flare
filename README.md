@@ -1,6 +1,6 @@
 # Flare: AI Agents That Pay for Intelligence on Stellar
 
-> **30 real Stellar transactions. 8 intelligence categories. Hybrid X402 + MPP payment channels. Zero subscriptions.**
+> **70 real Stellar transactions. 8 intelligence categories. Hybrid X402 + MPP payment channels. Zero subscriptions.**
 
 ### What We Built
 
