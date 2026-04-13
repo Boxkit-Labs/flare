@@ -33,13 +33,13 @@ Flare is a mobile app where AI agents monitor flights, crypto, stocks, news, pro
 <details>
 <summary>View more screenshots</summary>
 
-| Wallet and Savings | Watcher Creation | Confidence Score | Stellar Proof | Push Notification |
-| :----------------: | :--------------: | :--------------: | :-----------: | :---------------: |
-| <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/wallet.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/addWatcher.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/flareEfficency.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/transactionReciept.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/pushNotification.jpg?raw=true" width="200"/> |
+| Wallet and Savings | Watcher Creation | Confidence Score | Stellar Proof |
+| :----------------: | :--------------: | :--------------: | :-----------: |
+| <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/wallet.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/addWatcher.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/flareEfficency.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/transactionReciept.jpg?raw=true" width="200"/> |
 
-| Watchers | ROI Performance | Latest Activity | Notifications | Edit Watcher |
-| :------: | :-------------: | :-------------: | :-----------: | :----------: |
-| <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/AgentsScreen.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/ROI.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/SignalScreen.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/notification.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/editWatcher.jpg?raw=true" width="200"/> |
+| Watchers | ROI Performance | Latest Activity | Push Notification |
+| :------: | :-------------: | :-------------: | :---------------: |
+| <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/AgentsScreen.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/ROI.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/SignalScreen.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/pushNotification.jpg?raw=true" width="200"/> |
 
 📁 [View all screenshots](https://github.com/Boxkit-Labs/flare/tree/main/screenshots/mobile)
 
