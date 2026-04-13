@@ -56,7 +56,7 @@ stateDiagram-v2
 
 | Function | Description |
 |---|---|
-| `__constructor` | Open a channel with an initial deposit. Callable by the funder, or anyone if amount is zero. |
+| `constructor` | Open a channel with an initial deposit. Callable by the funder, or anyone if amount is zero. |
 | `top_up` | Deposit additional tokens into the channel. |
 | `settle` | Withdraw funds using a signed commitment without closing the channel. |
 | `close` | Close the channel using a signed commitment, withdrawing funds to the recipient. Automatically attempts to refund the funder. |
@@ -204,7 +204,7 @@ versions of the channel contract.
 
 | Function | Description |
 |---|---|
-| `__constructor` | Initialize the factory with an admin and channel wasm hash. |
+| `constructor` | Initialize the factory with an admin and channel wasm hash. |
 | `set_wasm` | Update the stored channel wasm hash. Admin only. |
 | `open` | Deploy a new channel contract with the given parameters. |
 | `admin` | Returns the admin address. |
