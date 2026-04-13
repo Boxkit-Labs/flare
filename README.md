@@ -21,22 +21,18 @@ Flare is a mobile app where AI agents monitor flights, crypto, stocks, news, pro
 
 ### Demo and Links
 
-- **Demo Video**: [Watch the 3-minute demo](#) <!-- Replace with real link -->
+- **Demo Video**: [Watch the 3-minute demo](#) 
 - **Live Backend**: [https://flare-f9yk.onrender.com](https://flare-f9yk.onrender.com)
 - **Live on**: Stellar Testnet with real USDC micropayments
 
 ### Screenshots
-
-<!-- Replace placeholders with real screenshot paths -->
-
 | Home Dashboard | Finding Detail | Live Payment Stream | Morning Briefing |
 | :------------: | :------------: | :-----------------: | :--------------: |
-|   ![Home](#)   | ![Finding](#)  |    ![Stream](#)     |  ![Briefing](#)  |
+| <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/home.jpg" width="100"/> | <img src="finding.png" width="150"/> | <img src="stream.png" width="150"/> | <img src="briefing.png" width="150"/> |
 
 | Wallet and Savings | Watcher Creation | Confidence Score | Stellar Proof |
 | :----------------: | :--------------: | :--------------: | :-----------: |
-|    ![Wallet](#)    |   ![Create](#)   | ![Confidence](#) |  ![Proof](#)  |
-
+| <img src="wallet.png" width="150"/> | <img src="create.png" width="150"/> | <img src="confidence.png" width="150"/> | <img src="proof.png" width="150"/> |
 ---
 
 ## Verified Stellar Transactions
