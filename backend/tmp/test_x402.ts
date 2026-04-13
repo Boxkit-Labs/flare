@@ -8,7 +8,6 @@ dotenv.config();
 async function run() {
     const testUrl = 'https://xlm402.com/api/premium-data';
 
-    // Get an account that is already funded with USDC and XLM on testnet.
     const operatorSecret = process.env.OPERATOR_SECRET;
     if (!operatorSecret) {
         console.error("OPERATOR_SECRET is required to run this test.");
@@ -18,7 +17,6 @@ async function run() {
     const keypair = Keypair.fromSecret(operatorSecret);
     console.log(`Using Wallet: ${keypair.publicKey()}`);
 
-    // Let's make sure it has balances
     const balances = await stellarService.getBalances(keypair.publicKey());
     console.log("Current Balances:", balances);
 
@@ -34,7 +32,6 @@ async function run() {
              return;
         }
     } catch (e: any) {
-        // We know xlm402.com might be a placeholder in this mock environment, so we catch fetch errors.
         console.error("Fetch failed (Expected if xlm402.com is down):", e.message);
         console.log("\nSkipping Step 2 since the endpoint couldn't be reached.");
         return;

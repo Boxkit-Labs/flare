@@ -23,7 +23,6 @@ async function run() {
         return;
     }
 
-    // Skip steps 4 and 5 if OPERATOR_SECRET isn't set, as we can't test USDC funding without it.
     if (!process.env.OPERATOR_SECRET) {
          console.warn("\nSkipping USDC funding step (OPERATOR_SECRET not set in env).");
     } else {
