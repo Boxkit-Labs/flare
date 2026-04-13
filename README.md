@@ -72,6 +72,19 @@ Every transaction below is real. Click any link to verify on Stellar Explorer.
 
 ---
 
+## Project Structure
+
+```text
+flare/
+├── app/                  # Flutter mobile application (UI, BLoC, real-time streaming)
+├── backend/              # Node.js backend (Express, PostgreSQL, payment router)
+├── one-way-channel/      # Soroban smart contracts (MPP payment channel logic)
+├── scripts/              # Helper scripts for deployment and wallet setup
+└── services/             # Data services mimicking external APIs (Flights, Crypto, etc)
+```
+
+---
+
 ## Tech Stack
 
 | Layer             | Technology                                                                     |
