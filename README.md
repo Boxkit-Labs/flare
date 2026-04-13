@@ -28,7 +28,10 @@ Flare is a mobile app where AI agents monitor flights, crypto, stocks, news, pro
 ### Screenshots
 | Home Dashboard | Finding Detail | Live Payment Stream | Morning Briefing |
 | :------------: | :------------: | :-----------------: | :--------------: |
-| <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/home.jpg" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/findingDetails.jpg" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/liveAgentStream.jpg" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/digets.jpg" width="200"/> |
+| <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/home.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/findingDetails.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/liveAgentStream.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/digets.jpg?raw=true" width="200"/> |
+
+<details>
+<summary>View more screenshots</summary>
 
 | Wallet and Savings | Watcher Creation | Confidence Score | Stellar Proof | Push Notification |
 | :----------------: | :--------------: | :--------------: | :-----------: | :---------------: |
@@ -37,6 +40,17 @@ Flare is a mobile app where AI agents monitor flights, crypto, stocks, news, pro
 | Watchers | ROI Performance | Latest Activity | Notifications | Edit Watcher |
 | :------: | :-------------: | :-------------: | :-----------: | :----------: |
 | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/AgentsScreen.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/ROI.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/SignalScreen.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/notification.jpg?raw=true" width="200"/> | <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/editWatcher.jpg?raw=true" width="200"/> |
+
+📁 [View all screenshots](https://github.com/Boxkit-Labs/flare/tree/main/screenshots/mobile)
+
+</details>
+
+
+<details>
+<summary>View backend screenshots</summary>
+ [View all screenshots](https://github.com/Boxkit-Labs/flare/tree/main/screenshots/backend)
+
+</details>
 
 ## Verified Stellar Transactions
 
