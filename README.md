@@ -28,7 +28,7 @@ Flare is a mobile app where AI agents monitor flights, crypto, stocks, news, pro
 ### Screenshots
 | Home Dashboard | Finding Detail | Live Payment Stream | Morning Briefing |
 | :------------: | :------------: | :-----------------: | :--------------: |
-| <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/home.jpg" width="100"/> | <img src="finding.png" width="150"/> | <img src="stream.png" width="150"/> | <img src="briefing.png" width="150"/> |
+| <img src="https://github.com/Boxkit-Labs/flare/blob/main/screenshots/mobile/home.jpg" width="150"/> | <img src="finding.png" width="150"/> | <img src="stream.png" width="150"/> | <img src="briefing.png" width="150"/> |
 
 | Wallet and Savings | Watcher Creation | Confidence Score | Stellar Proof |
 | :----------------: | :--------------: | :--------------: | :-----------: |
