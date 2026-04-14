@@ -52,6 +52,11 @@ Flare is a mobile app where AI agents monitor flights, crypto, stocks, news, pro
 
 </details>
 
+### Note
+Note 1: Flare mobile application is not live on Play store or Appstore yet, but for testing purpose, you can download and test on an android device only, you can download the application here: https://we.tl/t-UGiEx8pkPp2LwQ4t
+
+Note 2: Because you did not download the application from playstore or Appstore, you might have android restriction message on your device due to download from unknown sources which your android device was configured to not accept. If you have any issues installing the application on your device, it means your android software is rejecting it because it wasn't downloaded from playstore, please you would have to use the video above as a proof of work done until i upload the application to playstore after moving to mainnet. But if it installs successfully on your device, you can proceed to test, everything is on testnet.
+
 ## Verified Stellar Transactions
 
 Every transaction below is real. Click any link to verify on Stellar Explorer.
