@@ -62,15 +62,24 @@ pub struct Contract;
 
 #[contractimpl]
 impl Contract {
-    pub fn __constructor(_env: Env) {}
-
-    pub fn init(env: Env, commitment_key: BytesN<32>, from: Address, to: Address, token: Address) {
+    pub fn __constructor(
+        env: Env,
+        token: Address,
+        from: Address,
+        commitment_key: BytesN<32>,
+        to: Address,
+        amount: i128,
+        refund_waiting_period: u32,
+    ) {
         if env.storage().instance().has(&DataKey::Token) {
             panic!("Already initialized");
         }
 
-        from.require_auth();
-        let refund_waiting_period = 720u32;
+        if amount > 0 {
+            from.require_auth();
+            let tc = token::Client::new(&env, &token);
+            tc.transfer(&from, &env.current_contract_address(), &amount);
+        }
 
         env.storage().instance().set(&DataKey::Token, &token);
         env.storage().instance().set(&DataKey::From, &from);
