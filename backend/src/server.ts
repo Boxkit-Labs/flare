@@ -9,6 +9,7 @@ import walletRouter from './routes/wallet.js';
 import transactionsRouter from './routes/transactions.js';
 import servicesRouter from './routes/services.js';
 import notificationsRouter from './routes/notifications.js';
+import eventsRouter from './routes/events.js';
 
 import { CheckExecutor } from './services/check-executor.js';
 import { SchedulerService } from './services/scheduler.js';
@@ -34,6 +35,7 @@ app.use('/api/briefings', briefingsRouter);
 app.use('/api/wallet', walletRouter);
 app.use('/api/transactions', transactionsRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/events', eventsRouter);
 app.use('/services', servicesRouter);
 
 import { initializeDatabase } from './db/database.js';
