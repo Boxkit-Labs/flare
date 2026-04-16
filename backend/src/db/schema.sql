@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS watchers (
   watcher_id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('flight','crypto','news','product','job','custom','stock','realestate','sports')),
+  type TEXT NOT NULL CHECK (type IN ('flight','crypto','news','product','job','custom','stock','realestate','sports','event')),
   parameters TEXT NOT NULL, -- JSON string
   alert_conditions TEXT NOT NULL, -- JSON string
   check_interval_minutes INTEGER NOT NULL DEFAULT 360,
@@ -149,6 +149,43 @@ CREATE TABLE IF NOT EXISTS mpp_channels (
   open_tx_hash TEXT NOT NULL,
   opened_at TIMESTAMPTZ DEFAULT NOW(),
   expires_at TIMESTAMPTZ NOT NULL,
-  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed', 'expired')),
   close_tx_hash TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_mpp_channels_user_id ON mpp_channels(user_id);
+
+-- event_price_history table
+CREATE TABLE IF NOT EXISTS event_price_history (
+  history_id SERIAL PRIMARY KEY,
+  watcher_id TEXT NOT NULL REFERENCES watchers(watcher_id) ON DELETE CASCADE,
+  external_id TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  tier_name TEXT NOT NULL,
+  min_price REAL NOT NULL,
+  max_price REAL NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'USD',
+  available INTEGER NOT NULL, -- integer boolean (0 or 1)
+  quantity_remaining INTEGER,
+  quantity_total INTEGER,
+  event_status TEXT NOT NULL DEFAULT 'active',
+  checked_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_price_history_watcher_at ON event_price_history(watcher_id, checked_at DESC);
+CREATE INDEX IF NOT EXISTS idx_event_price_history_lookup ON event_price_history(external_id, platform, tier_name, checked_at DESC);
+
+-- event_cache table
+CREATE TABLE IF NOT EXISTS event_cache (
+  external_id TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  name TEXT NOT NULL,
+  venue TEXT,
+  city TEXT,
+  country TEXT,
+  event_date TEXT,
+  image_url TEXT,
+  event_url TEXT,
+  is_free BOOLEAN,
+  category TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (external_id, platform)
 );
