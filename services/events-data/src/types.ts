@@ -73,6 +73,7 @@ export interface EventSearchResponse {
   totalPages: number;
   platform: string;
   error?: string;
+  warnings?: string[];
 }
 
 export interface EventProviderInterface {
