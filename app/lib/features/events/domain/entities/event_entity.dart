@@ -132,6 +132,8 @@ class EventEntity extends Equatable {
 
   bool get isPast => date.isBefore(DateTime.now());
 
+  bool get isCancelled => status.toLowerCase() == 'cancelled';
+
   int get daysUntil {
     final now = DateTime.now();
     final difference = date.difference(now).inDays;

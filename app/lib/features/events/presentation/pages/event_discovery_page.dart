@@ -6,7 +6,6 @@ import 'package:flare_app/features/events/presentation/bloc/event_search_event.d
 import 'package:flare_app/features/events/presentation/bloc/event_search_state.dart';
 import 'package:flare_app/features/events/presentation/widgets/category_chip.dart';
 import 'package:flare_app/features/events/presentation/widgets/event_card.dart';
-import 'package:flare_app/core/theme/app_theme.dart';
 
 class EventDiscoveryPage extends StatefulWidget {
   const EventDiscoveryPage({super.key});
@@ -34,7 +33,8 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       context.read<EventSearchBloc>().add(LoadMoreResults());
     }
   }
@@ -65,7 +65,8 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
               builder: (context, state) {
                 if (state is EventSearchInitial) {
                   return _buildInitialBrowse();
-                } else if (state is EventSearchLoading && state.events.isEmpty) {
+                } else if (state is EventSearchLoading &&
+                    state.events.isEmpty) {
                   return ListView.builder(
                     itemCount: 5,
                     itemBuilder: (_, __) => EventCard.shimmer(),
@@ -94,12 +95,16 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
           TextField(
             controller: _searchController,
             style: const TextStyle(color: Colors.white),
-            onChanged: (value) => context.read<EventSearchBloc>().add(UpdateQuery(value)),
+            onChanged: (value) =>
+                context.read<EventSearchBloc>().add(UpdateQuery(value)),
             decoration: InputDecoration(
               hintText: 'Search artists, venues, or cities...',
               prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
               fillColor: const Color(0xFF1E293B),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -114,14 +119,23 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
                   onTap: () {},
                 ),
                 const SizedBox(width: 8),
-                const CategoryChip(category: 'Music', emoji: '🎵', isSelected: false),
+                const CategoryChip(
+                  category: 'Music',
+                  emoji: '🎵',
+                  isSelected: false,
+                ),
                 const SizedBox(width: 8),
-                const CategoryChip(category: 'Tech', emoji: '💻', isSelected: false),
+                const CategoryChip(
+                  category: 'Tech',
+                  emoji: '💻',
+                  isSelected: false,
+                ),
                 const SizedBox(width: 8),
                 _FilterButton(
                   icon: Icons.monetization_on_outlined,
                   label: 'Free Only',
-                  onTap: () => context.read<EventSearchBloc>().add(ToggleFreeOnly()),
+                  onTap: () =>
+                      context.read<EventSearchBloc>().add(ToggleFreeOnly()),
                 ),
               ],
             ),
@@ -138,10 +152,22 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
         final activeFilters = <Widget>[];
 
         if (filters.query != null && filters.query!.isNotEmpty) {
-          activeFilters.add(_FilterPill(label: filters.query!, onRemove: () => context.read<EventSearchBloc>().add(const UpdateQuery(''))));
+          activeFilters.add(
+            _FilterPill(
+              label: filters.query!,
+              onRemove: () =>
+                  context.read<EventSearchBloc>().add(const UpdateQuery('')),
+            ),
+          );
         }
         if (filters.isFreeOnly) {
-          activeFilters.add(_FilterPill(label: 'Free Only', onRemove: () => context.read<EventSearchBloc>().add(ToggleFreeOnly())));
+          activeFilters.add(
+            _FilterPill(
+              label: 'Free Only',
+              onRemove: () =>
+                  context.read<EventSearchBloc>().add(ToggleFreeOnly()),
+            ),
+          );
         }
 
         if (activeFilters.isEmpty) return const SizedBox.shrink();
@@ -158,8 +184,16 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
                 ),
               ),
               TextButton(
-                onPressed: () => context.read<EventSearchBloc>().add(ClearFilters()),
-                child: const Text('Clear All', style: TextStyle(color: Color(0xFFF43F5E), fontSize: 13, fontWeight: FontWeight.bold)),
+                onPressed: () =>
+                    context.read<EventSearchBloc>().add(ClearFilters()),
+                child: const Text(
+                  'Clear All',
+                  style: TextStyle(
+                    color: Color(0xFFF43F5E),
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
@@ -180,7 +214,9 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
             decoration: BoxDecoration(
               color: const Color(0xFF6366F1).withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.2)),
+              border: Border.all(
+                color: const Color(0xFF6366F1).withOpacity(0.2),
+              ),
             ),
             child: const Row(
               children: [
@@ -189,7 +225,11 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
                 Expanded(
                   child: Text(
                     'Note: Eventbrite offers the best coverage for events in your region.',
-                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
@@ -203,11 +243,13 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
 
   Widget _buildResultsList(EventSearchState state) {
     return RefreshIndicator(
-      onRefresh: () async => context.read<EventSearchBloc>().add(SearchEvents()),
+      onRefresh: () async =>
+          context.read<EventSearchBloc>().add(SearchEvents()),
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.only(bottom: 24),
-        itemCount: state.events.length + (state is EventSearchLoadingMore ? 1 : 0),
+        itemCount:
+            state.events.length + (state is EventSearchLoadingMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index < state.events.length) {
             final event = state.events[index];
@@ -235,7 +277,14 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Top Categories', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+          const Text(
+            'Top Categories',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 16),
           GridView.count(
             crossAxisCount: 2,
@@ -245,18 +294,46 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
             crossAxisSpacing: 12,
             childAspectRatio: 2.5,
             children: [
-              _CategoryCard(label: 'Comedy', emoji: '😂', color: const Color(0xFFF59E0B)),
-              _CategoryCard(label: 'Music', emoji: '🎵', color: const Color(0xFF6366F1)),
-              _CategoryCard(label: 'Nightlife', emoji: '💃', color: const Color(0xFFF43F5E)),
-              _CategoryCard(label: 'Business', emoji: '📈', color: const Color(0xFF10B981)),
+              _CategoryCard(
+                label: 'Comedy',
+                emoji: '😂',
+                color: const Color(0xFFF59E0B),
+              ),
+              _CategoryCard(
+                label: 'Music',
+                emoji: '🎵',
+                color: const Color(0xFF6366F1),
+              ),
+              _CategoryCard(
+                label: 'Nightlife',
+                emoji: '💃',
+                color: const Color(0xFFF43F5E),
+              ),
+              _CategoryCard(
+                label: 'Business',
+                emoji: '📈',
+                color: const Color(0xFF10B981),
+              ),
             ],
           ),
           const SizedBox(height: 32),
-          const Text('Upcoming Popular', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+          const Text(
+            'Upcoming Popular',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 16),
           // Mock data for initial browse
           // In real app, this would be a separate bloc loading popular events
-          const Center(child: Text('Discover something new today', style: TextStyle(color: Color(0xFF64748B)))),
+          const Center(
+            child: Text(
+              'Discover something new today',
+              style: TextStyle(color: Color(0xFF64748B)),
+            ),
+          ),
         ],
       ),
     );
@@ -269,13 +346,26 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
         children: [
           const Icon(Icons.search_off, size: 64, color: Color(0xFF64748B)),
           const SizedBox(height: 16),
-          const Text('No events found', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          const Text(
+            'No events found',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
-          const Text('Try adjusting your filters or query', style: TextStyle(color: Color(0xFF64748B))),
+          const Text(
+            'Try adjusting your filters or query',
+            style: TextStyle(color: Color(0xFF64748B)),
+          ),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: () => context.read<EventSearchBloc>().add(ClearFilters()),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1)),
+            onPressed: () =>
+                context.read<EventSearchBloc>().add(ClearFilters()),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6366F1),
+            ),
             child: const Text('Clear All Filters'),
           ),
         ],
@@ -292,10 +382,15 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
           children: [
             const Icon(Icons.error_outline, size: 48, color: Color(0xFFF43F5E)),
             const SizedBox(height: 16),
-            Text(message, style: const TextStyle(color: Colors.white, fontSize: 16), textAlign: TextAlign.center),
+            Text(
+              message,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 24),
             OutlinedButton(
-              onPressed: () => context.read<EventSearchBloc>().add(SearchEvents()),
+              onPressed: () =>
+                  context.read<EventSearchBloc>().add(SearchEvents()),
               child: const Text('Retry'),
             ),
           ],
@@ -310,7 +405,11 @@ class _FilterButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _FilterButton({required this.icon, required this.label, required this.onTap});
+  const _FilterButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -327,7 +426,14 @@ class _FilterButton extends StatelessWidget {
           children: [
             Icon(icon, size: 16, color: const Color(0xFF6366F1)),
             const SizedBox(width: 6),
-            Text(label, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.w600)),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF94A3B8),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
@@ -354,7 +460,14 @@ class _FilterPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: const TextStyle(color: Color(0xFF6366F1), fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF6366F1),
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(width: 4),
           GestureDetector(
             onTap: onRemove,
@@ -371,7 +484,11 @@ class _CategoryCard extends StatelessWidget {
   final String emoji;
   final Color color;
 
-  const _CategoryCard({required this.label, required this.emoji, required this.color});
+  const _CategoryCard({
+    required this.label,
+    required this.emoji,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -386,7 +503,13 @@ class _CategoryCard extends StatelessWidget {
         children: [
           Text(emoji, style: const TextStyle(fontSize: 20)),
           const SizedBox(width: 8),
-          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );

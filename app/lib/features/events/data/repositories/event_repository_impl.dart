@@ -55,6 +55,8 @@ class EventRepositoryImpl implements EventRepository {
       );
       _searchCache[cacheKey] = (DateTime.now(), results);
       return Right(results);
+    } on RateLimitException catch (e) {
+      return Left(ServerFailure('${e.message}. System will retry in 5 minutes.'));
     } on AppException catch (e) {
       return Left(ServerFailure(e.message));
     } catch (e) {

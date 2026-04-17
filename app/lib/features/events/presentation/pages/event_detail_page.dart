@@ -9,6 +9,7 @@ import 'package:flare_app/features/events/presentation/bloc/event_detail_state.d
 import 'package:flare_app/features/events/presentation/widgets/platform_badge.dart';
 import 'package:flare_app/features/events/presentation/widgets/countdown_pill.dart';
 import 'package:flare_app/features/events/presentation/widgets/ticket_tier_card.dart';
+import 'package:flare_app/features/events/presentation/widgets/watch_setup_sheet.dart';
 
 class EventDetailPage extends StatefulWidget {
   final String platform;
@@ -298,8 +299,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Widget _buildStickyBottomBar(EventEntity event) {
-    final isPast = event.date.isBefore(DateTime.now());
-    final isCancelled = event.status == 'cancelled';
+    final isPast = event.isPast;
+    final isCancelled = event.isCancelled;
     final canBook = !isPast && !isCancelled && event.status != 'sold_out';
 
     return Positioned(
@@ -325,22 +326,23 @@ class _EventDetailPageState extends State<EventDetailPage> {
               child: ElevatedButton(
                 onPressed: canBook ? () {} : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6366F1),
+                  backgroundColor: isCancelled ? const Color(0xFFF43F5E) : const Color(0xFF6366F1),
                   minimumSize: const Size(double.infinity, 56),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  disabledBackgroundColor: Colors.white10,
+                  disabledBackgroundColor: isCancelled ? const Color(0xFFF43F5E).withOpacity(0.2) : Colors.white10,
                 ),
                 child: Text(
                   isCancelled
-                      ? 'Cancelled'
+                      ? 'EVENT CANCELLED'
                       : (isPast
                             ? 'Past Event'
                             : (event.isFree ? 'Get Free Ticket' : 'Book Now')),
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
@@ -355,10 +357,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 border: Border.all(color: Colors.white.withOpacity(0.05)),
               ),
               child: IconButton(
-                onPressed: () {},
-                icon: const Icon(
+                onPressed: (isPast || isCancelled) ? null : () => WatchSetupSheet.show(context, event),
+                icon: Icon(
                   Icons.notifications_active_outlined,
-                  color: Color(0xFF6366F1),
+                  color: (isPast || isCancelled) ? Colors.white24 : const Color(0xFF6366F1),
                 ),
                 tooltip: 'Watch Price',
               ),
