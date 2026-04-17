@@ -20,6 +20,8 @@ class SearchEventsUseCase implements UseCase<List<EventEntity>, SearchEventsPara
       date: params.date,
       isFree: params.isFree,
       platform: params.platform,
+      page: params.page,
+      limit: params.limit,
     );
   }
 }
@@ -32,6 +34,8 @@ class SearchEventsParams extends Equatable {
   final DateTime? date;
   final bool? isFree;
   final String? platform;
+  final int? page;
+  final int? limit;
 
   const SearchEventsParams({
     this.query,
@@ -41,8 +45,10 @@ class SearchEventsParams extends Equatable {
     this.date,
     this.isFree,
     this.platform,
+    this.page,
+    this.limit,
   });
 
   @override
-  List<Object?> get props => [query, city, country, category, date, isFree, platform];
+  List<Object?> get props => [query, city, country, category, date, isFree, platform, page, limit];
 }

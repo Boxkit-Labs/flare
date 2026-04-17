@@ -12,6 +12,8 @@ abstract class EventRepository {
     DateTime? date,
     bool? isFree,
     String? platform,
+    int? page,
+    int? limit,
   });
 
   Future<Either<Failure, EventEntity>> getEventDetail(String platform, String externalId);

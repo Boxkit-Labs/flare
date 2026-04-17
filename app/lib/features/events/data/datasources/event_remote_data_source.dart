@@ -11,6 +11,8 @@ abstract class EventRemoteDataSource {
     DateTime? date,
     bool? isFree,
     String? platform,
+    int? page,
+    int? limit,
   });
 
   Future<EventModel> getEventDetail(String platform, String externalId);
@@ -38,6 +40,8 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     DateTime? date,
     bool? isFree,
     String? platform,
+    int? page,
+    int? limit,
   }) async {
     final response = await dio.get(
       '/api/events/search',
@@ -49,6 +53,8 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
         if (date != null) 'dateFrom': date.toIso8601String(),
         if (isFree != null) 'isFree': isFree.toString(),
         if (platform != null) 'platform': platform,
+        if (page != null) 'page': page,
+        if (limit != null) 'limit': limit,
       },
     );
 

@@ -29,8 +29,10 @@ class EventRepositoryImpl implements EventRepository {
     DateTime? date,
     bool? isFree,
     String? platform,
+    int? page,
+    int? limit,
   }) async {
-    final cacheKey = '$query|$city|$country|$category|$date|$isFree|$platform';
+    final cacheKey = '$query|$city|$country|$category|$date|$isFree|$platform|$page|$limit';
     
     if (_searchCache.containsKey(cacheKey)) {
       final (timestamp, results) = _searchCache[cacheKey]!;
@@ -48,6 +50,8 @@ class EventRepositoryImpl implements EventRepository {
         date: date,
         isFree: isFree,
         platform: platform,
+        page: page,
+        limit: limit,
       );
       _searchCache[cacheKey] = (DateTime.now(), results);
       return Right(results);
