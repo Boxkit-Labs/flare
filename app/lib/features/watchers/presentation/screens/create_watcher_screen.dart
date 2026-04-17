@@ -131,10 +131,21 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
       type = 'realestate';
       params['city'] = 'Austin, TX';
       params['mode'] = lower.contains('rent') ? 'rental' : 'purchase';
-    } else if (lower.contains('game') || lower.contains('match') || lower.contains('ticket')) {
-      type = 'sports';
-      params['team'] = 'Warriors';
-      params['price_max'] = 150.0;
+    } else if (lower.contains('game') || lower.contains('match') || lower.contains('ticket') || 
+               lower.contains('concert') || lower.contains('show') || lower.contains('event') ||
+               lower.contains('comedy') || lower.contains('music')) {
+      type = 'events';
+      if (lower.contains('lagos')) params['city'] = 'Lagos';
+      if (lower.contains('london')) params['city'] = 'London';
+      if (lower.contains('comedy')) params['category'] = 'Comedy';
+      if (lower.contains('music')) params['category'] = 'Music';
+      if (lower.contains('free')) params['is_free'] = true;
+      
+      // Extract price if present
+      final priceMatch = RegExp(r'(\d+)\s*(naira|pounds|dollars|\$|₦)').firstMatch(lower);
+      if (priceMatch != null) {
+        params['price_below'] = double.tryParse(priceMatch.group(1)!);
+      }
     }
 
     setState(() {
@@ -148,9 +159,19 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
 
     TopSnackbar.showSuccess(context, 'Flare understood: $text');
 
+    if (type == 'events') {
+      _handleEventVoiceSearch(text, params);
+      return;
+    }
+
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) _launchWatcher();
     });
+  }
+
+  void _handleEventVoiceSearch(String text, Map<String, dynamic> params) {
+    // Navigate to events page with filters pre-filled
+    context.push('/events', extra: params);
   }
 
   void _launchWatcher() {
