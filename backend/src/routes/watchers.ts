@@ -46,21 +46,186 @@ router.post('/', async (req: Request, res: Response) => {
             check_interval_minutes, weekly_budget_usdc, priority
         } = req.body;
 
-        if (!user_id || !name || !type || !parameters || !alert_conditions || !check_interval_minutes || !weekly_budget_usdc) {
-            return res.status(400).json({ error: 'Missing required fields' });
+        const allowedTypes = ['flight', 'crypto', 'news', 'product', 'job', 'custom', 'stock', 'realestate', 'sports', 'event'];
+
+        if (!user_id || !type) {
+            return res.status(400).json({ error: 'Missing required fields: user_id and type are required' });
         }
 
-        const allowedTypes = ['flight', 'crypto', 'news', 'product', 'job', 'custom', 'stock', 'realestate', 'sports'];
         if (!allowedTypes.includes(type)) {
-            return res.status(400).json({ error: 'Invalid type' });
+            return res.status(400).json({ error: `Invalid type. Must be one of: ${allowedTypes.join(', ')}` });
         }
 
-        if (check_interval_minutes < 1) {
-            return res.status(400).json({ error: 'check_interval_minutes must be at least 1' });
-        }
+        // ─── Event-specific validation ──────────────────────────────
+        let finalParams = parameters || {};
+        let finalConditions = alert_conditions || {};
+        let finalName = name;
+        let finalInterval = check_interval_minutes;
+        let finalBudget = weekly_budget_usdc;
 
-        if (weekly_budget_usdc <= 0) {
-            return res.status(400).json({ error: 'weekly_budget_usdc must be positive' });
+        if (type === 'event') {
+            const params = parameters || {};
+            const conditions = alert_conditions || {};
+
+            // Mode validation
+            if (!params.mode || !['specific_event', 'search'].includes(params.mode)) {
+                return res.status(400).json({ error: 'Event watchers require mode: "specific_event" or "search"' });
+            }
+
+            // ── specific_event mode validation ──
+            if (params.mode === 'specific_event') {
+                if (!params.externalId || typeof params.externalId !== 'string' || params.externalId.trim() === '') {
+                    return res.status(400).json({ error: 'specific_event mode requires externalId as a non-empty string' });
+                }
+
+                const validPlatforms = ['ticketmaster', 'seatgeek', 'eventbrite'];
+                if (!params.platform || !validPlatforms.includes(params.platform.toLowerCase())) {
+                    return res.status(400).json({ error: `specific_event mode requires platform: ${validPlatforms.join(', ')}` });
+                }
+
+                if (!params.eventName || typeof params.eventName !== 'string' || params.eventName.trim() === '') {
+                    return res.status(400).json({ error: 'specific_event mode requires eventName for display purposes' });
+                }
+
+                // Normalize watchTiers
+                if (params.watchTiers !== undefined && params.watchTiers !== 'all') {
+                    if (!Array.isArray(params.watchTiers) || params.watchTiers.some((t: any) => typeof t !== 'string')) {
+                        return res.status(400).json({ error: 'watchTiers must be "all" or an array of tier name strings' });
+                    }
+                }
+                params.watchTiers = params.watchTiers || 'all';
+
+                // Validate eventDate if provided
+                if (params.eventDate) {
+                    const d = new Date(params.eventDate);
+                    if (isNaN(d.getTime())) {
+                        return res.status(400).json({ error: 'eventDate must be a valid ISO date string' });
+                    }
+                }
+
+                // Reject newListingAlert for specific_event
+                if (conditions.newListingAlert) {
+                    return res.status(400).json({ error: 'newListingAlert is only allowed for search mode watchers' });
+                }
+            }
+
+            // ── search mode validation ──
+            if (params.mode === 'search') {
+                if (!params.q && !params.city && !params.category) {
+                    return res.status(400).json({ error: 'Search mode requires at least one of: q (query), city, or category' });
+                }
+
+                // Platform defaults to 'all'
+                params.platform = params.platform || 'all';
+            }
+
+            // ── Alert conditions validation ──
+            let conditionCount = 0;
+
+            if (conditions.priceBelow !== undefined) {
+                if (typeof conditions.priceBelow !== 'number' || conditions.priceBelow <= 0) {
+                    return res.status(400).json({ error: 'priceBelow must be a positive number' });
+                }
+                conditionCount++;
+            }
+
+            if (conditions.priceDropPercent !== undefined) {
+                if (typeof conditions.priceDropPercent !== 'number' || conditions.priceDropPercent < 1 || conditions.priceDropPercent > 99) {
+                    return res.status(400).json({ error: 'priceDropPercent must be between 1 and 99' });
+                }
+                conditionCount++;
+            }
+
+            if (conditions.almostSoldOutThreshold !== undefined) {
+                if (typeof conditions.almostSoldOutThreshold !== 'number' || conditions.almostSoldOutThreshold < 1 || conditions.almostSoldOutThreshold > 100) {
+                    return res.status(400).json({ error: 'almostSoldOutThreshold must be between 1 and 100' });
+                }
+            }
+            conditions.almostSoldOutThreshold = conditions.almostSoldOutThreshold || 10;
+
+            if (conditions.availabilityAlert !== undefined) {
+                if (typeof conditions.availabilityAlert !== 'boolean') {
+                    return res.status(400).json({ error: 'availabilityAlert must be a boolean' });
+                }
+            }
+            conditions.availabilityAlert = conditions.availabilityAlert ?? false;
+
+            if (conditions.newListingAlert) conditionCount++;
+            if (conditions.availabilityAlert) conditionCount++;
+
+            // ── Free event safeguards ──
+            if (params.isFree === true) {
+                if (conditions.priceBelow !== undefined) {
+                    return res.status(400).json({ error: 'Price alerts (priceBelow) cannot be set on free events. Free events only support availability and listing alerts.' });
+                }
+                if (conditions.priceDropPercent !== undefined) {
+                    return res.status(400).json({ error: 'Price alerts (priceDropPercent) cannot be set on free events. Free events only support availability and listing alerts.' });
+                }
+                // Auto-enable availability alert for free events
+                conditions.availabilityAlert = true;
+                conditionCount++;
+            }
+
+            if (conditionCount === 0) {
+                return res.status(400).json({ error: 'At least one alert condition must be enabled (priceBelow, priceDropPercent, availabilityAlert, or newListingAlert)' });
+            }
+
+            // ── Smart check interval defaults ──
+            if (!finalInterval) {
+                if (params.eventDate) {
+                    const eventDate = new Date(params.eventDate);
+                    const now = new Date();
+                    const daysUntilEvent = (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+
+                    if (daysUntilEvent > 30) finalInterval = 720;       // 12 hours
+                    else if (daysUntilEvent > 7) finalInterval = 360;   // 6 hours
+                    else if (daysUntilEvent > 3) finalInterval = 120;   // 2 hours
+                    else finalInterval = 60;                            // 1 hour
+                } else {
+                    finalInterval = 120; // 2 hours default
+                }
+            }
+
+            // Weekly budget default
+            finalBudget = finalBudget || 0.35;
+
+            // ── Auto-generate display name ──
+            if (!finalName) {
+                if (params.mode === 'specific_event') {
+                    const platformDisplay: Record<string, string> = {
+                        ticketmaster: 'Ticketmaster',
+                        seatgeek: 'SeatGeek',
+                        eventbrite: 'Eventbrite'
+                    };
+                    finalName = `${params.eventName} (${platformDisplay[params.platform.toLowerCase()] || params.platform})`;
+                } else {
+                    const parts: string[] = [];
+                    if (params.category) parts.push(params.category.charAt(0).toUpperCase() + params.category.slice(1));
+                    if (params.city) parts.push(`in ${params.city}`);
+                    if (parts.length === 0 && params.q) parts.push(`"${params.q}"`);
+                    finalName = parts.join(' ') || 'Event Search';
+                }
+            }
+
+            finalParams = params;
+            finalConditions = conditions;
+
+        } else {
+            // Non-event types: existing validation
+            if (!name || !parameters || !alert_conditions || !check_interval_minutes || !weekly_budget_usdc) {
+                return res.status(400).json({ error: 'Missing required fields' });
+            }
+
+            if (check_interval_minutes < 1) {
+                return res.status(400).json({ error: 'check_interval_minutes must be at least 1' });
+            }
+
+            if (weekly_budget_usdc <= 0) {
+                return res.status(400).json({ error: 'weekly_budget_usdc must be positive' });
+            }
+
+            finalInterval = check_interval_minutes;
+            finalBudget = weekly_budget_usdc;
         }
 
         const user = await queries.getUserById(user_id);
@@ -73,12 +238,12 @@ router.post('/', async (req: Request, res: Response) => {
         const newWatcher = {
             watcherId,
             userId: user_id,
-            name,
+            name: finalName,
             type,
-            parameters,
-            alertConditions: alert_conditions,
-            checkIntervalMinutes: check_interval_minutes,
-            weeklyBudgetUsdc: weekly_budget_usdc,
+            parameters: finalParams,
+            alertConditions: finalConditions,
+            checkIntervalMinutes: finalInterval,
+            weeklyBudgetUsdc: finalBudget,
             priority: priority || 'medium',
             status: 'active'
         };
