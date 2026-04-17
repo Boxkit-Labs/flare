@@ -193,7 +193,7 @@ class _EventWatcherDetailPageState extends State<EventWatcherDetailPage> with Si
             BlocBuilder<EventPriceHistoryBloc, EventPriceHistoryState>(
               builder: (context, state) {
                 if (state is EventPriceHistoryLoaded) {
-                  return EventPriceHistoryChart(groupedData: state.history, currency: widget.event.currency);
+                  return EventPriceHistoryChart(groupedData: state.filteredData, currency: widget.event.currency);
                 }
                 return const AspectRatio(aspectRatio: 1.7, child: Center(child: CircularProgressIndicator()));
               },

@@ -62,10 +62,14 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
     {'id': 'job', 'name': 'Jobs', 'emoji': '💼', 'desc': 'Find opportunities', 'cost': '~\$0.15/wk', 'interval': 1440},
     {'id': 'stock', 'name': 'Stocks', 'emoji': '📊', 'desc': 'Watch stock prices', 'cost': '~\$0.20/wk', 'interval': 60},
     {'id': 'realestate', 'name': 'Real Estate', 'emoji': '🏠', 'desc': 'Monitor listings', 'cost': '~\$0.40/wk', 'interval': 1440},
-    {'id': 'sports', 'name': 'Events', 'emoji': '⚽', 'desc': 'Tickets & scores', 'cost': '~\$0.25/wk', 'interval': 360},
+    {'id': 'events', 'name': 'Events', 'emoji': '🎫', 'desc': 'Tickets & price drops', 'cost': '~\$0.25/wk', 'interval': 360},
   ];
 
   void _onTypeSelect(String typeId) {
+    if (typeId == 'events') {
+      context.push('/events');
+      return;
+    }
     setState(() {
       _selectedType = typeId;
       _formData = {};

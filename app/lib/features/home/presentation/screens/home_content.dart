@@ -16,6 +16,7 @@ import 'package:flare_app/features/briefing/presentation/bloc/briefing_bloc.dart
 import 'package:flare_app/features/briefing/presentation/bloc/briefing_state.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_bloc.dart';
 import 'package:flare_app/features/wallet/presentation/bloc/wallet_state.dart';
+import 'package:flare_app/features/events/presentation/widgets/home_events_integration.dart';
 import 'package:flare_app/features/home/domain/services/ghost_score_service.dart';
 import 'package:flare_app/features/notifications/presentation/widgets/notification_badge_icon.dart';
 
@@ -45,6 +46,7 @@ class HomeContent extends StatelessWidget {
           _buildSectionHeader(context, 'Your Systems', '/watchers'),
           _buildWatchersCarousel(context),
           const SizedBox(height: 32),
+          const HomeEventsIntegration(),
           _buildSectionHeader(context, 'Intelligence Feed', '/findings'),
           _buildFindingsFeed(context),
           const SizedBox(height: 40),
