@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getUserById, getChecksSince, getWatchersByUserId, createBriefing, getFindingById, getSpendingStats } from '../db/queries.js';
 import { notificationService, NotificationService } from './notification.js';
 import { CheckExecutor } from './check-executor.js';
+import { getPriceTrend, getEventFromCache } from './events/price-tracker.js';
 
 export class BriefingGenerator {
   private notificationSvc: NotificationService;
@@ -53,7 +54,7 @@ export class BriefingGenerator {
     const summaryMap = new Map<string, any>();
 
     for (const w of watchers) {
-      summaryMap.set(w.watcher_id, {
+      const base: any = {
         watcher_id: w.watcher_id,
         watcher_name: w.name,
         type: w.type,
@@ -61,7 +62,27 @@ export class BriefingGenerator {
         findings_count: 0,
         spent: 0,
         latest_data_summary: "No checks run overnight."
-      });
+      };
+
+      // Enrich event watchers with extra context
+      if (w.type === 'event') {
+        const params = typeof w.parameters === 'string' ? JSON.parse(w.parameters) : (w.parameters || {});
+        base.event_mode = params.mode || 'specific_event';
+        base.event_name = params.eventName || w.name;
+        base.event_date = params.eventDate || null;
+        base.is_free = params.isFree || false;
+        base.platform = params.platform || '';
+        base.external_id = params.externalId || '';
+
+        if (params.eventDate) {
+          const eventDt = new Date(params.eventDate);
+          const daysAway = Math.ceil((eventDt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          base.days_until_event = daysAway;
+          base.event_passed = daysAway < 0;
+        }
+      }
+
+      summaryMap.set(w.watcher_id, base);
     }
 
     checks.sort((a, b) => new Date(a.checked_at).getTime() - new Date(b.checked_at).getTime());
@@ -82,9 +103,51 @@ export class BriefingGenerator {
        }
     }
 
-    const watcherSummaries = Array.from(summaryMap.values()).map(summary => {
+    // Enrich event watcher summaries with price trend data
+    for (const summary of summaryMap.values()) {
+      if (summary.type === 'event' && summary.event_mode === 'specific_event' && summary.external_id) {
+        try {
+          const cached = await getEventFromCache(summary.external_id, summary.platform);
+          if (cached) {
+            summary.event_name = cached.name;
+            summary.venue = cached.venue;
+            summary.city = cached.city;
+          }
 
-       return summary;
+          // Build tier trend summaries
+          if (!summary.is_free) {
+            const trendSummaries: string[] = [];
+            const tierNames = summary.watched_tiers || ['GA', 'VIP', 'VVIP', 'Regular', 'Standard'];
+            for (const tierName of tierNames) {
+              const trend = await getPriceTrend(summary.watcher_id, tierName);
+              if (trend) {
+                const arrow = trend.trend === 'rising' ? '↑' : trend.trend === 'falling' ? '↓' : '→';
+                trendSummaries.push(`${tierName}: ${trend.currency} ${trend.currentMin} ${arrow}`);
+              }
+            }
+            if (trendSummaries.length > 0) {
+              summary.tier_trends = trendSummaries;
+            }
+          }
+        } catch (e) {
+          // Non-fatal: trend data may not be available
+        }
+      }
+    }
+
+    // Sort: findings first, then soonest events, then alphabetically
+    const watcherSummaries = Array.from(summaryMap.values()).sort((a, b) => {
+      // Findings first
+      if (a.findings_count > 0 && b.findings_count === 0) return -1;
+      if (a.findings_count === 0 && b.findings_count > 0) return 1;
+
+      // Soonest events next (only for event type)
+      const aDays = a.days_until_event ?? Infinity;
+      const bDays = b.days_until_event ?? Infinity;
+      if (aDays !== bDays) return aDays - bDays;
+
+      // Alphabetical
+      return (a.watcher_name || '').localeCompare(b.watcher_name || '');
     });
 
     const totalChecks = checks.length;
@@ -117,7 +180,11 @@ export class BriefingGenerator {
     let noChangeSection = "\nNO CHANGE\n";
     const noChangeWatchers = watcherSummaries.filter(s => s.findings_count === 0 && s.checks_run > 0);
     for (const s of noChangeWatchers) {
-      noChangeSection += `• ${s.type.toUpperCase()}: ${s.watcher_name} - ${s.latest_data_summary}\n`;
+      if (s.type === 'event') {
+        noChangeSection += this.buildEventBriefingLine(s);
+      } else {
+        noChangeSection += `• ${s.type.toUpperCase()}: ${s.watcher_name} - ${s.latest_data_summary}\n`;
+      }
     }
 
     const totalSpent = totalCost;
@@ -207,6 +274,9 @@ export class BriefingGenerator {
             case 'sports':
                 return data.event ? `${data.event}: $${data.price}` : "Event seats monitored.";
 
+            case 'event':
+                return this.buildEventDataSummary(data);
+
             default:
                return "Data collected successfully.";
          }
@@ -238,6 +308,83 @@ export class BriefingGenerator {
     } catch (e) {
       console.error(`[BRIEFING] Failed to trigger initial checks for user ${userId}`, e);
     }
+  }
+
+  private buildEventDataSummary(data: any): string {
+    try {
+      if (!data) return "No event data.";
+
+      // Search mode
+      if (data.newCount !== undefined) {
+        return data.newCount > 0
+          ? `${data.newCount} new event(s) found. ${data.totalCount || '?'} total.`
+          : `${data.totalCount || 0} events tracked. No new listings.`;
+      }
+
+      // Specific event
+      const name = data.name || 'Event';
+      const status = data.status || 'active';
+
+      if (status === 'cancelled') return `${name}: CANCELLED`;
+      if (status === 'postponed') return `${name}: POSTPONED`;
+
+      if (data.isFree) {
+        const tiers = data.ticketTiers || [];
+        const availableTiers = tiers.filter((t: any) => t.available);
+        const spotsInfo = tiers
+          .filter((t: any) => t.quantityRemaining != null)
+          .map((t: any) => `${t.name}: ${t.quantityRemaining} spots`)
+          .join(', ');
+        return spotsInfo
+          ? `${name}: FREE — ${spotsInfo}`
+          : `${name}: FREE — ${availableTiers.length}/${tiers.length} tiers available`;
+      }
+
+      const tiers = data.ticketTiers || [];
+      if (tiers.length > 0) {
+        const currency = data.currency || '';
+        const tierInfo = tiers.slice(0, 3).map((t: any) =>
+          `${t.name}: ${currency} ${t.minPrice}${t.available ? '' : ' (sold out)'}`
+        ).join(' | ');
+        return `${name}: ${tierInfo}`;
+      }
+
+      return `${name}: prices stable`;
+    } catch {
+      return "Event data parsing failed.";
+    }
+  }
+
+  private buildEventBriefingLine(summary: any): string {
+    const name = summary.event_name || summary.watcher_name;
+    const daysAway = summary.days_until_event;
+
+    // Past event
+    if (summary.event_passed) {
+      return `• EVENT: ${name} — Event has passed. Watcher auto-paused.\n`;
+    }
+
+    // Search mode
+    if (summary.event_mode === 'search') {
+      const newCount = summary.latest_new_count || 0;
+      return newCount > 0
+        ? `• EVENT SEARCH: ${name} — ${newCount} new event(s) found\n`
+        : `• EVENT SEARCH: ${name} — No new listings\n`;
+    }
+
+    // Free event
+    if (summary.is_free) {
+      const daysText = daysAway != null ? ` (${daysAway}d away)` : '';
+      return `• EVENT: ${name}${daysText} — FREE, availability tracked\n`;
+    }
+
+    // Paid event with tier trends
+    const daysText = daysAway != null ? ` (${daysAway}d away)` : '';
+    if (summary.tier_trends && summary.tier_trends.length > 0) {
+      return `• EVENT: ${name}${daysText} — ${summary.tier_trends.join(' | ')}\n`;
+    }
+
+    return `• EVENT: ${name}${daysText} — prices stable\n`;
   }
 }
 
