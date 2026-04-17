@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flare_app/features/events/domain/entities/event_entity.dart';
@@ -7,7 +9,6 @@ import 'package:flare_app/features/events/presentation/bloc/event_detail_state.d
 import 'package:flare_app/features/events/presentation/widgets/platform_badge.dart';
 import 'package:flare_app/features/events/presentation/widgets/countdown_pill.dart';
 import 'package:flare_app/features/events/presentation/widgets/ticket_tier_card.dart';
-import 'package:flare_app/core/theme/app_theme.dart';
 
 class EventDetailPage extends StatefulWidget {
   final String platform;
@@ -29,11 +30,13 @@ class _EventDetailPageState extends State<EventDetailPage> {
   @override
   void initState() {
     super.initState();
-    context.read<EventDetailBloc>().add(LoadEventDetail(
-          platform: widget.platform,
-          externalId: widget.externalId,
-          initialEntity: widget.initialEvent,
-        ));
+    context.read<EventDetailBloc>().add(
+      LoadEventDetail(
+        platform: widget.platform,
+        externalId: widget.externalId,
+        initialEntity: widget.initialEvent,
+      ),
+    );
   }
 
   @override
@@ -43,7 +46,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
         final event = state.event;
 
         if (event == null && state is EventDetailLoading) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
 
         if (event == null && state is EventDetailError) {
@@ -98,7 +103,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
             return isCollapsed
                 ? Text(
                     event.name,
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   )
@@ -127,7 +136,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, const Color(0xFF0F172A).withOpacity(0.8)],
+                    colors: [
+                      Colors.transparent,
+                      const Color(0xFF0F172A).withOpacity(0.8),
+                    ],
                     stops: const [0.6, 1.0],
                   ),
                 ),
@@ -160,23 +172,45 @@ class _EventDetailPageState extends State<EventDetailPage> {
           children: [
             Text(
               event.name,
-              style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -1),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -1,
+              ),
             ),
             const SizedBox(height: 16),
-            _InfoRow(icon: Icons.calendar_today, label: event.formattedFullDate),
+            _InfoRow(
+              icon: Icons.calendar_today,
+              label: event.formattedFullDate,
+            ),
             const SizedBox(height: 12),
-            _InfoRow(icon: Icons.location_on_outlined, label: '${event.venue}, ${event.city}'),
+            _InfoRow(
+              icon: Icons.location_on_outlined,
+              label: '${event.venue}, ${event.city}',
+            ),
             const SizedBox(height: 12),
-            _InfoRow(icon: Icons.category_outlined, label: '${event.categoryEmoji} ${event.category}'),
+            _InfoRow(
+              icon: Icons.category_outlined,
+              label: '${event.categoryEmoji} ${event.category}',
+            ),
             const SizedBox(height: 24),
             const Text(
               'About Event',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               event.description ?? 'No description available for this event.',
-              style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.6),
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.7),
+                fontSize: 15,
+                height: 1.6,
+              ),
             ),
           ],
         ),
@@ -185,7 +219,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Widget _buildTicketsSection(EventEntity event) {
-    final sortedTiers = List.from(event.tiers)..sort((a, b) => (b.available ? 1 : 0).compareTo(a.available ? 1 : 0));
+    final sortedTiers = List.from(event.tiers)
+      ..sort((a, b) => (b.available ? 1 : 0).compareTo(a.available ? 1 : 0));
 
     return SliverToBoxAdapter(
       child: Column(
@@ -195,10 +230,16 @@ class _EventDetailPageState extends State<EventDetailPage> {
             padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
             child: Text(
               'Ticket Options',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-          ...sortedTiers.map((tier) => TicketTierCard(tier: tier, onPlatformLinkTap: () {})),
+          ...sortedTiers.map(
+            (tier) => TicketTierCard(tier: tier, onPlatformLinkTap: () {}),
+          ),
         ],
       ),
     );
@@ -218,7 +259,13 @@ class _EventDetailPageState extends State<EventDetailPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Venue Information', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              const Text(
+                'Venue Information',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 8),
               Text(event.venue, style: const TextStyle(color: Colors.white70)),
               Text(event.city, style: const TextStyle(color: Colors.white70)),
@@ -227,9 +274,19 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 onTap: () {},
                 child: const Row(
                   children: [
-                    Icon(Icons.directions_outlined, size: 16, color: Color(0xFF6366F1)),
+                    Icon(
+                      Icons.directions_outlined,
+                      size: 16,
+                      color: Color(0xFF6366F1),
+                    ),
                     SizedBox(width: 8),
-                    Text('Get Directions', style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold)),
+                    Text(
+                      'Get Directions',
+                      style: TextStyle(
+                        color: Color(0xFF6366F1),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -253,7 +310,13 @@ class _EventDetailPageState extends State<EventDetailPage> {
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
         decoration: BoxDecoration(
           color: const Color(0xFF0F172A),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.6), blurRadius: 40, offset: const Offset(0, -10))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.6),
+              blurRadius: 40,
+              offset: const Offset(0, -10),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -264,12 +327,21 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF6366F1),
                   minimumSize: const Size(double.infinity, 56),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   disabledBackgroundColor: Colors.white10,
                 ),
                 child: Text(
-                  isCancelled ? 'Cancelled' : (isPast ? 'Past Event' : (event.isFree ? 'Get Free Ticket' : 'Book Now')),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                  isCancelled
+                      ? 'Cancelled'
+                      : (isPast
+                            ? 'Past Event'
+                            : (event.isFree ? 'Get Free Ticket' : 'Book Now')),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ),
@@ -284,7 +356,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
               ),
               child: IconButton(
                 onPressed: () {},
-                icon: const Icon(Icons.notifications_active_outlined, color: Color(0xFF6366F1)),
+                icon: const Icon(
+                  Icons.notifications_active_outlined,
+                  color: Color(0xFF6366F1),
+                ),
                 tooltip: 'Watch Price',
               ),
             ),
@@ -310,7 +385,11 @@ class _InfoRow extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 15, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.8),
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ],

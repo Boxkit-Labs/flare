@@ -49,4 +49,28 @@ class SetCheckFrequency extends EventWatchSetupEvent {
   List<Object?> get props => [frequency];
 }
 
+class UpdatePriceBelow extends EventWatchSetupEvent {
+  final double? price;
+  const UpdatePriceBelow(this.price);
+
+  @override
+  List<Object?> get props => [price];
+}
+
+class UpdatePriceDropPercentage extends EventWatchSetupEvent {
+  final int? percentage;
+  const UpdatePriceDropPercentage(this.percentage);
+
+  @override
+  List<Object?> get props => [percentage];
+}
+
+class ToggleAlmostSoldOutAlert extends EventWatchSetupEvent {
+  final bool enabled;
+  const ToggleAlmostSoldOutAlert(this.enabled);
+
+  @override
+  List<Object?> get props => [enabled];
+}
+
 class SubmitWatch extends EventWatchSetupEvent {}

@@ -15,6 +15,9 @@ class EventWatchSetupBloc extends Bloc<EventWatchSetupEvent, EventWatchSetupStat
     on<TogglePriceAlert>(_onTogglePriceAlert);
     on<ToggleAvailabilityAlert>(_onToggleAvailabilityAlert);
     on<SetCheckFrequency>(_onSetCheckFrequency);
+    on<UpdatePriceBelow>(_onUpdatePriceBelow);
+    on<UpdatePriceDropPercentage>(_onUpdatePriceDropPercentage);
+    on<ToggleAlmostSoldOutAlert>(_onToggleAlmostSoldOutAlert);
     on<SubmitWatch>(_onSubmitWatch);
   }
 
@@ -58,6 +61,18 @@ class EventWatchSetupBloc extends Bloc<EventWatchSetupEvent, EventWatchSetupStat
 
   void _onSetCheckFrequency(SetCheckFrequency event, Emitter<EventWatchSetupState> emit) {
     emit(state.copyWith(frequency: event.frequency));
+  }
+
+  void _onUpdatePriceBelow(UpdatePriceBelow event, Emitter<EventWatchSetupState> emit) {
+    emit(state.copyWith(priceBelow: event.price));
+  }
+
+  void _onUpdatePriceDropPercentage(UpdatePriceDropPercentage event, Emitter<EventWatchSetupState> emit) {
+    emit(state.copyWith(priceDropPercentage: event.percentage));
+  }
+
+  void _onToggleAlmostSoldOutAlert(ToggleAlmostSoldOutAlert event, Emitter<EventWatchSetupState> emit) {
+    emit(state.copyWith(almostSoldOutAlertEnabled: event.enabled));
   }
 
   Future<void> _onSubmitWatch(SubmitWatch event, Emitter<EventWatchSetupState> emit) async {

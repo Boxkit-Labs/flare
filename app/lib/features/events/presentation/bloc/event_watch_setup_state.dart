@@ -8,7 +8,10 @@ class EventWatchSetupState extends Equatable {
   final EventEntity? event;
   final Set<String> selectedTiers;
   final bool priceAlertEnabled;
+  final double? priceBelow;
+  final int? priceDropPercentage;
   final bool availabilityAlertEnabled;
+  final bool almostSoldOutAlertEnabled;
   final Duration frequency;
   final EventWatchSubmissionStatus status;
   final String? errorMessage;
@@ -18,7 +21,10 @@ class EventWatchSetupState extends Equatable {
     this.event,
     this.selectedTiers = const {},
     this.priceAlertEnabled = true,
+    this.priceBelow,
+    this.priceDropPercentage,
     this.availabilityAlertEnabled = true,
+    this.almostSoldOutAlertEnabled = false,
     this.frequency = const Duration(hours: 1),
     this.status = EventWatchSubmissionStatus.initial,
     this.errorMessage,
@@ -32,7 +38,7 @@ class EventWatchSetupState extends Equatable {
   bool get isValid {
     if (event == null) return false;
     if (selectedTiers.isEmpty) return false;
-    if (!priceAlertEnabled && !availabilityAlertEnabled) return false;
+    if (!priceAlertEnabled && !availabilityAlertEnabled && !almostSoldOutAlertEnabled) return false;
     return true;
   }
 
@@ -49,7 +55,10 @@ class EventWatchSetupState extends Equatable {
     EventEntity? event,
     Set<String>? selectedTiers,
     bool? priceAlertEnabled,
+    double? priceBelow,
+    int? priceDropPercentage,
     bool? availabilityAlertEnabled,
+    bool? almostSoldOutAlertEnabled,
     Duration? frequency,
     EventWatchSubmissionStatus? status,
     String? errorMessage,
@@ -59,7 +68,10 @@ class EventWatchSetupState extends Equatable {
       event: event ?? this.event,
       selectedTiers: selectedTiers ?? this.selectedTiers,
       priceAlertEnabled: priceAlertEnabled ?? this.priceAlertEnabled,
+      priceBelow: priceBelow ?? this.priceBelow,
+      priceDropPercentage: priceDropPercentage ?? this.priceDropPercentage,
       availabilityAlertEnabled: availabilityAlertEnabled ?? this.availabilityAlertEnabled,
+      almostSoldOutAlertEnabled: almostSoldOutAlertEnabled ?? this.almostSoldOutAlertEnabled,
       frequency: frequency ?? this.frequency,
       status: status ?? this.status,
       errorMessage: errorMessage,
@@ -72,7 +84,10 @@ class EventWatchSetupState extends Equatable {
         event,
         selectedTiers,
         priceAlertEnabled,
+        priceBelow,
+        priceDropPercentage,
         availabilityAlertEnabled,
+        almostSoldOutAlertEnabled,
         frequency,
         status,
         errorMessage,

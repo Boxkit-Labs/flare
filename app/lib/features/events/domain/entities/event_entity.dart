@@ -88,6 +88,10 @@ class EventEntity extends Equatable {
     return DateFormat('MMM d, yyyy').format(date);
   }
 
+  String get formattedFullDate {
+    return DateFormat('EEEE, MMM d, yyyy • HH:mm').format(date);
+  }
+
   String get platformDisplayName {
     switch (platform.toLowerCase()) {
       case 'ticketmaster':
