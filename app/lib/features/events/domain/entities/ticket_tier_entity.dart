@@ -28,6 +28,8 @@ class TicketTierEntity extends Equatable {
     return CurrencyFormatter.formatPriceRange(minPrice, maxPrice, currency: currency);
   }
 
+  bool get isFree => minPrice == 0;
+
   String get availabilityText {
     if (!available) return 'Sold Out';
     if (quantityRemaining != null) {
