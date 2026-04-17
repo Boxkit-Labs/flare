@@ -46,8 +46,9 @@ class _FindingCardState extends State<FindingCard> {
       case 'product':
         return '🛍️';
       case 'jobs':
-      case 'job':
-        return '💼';
+      case 'events':
+      case 'sports':
+        return '🎫';
       default:
         return '✨';
     }
@@ -68,6 +69,9 @@ class _FindingCardState extends State<FindingCard> {
       case 'jobs':
       case 'job':
         return Colors.teal;
+      case 'events':
+      case 'sports':
+        return const Color(0xFF6366F1);
       default:
         return AppTheme.primary;
     }
@@ -192,31 +196,62 @@ class _FindingCardState extends State<FindingCard> {
                   style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.4),
                 ),
               ],
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    widget.finding.watcherName ?? 'Unknown Agent',
-                    style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppTheme.background,
-                      borderRadius: BorderRadius.circular(8),
+              if (widget.finding.type == 'events' || widget.finding.type == 'sports') ...[
+                const SizedBox(height: 16),
+                _buildEventActions(),
+              ] else ...[
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      widget.finding.watcherName ?? 'Unknown Agent',
+                      style: const TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w600),
                     ),
-                    child: Text(
-                      '\$${widget.finding.costUsdc.toStringAsFixed(3)}',
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.black),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppTheme.background,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '\$${widget.finding.costUsdc.toStringAsFixed(3)}',
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.black),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildEventActions() {
+    return Row(
+      children: [
+        const Icon(Icons.verified, size: 14, color: Color(0xFF6366F1)),
+        const SizedBox(width: 6),
+        const Text(
+          'Verified on Stellar',
+          style: TextStyle(fontSize: 10, color: Color(0xFF6366F1), fontWeight: FontWeight.bold),
+        ),
+        const Spacer(),
+        ElevatedButton(
+          onPressed: () {},
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF6366F1),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: const Text('Book Now', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900)),
+        ),
+      ],
     );
   }
 }

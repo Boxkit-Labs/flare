@@ -24,7 +24,8 @@ class WatcherCard extends StatelessWidget {
       case 'stock':
       case 'stocks': return '📊';
       case 'realestate': return '🏠';
-      case 'sports': return '⚽';
+      case 'events':
+      case 'sports': return '🎫';
       default: return '👻';
     }
   }
@@ -115,49 +116,104 @@ class WatcherCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              'Checked ${_getLastCheckText(watcher.lastCheckAt)}',
-              style: const TextStyle(
-                color: AppTheme.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const Spacer(),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'BUDGET',
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        color: AppTheme.textSecondary,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    Text(
-                      '${(percentUsed * 100).toInt()}%',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                        color: percentUsed > 0.8 ? AppTheme.error : AppTheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                AnimatedBudgetBar(
-                  percentUsed: percentUsed,
-                ),
-              ],
-            ),
+            if (watcher.type == 'events' || watcher.type == 'sports')
+              _buildEventContent()
+            else
+              _buildDefaultContent(percentUsed),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildEventContent() {
+    final metadata = watcher.parameters ?? {};
+    final currentPrice = metadata['current_price'] as String? ?? 'N/A';
+    final venue = metadata['venue'] as String? ?? 'Various';
+    final isFree = metadata['is_free'] as bool? ?? false;
+
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.location_on, size: 10, color: AppTheme.primary),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  venue,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          if (isFree)
+            const Text(
+              'Free · Availability',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF10B981)),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(currentPrice, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                const Row(
+                  children: [
+                    Icon(Icons.trending_down, size: 12, color: Color(0xFF10B981)),
+                    SizedBox(width: 4),
+                    Text('Dropped', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
+                  ],
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDefaultContent(double percentUsed) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 4),
+        Text(
+          'Checked ${_getLastCheckText(watcher.lastCheckAt)}',
+          style: const TextStyle(
+            color: AppTheme.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const Spacer(),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'BUDGET',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+                color: AppTheme.textSecondary,
+                letterSpacing: 0.5,
+              ),
+            ),
+            Text(
+              '${(percentUsed * 100).toInt()}%',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: percentUsed > 0.8 ? AppTheme.error : AppTheme.primary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        AnimatedBudgetBar(percentUsed: percentUsed),
+      ],
     );
   }
 }
