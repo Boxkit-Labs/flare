@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flare_app/features/events/domain/entities/event_entity.dart';
 import 'package:flare_app/features/events/presentation/widgets/platform_badge.dart';
 import 'package:flare_app/features/events/presentation/widgets/availability_dot.dart';
-import 'package:shimmer/shimmer.dart';
+import 'package:flare_app/core/widgets/flare_shimmer.dart';
 
 class EventCard extends StatelessWidget {
   final EventEntity event;
@@ -159,17 +159,9 @@ class EventCard extends StatelessWidget {
   }
 
   static Widget shimmer() {
-    return Shimmer.fromColors(
-      baseColor: const Color(0xFF1E293B),
-      highlightColor: const Color(0xFF334155),
-      child: Container(
-        height: 200,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: FlareShimmer.rect(width: double.infinity, height: 200, radius: 24),
     );
   }
 }

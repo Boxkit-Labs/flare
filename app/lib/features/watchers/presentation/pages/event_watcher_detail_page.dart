@@ -46,16 +46,26 @@ class _EventWatcherDetailPageState extends State<EventWatcherDetailPage> with Si
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
-      body: CustomScrollView(
-        slivers: [
-          _buildHeroHeader(),
-          _buildAlertStatusHeader(),
-          _buildPriceCards(),
-          _buildChartSection(),
-          _buildTabs(),
-          _buildTabContent(),
-          const SliverToBoxAdapter(child: SizedBox(height: 120)),
-        ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          context.read<EventPriceHistoryBloc>().add(LoadPriceHistory(
+                platform: widget.event.platform,
+                externalId: widget.event.externalId,
+              ));
+        },
+        color: const Color(0xFF6366F1),
+        backgroundColor: const Color(0xFF1E293B),
+        child: CustomScrollView(
+          slivers: [
+            _buildHeroHeader(),
+            _buildAlertStatusHeader(),
+            _buildPriceCards(),
+            _buildChartSection(),
+            _buildTabs(),
+            _buildTabContent(),
+            const SliverToBoxAdapter(child: SizedBox(height: 120)),
+          ],
+        ),
       ),
       bottomNavigationBar: _buildBottomActions(),
     );
@@ -150,28 +160,49 @@ class _EventWatcherDetailPageState extends State<EventWatcherDetailPage> with Si
           itemCount: widget.event.tiers.length,
           itemBuilder: (context, index) {
             final tier = widget.event.tiers[index];
-            return Container(
-              width: 150,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(16)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(tier.name, style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.bold), maxLines: 1),
-                  const Spacer(),
-                  Text(tier.displayPrice, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
-                  const Row(
-                    children: [
-                      PriceChangeIndicator(change: 2.1, direction: PriceDirection.down),
-                    ],
-                  ),
-                ],
+            return _buildAnimatedEntry(
+              index,
+              Container(
+                width: 150,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(16)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(tier.name, style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.bold), maxLines: 1),
+                    const Spacer(),
+                    Text(tier.displayPrice, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+                    const Row(
+                      children: [
+                        PriceChangeIndicator(change: 2.1, direction: PriceDirection.down),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             );
           },
         ),
       ),
+    );
+  }
+
+  Widget _buildAnimatedEntry(int index, Widget child) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 300 + (index * 100)),
+      curve: Curves.easeOut,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(20 * (1 - value), 0),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 

@@ -238,11 +238,32 @@ class _EventDetailPageState extends State<EventDetailPage> {
               ),
             ),
           ),
-          ...sortedTiers.map(
-            (tier) => TicketTierCard(tier: tier, onPlatformLinkTap: () {}),
+          ...sortedTiers.asMap().entries.map(
+            (entry) => _buildAnimatedItem(
+              entry.key,
+              TicketTierCard(tier: entry.value, onPlatformLinkTap: () {}),
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAnimatedItem(int index, Widget child) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (index * 150)),
+      curve: Curves.easeOutBack,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 30 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 

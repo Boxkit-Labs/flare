@@ -100,6 +100,17 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
             decoration: InputDecoration(
               hintText: 'Search artists, venues, or cities...',
               prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
+              suffixIcon: BlocBuilder<EventSearchBloc, EventSearchState>(
+                builder: (context, state) {
+                  if (state is EventSearchLoading) {
+                    return const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF6366F1))),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
               fillColor: const Color(0xFF1E293B),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -253,13 +264,13 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
         itemBuilder: (context, index) {
           if (index < state.events.length) {
             final event = state.events[index];
-            return EventCard(
+            return _buildAnimatedCategory(index, EventCard(
               event: event,
               onTap: () => context.push(
                 '/events/detail/${event.platform}/${event.externalId}',
                 extra: event,
               ),
-            );
+            ));
           } else {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
@@ -294,26 +305,10 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
             crossAxisSpacing: 12,
             childAspectRatio: 2.5,
             children: [
-              _CategoryCard(
-                label: 'Comedy',
-                emoji: '😂',
-                color: const Color(0xFFF59E0B),
-              ),
-              _CategoryCard(
-                label: 'Music',
-                emoji: '🎵',
-                color: const Color(0xFF6366F1),
-              ),
-              _CategoryCard(
-                label: 'Nightlife',
-                emoji: '💃',
-                color: const Color(0xFFF43F5E),
-              ),
-              _CategoryCard(
-                label: 'Business',
-                emoji: '📈',
-                color: const Color(0xFF10B981),
-              ),
+              _buildAnimatedCategory(0, _CategoryCard(label: 'Comedy', emoji: '😂', color: const Color(0xFFF59E0B))),
+              _buildAnimatedCategory(1, _CategoryCard(label: 'Music', emoji: '🎵', color: const Color(0xFF6366F1))),
+              _buildAnimatedCategory(2, _CategoryCard(label: 'Nightlife', emoji: '💃', color: const Color(0xFFF43F5E))),
+              _buildAnimatedCategory(3, _CategoryCard(label: 'Business', emoji: '📈', color: const Color(0xFF10B981))),
             ],
           ),
           const SizedBox(height: 32),
@@ -336,6 +331,24 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAnimatedCategory(int index, Widget child) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + (index * 100)),
+      curve: Curves.easeOut,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 
