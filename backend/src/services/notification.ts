@@ -82,6 +82,12 @@ export class NotificationService {
         const user = await getUserById(userId) as any;
         if (!user) return;
 
+        // Event-specific notification path
+        if (watcher.type === 'event') {
+            await this.sendEventFindingNotification(userId, finding, watcher, user);
+            return;
+        }
+
         if (this.isWithinDND(user.dnd_start, user.dnd_end) && watcher.priority !== 'high') {
             console.log(`NotificationService: DND active for user ${userId}. Skipping finding notification.`);
             return;
@@ -121,6 +127,182 @@ export class NotificationService {
         });
 
         console.log(`Notification sent to user ${userId}: ${finding.headline}`);
+    }
+
+    private async sendEventFindingNotification(userId: string, finding: any, watcher: WatcherRow, user: any): Promise<void> {
+        const findingData = finding.data || {};
+        const params = typeof watcher.parameters === 'string' ? JSON.parse(watcher.parameters) : (watcher.parameters || {});
+
+        // ── Smart notification timing ──
+        const eventDate = params.eventDate ? new Date(params.eventDate) : null;
+        const now = new Date();
+        const daysUntilEvent = eventDate ? (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24) : null;
+
+        const isUrgentEvent = daysUntilEvent !== null && daysUntilEvent < 3;
+        const isDistantEvent = daysUntilEvent !== null && daysUntilEvent > 14;
+        const isAvailabilityChange = finding.type === 'threshold_crossed' &&
+            (finding.headline?.includes('BACK') || finding.headline?.includes('sold out') || finding.headline?.includes('almost sold out'));
+        const isHighPriority = watcher.priority === 'high' || finding.headline?.includes('CANCELLED') || finding.headline?.includes('ALL-TIME LOW');
+
+        // Immediate send bypass: urgent events + availability changes always send
+        const bypassDND = isUrgentEvent || isAvailabilityChange;
+
+        // Batch into briefing for distant, non-urgent events
+        if (isDistantEvent && !isHighPriority && !isAvailabilityChange) {
+            console.log(`[EventNotification] Event >14 days away, batching finding ${finding.finding_id} into briefing.`);
+            await createNotification({
+                user_id: userId,
+                title: this.buildEventTitle(finding, findingData),
+                body: this.buildEventBody(finding, findingData),
+                type: 'finding',
+                data_id: finding.finding_id
+            });
+            markFindingNotified(finding.finding_id);
+            return;
+        }
+
+        // DND check (bypass for urgent events and availability)
+        if (!bypassDND && this.isWithinDND(user.dnd_start, user.dnd_end) && !isHighPriority) {
+            console.log(`[EventNotification] DND active for user ${userId}. Skipping push.`);
+            await createNotification({
+                user_id: userId,
+                title: this.buildEventTitle(finding, findingData),
+                body: this.buildEventBody(finding, findingData),
+                type: 'finding',
+                data_id: finding.finding_id
+            });
+            markFindingNotified(finding.finding_id);
+            return;
+        }
+
+        const title = this.buildEventTitle(finding, findingData);
+        const body = this.buildEventBody(finding, findingData);
+
+        const bookingUrl = findingData.url || findingData.eventUrl || params.eventUrl || '';
+        const platform = findingData.platform || params.platform || '';
+        const externalId = findingData.externalId || params.externalId || '';
+
+        const message: any = {
+            notification: { title, body },
+            android: {
+                notification: {
+                    channel_id: isUrgentEvent ? "flare_urgent" : "flare_findings",
+                    priority: "high" as const,
+                },
+                data: {
+                    actions: JSON.stringify([
+                        { action: 'view_details', title: 'View Details' },
+                        ...(bookingUrl ? [{ action: 'book_now', title: 'Book Now', url: bookingUrl }] : [])
+                    ])
+                }
+            },
+            data: {
+                type: "event_finding",
+                finding_id: finding.finding_id,
+                watcher_id: finding.watcher_id || watcher.watcher_id,
+                platform,
+                external_id: externalId,
+                booking_url: bookingUrl,
+                deep_link: `/findings/${finding.finding_id}`
+            }
+        };
+
+        await this.sendPayload(userId, message);
+        markFindingNotified(finding.finding_id);
+
+        await createNotification({
+            user_id: userId,
+            title,
+            body,
+            type: 'finding',
+            data_id: finding.finding_id
+        });
+
+        console.log(`[EventNotification] Push sent to ${userId}: ${title}`);
+    }
+
+    private buildEventTitle(finding: any, data: any): string {
+        const eventName = data.eventName || data.name || 'Event';
+        const tierName = data.tierName || '';
+        const currency = data.currency || '';
+        const headline = finding.headline || '';
+
+        // Cancelled / Postponed
+        if (headline.includes('CANCELLED')) return `🎫 ${eventName} — Cancelled`;
+        if (headline.includes('POSTPONED')) return `🎫 ${eventName} — Postponed`;
+
+        // All-time low
+        if (headline.includes('ALL-TIME LOW')) return `🎫 All-Time Low: ${tierName} at ${currency} ${data.currentPrice}`;
+
+        // Almost sold out
+        if (headline.includes('almost sold out')) return `🎫 Almost Gone: ${data.quantityRemaining} ${tierName} left!`;
+
+        // Back in stock
+        if (headline.includes('BACK')) return `🎫 Back in Stock: ${tierName} for ${eventName}`;
+
+        // Sold out
+        if (headline.includes('SOLD OUT')) return `🎫 Sold Out: ${tierName} for ${eventName}`;
+
+        // Price drop (percentage)
+        if (data.dropPercent) return `🎫 ${tierName} Down ${Math.round(data.dropPercent)}%: ${currency} ${data.newPrice}`;
+
+        // Price below threshold
+        if (data.targetPrice) return `🎫 ${tierName} Hit Your Target: ${currency} ${data.currentPrice}`;
+
+        // New listing
+        if (finding.type === 'new_listing') {
+            const newEvents = data.newEvents || [];
+            if (newEvents.length > 0) return `🎫 New Event: ${newEvents[0].name}`;
+            return `🎫 New Events Found`;
+        }
+
+        return `🎫 ${eventName} — Update`;
+    }
+
+    private buildEventBody(finding: any, data: any): string {
+        const detail = finding.detail || '';
+        const eventName = data.eventName || data.name || '';
+        const tierName = data.tierName || '';
+        const currency = data.currency || '';
+
+        // Cancelled
+        if (detail.includes('cancelled')) return `${eventName} has been cancelled. Check for refund options.`;
+
+        // Postponed
+        if (detail.includes('postponed')) return `${eventName} has been postponed. No new date announced yet.`;
+
+        // Almost sold out
+        if (data.quantityRemaining !== undefined && detail.includes('remaining'))
+            return `Only ${data.quantityRemaining} ${tierName} tickets remaining. Don't miss out!`;
+
+        // Back in stock
+        if (detail.includes('available again'))
+            return `${tierName} tickets are available again${data.currentPrice ? ` at ${currency} ${data.currentPrice}` : ''}. Grab them before they sell out!`;
+
+        // All-time low
+        if (detail.includes('lowest price ever'))
+            return `${tierName} tickets just hit their lowest recorded price: ${currency} ${data.currentPrice}.`;
+
+        // Price drop by percentage
+        if (data.dropPercent && data.oldPrice)
+            return `${tierName} dropped from ${currency} ${data.oldPrice} to ${currency} ${data.newPrice} (${Math.round(data.dropPercent)}% off).`;
+
+        // Price below threshold
+        if (data.targetPrice)
+            return `${tierName} is now ${currency} ${data.currentPrice}, below your ${currency} ${data.targetPrice} target.`;
+
+        // New listing
+        if (finding.type === 'new_listing') {
+            const newEvents = data.newEvents || [];
+            if (newEvents.length === 1) return `${newEvents[0].name} — tap to view details.`;
+            if (newEvents.length > 1) return `${newEvents.length} new events matching your search. Tap to browse.`;
+        }
+
+        // Sold out
+        if (detail.includes('no longer available'))
+            return `${tierName} tickets have sold out. Consider other tiers.`;
+
+        return detail.substring(0, 150);
     }
 
     async sendBriefingNotification(userId: string, briefing: any): Promise<void> {
