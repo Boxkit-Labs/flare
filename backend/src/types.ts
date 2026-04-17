@@ -2,7 +2,7 @@ export interface WatcherRow {
   watcher_id: string;
   user_id: string;
   name: string;
-  type: 'flight' | 'crypto' | 'news' | 'product' | 'job' | 'custom' | 'stock' | 'realestate' | 'sports';
+  type: 'flight' | 'crypto' | 'news' | 'product' | 'job' | 'custom' | 'stock' | 'realestate' | 'sports' | 'event';
   parameters: any;
   alert_conditions: any;
   check_interval_minutes: number;

@@ -5,6 +5,7 @@ import { detector } from './finding-detector.js';
 import { notificationService } from './notification.js';
 import { ConfidenceCalculator } from './confidence-calculator.js';
 import { WatcherRow, Finding } from '../types.js';
+import { executeEventCheck } from './events/event-check-executor.js';
 import { v4 as uuidv4 } from 'uuid';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -68,6 +69,12 @@ export class CheckExecutor {
       let serviceUrl = '';
       let method: 'GET' | 'POST' = 'POST';
       let body: any = watcher.parameters;
+
+      // Event watchers use internal executor, not external HTTP service
+      if (watcher.type.toLowerCase() === 'event') {
+        await this.runEventCheck(watcher, checkId, payerSecretKey);
+        return;
+      }
 
       switch (watcher.type.toLowerCase()) {
         case 'flight':
@@ -356,6 +363,12 @@ export class CheckExecutor {
        targetUrl = `${baseUrl}/news/api/news`;
        const team = finding.data?.team || 'team';
        query = `${team} injury player trade news`;
+    } else if (watcher.type === 'event') {
+       triggeredService = 'news';
+       targetUrl = `${baseUrl}/news/api/news`;
+       const eventName = finding.data?.eventName || finding.data?.name || 'event';
+       const city = finding.data?.city || '';
+       query = `${eventName} ${city} event cancelled postponed`;
     } else if (watcher.type === 'product') {
        triggeredService = 'product';
        targetUrl = `${baseUrl}/product/api/products`;
@@ -575,5 +588,78 @@ export class CheckExecutor {
           console.error(`[CheckExecutor] Failed to start stream: `, err.message);
           this.activeStreams.delete(watcher.watcher_id);
       }
+  }
+
+  private async runEventCheck(watcher: WatcherRow, checkId: string, payerSecretKey: string): Promise<void> {
+    const params = typeof watcher.parameters === 'string'
+      ? JSON.parse(watcher.parameters)
+      : watcher.parameters;
+
+    console.log(`[CheckExecutor] Running event check for watcher: ${watcher.watcher_id} (mode: ${params.mode || 'specific_event'})`);
+
+    const result = await executeEventCheck(watcher.watcher_id, params);
+
+    // Use a nominal cost for internal event checks (no external HTTP payment needed)
+    const costUsdc = 0.005;
+    const txHash = `event-internal-${checkId.substring(0, 8)}`;
+
+    await createCheck({
+      checkId,
+      watcherId: watcher.watcher_id,
+      userId: watcher.user_id,
+      serviceName: 'event',
+      requestPayload: params,
+      responseData: result.data,
+      costUsdc,
+      stellarTxHash: txHash,
+      findingDetected: result.findings.length > 0,
+      agentReasoning: result.agentReasoning,
+      paymentMethod: 'x402',
+    });
+
+    await createTransaction({
+      txId: (await import('uuid')).v4(),
+      userId: watcher.user_id,
+      watcherId: watcher.watcher_id,
+      checkId,
+      amountUsdc: costUsdc,
+      serviceName: 'event',
+      stellarTxHash: txHash,
+      txType: 'check',
+    });
+
+    // Process each finding
+    for (const ef of result.findings) {
+      const findingId = (await import('uuid')).v4();
+      const finding: Finding = {
+        finding_id: findingId,
+        watcher_id: watcher.watcher_id,
+        check_id: checkId,
+        user_id: watcher.user_id,
+        type: ef.type === 'new_listing' ? 'new_listing' : ef.type === 'price_drop' ? 'price_drop' : 'threshold_crossed',
+        headline: ef.headline,
+        detail: ef.detail,
+        data: ef.data,
+        action_url: ef.data?.url,
+        cost_usdc: costUsdc,
+        stellar_tx_hash: txHash,
+        agent_reasoning: result.agentReasoning,
+      };
+
+      await createFinding(finding);
+      await incrementWatcherFindings(watcher.watcher_id);
+      await notificationService.sendFindingNotification(watcher.user_id, finding as any, watcher);
+    }
+
+    await incrementWatcherChecks(watcher.watcher_id, costUsdc);
+
+    // Schedule next check
+    if (watcher.check_interval_minutes) {
+      const nextDate = new Date();
+      nextDate.setMinutes(nextDate.getMinutes() + watcher.check_interval_minutes);
+      await updateWatcher(watcher.watcher_id, { next_check_at: nextDate.toISOString() });
+    }
+
+    console.log(`[CheckExecutor] Event check complete for ${watcher.watcher_id}: ${result.findings.length} finding(s)`);
   }
 }
