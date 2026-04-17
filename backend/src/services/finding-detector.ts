@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { WatcherRow, Finding } from '../types.js';
+import { getPriceTrend, getAvailabilityHistory } from './events/price-tracker.js';
 
 export class FindingDetector {
 
@@ -36,6 +37,9 @@ export class FindingDetector {
         break;
       case 'sports':
         finding = this.detectSportsFinding(watcher, checkData, previousCheckData);
+        break;
+      case 'event':
+        finding = await this.detectEventFinding(watcher, checkData, previousCheckData);
         break;
     }
 
@@ -262,6 +266,177 @@ export class FindingDetector {
             data: null, cost_usdc: 0, agent_reasoning: `Secondary market arbitrage detected for ${data.match.home} tickets. Current floor price is $${ticket.price}, down from $${ticket.history[0]}.`
         };
     }
+    return null;
+  }
+
+  private async detectEventFinding(watcher: WatcherRow, data: any, prev: any): Promise<Finding | null> {
+    const conditions = watcher.alert_conditions || {};
+    const isFreeEvent = data?.isFree === true;
+    const eventName = data?.name || 'Event';
+    const currency = data?.currency || 'USD';
+    const tiers = data?.ticketTiers || [];
+    const platform = data?.platform || '';
+
+    // ── Search mode: new listing detection ──
+    if (data?.newCount > 0 && data?.results) {
+      const newEvents = data.results.slice(0, data.newCount);
+      if (newEvents.length > 0) {
+        const first = newEvents[0];
+        return {
+          finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'new_listing',
+          headline: `🎫 New: ${first.name}${newEvents.length > 1 ? ` (+${newEvents.length - 1} more)` : ''}`,
+          detail: `${first.name} at ${first.venueName || 'TBD'}, ${first.city || ''}. ${first.isFree ? 'FREE' : `From ${first.currency} ${first.ticketTiers?.[0]?.minPrice || '?'}`}. ${newEvents.length > 1 ? `Plus ${newEvents.length - 1} other new event(s).` : ''}`,
+          data: { newEvents: newEvents.map((e: any) => ({ id: e.id, name: e.name, platform: e.platform, url: e.url })) },
+          cost_usdc: 0,
+          agent_reasoning: `Search mode detected ${newEvents.length} new event(s) matching criteria since last check.`
+        };
+      }
+    }
+
+    // ── Event status change: cancelled / postponed ──
+    if (data?.status === 'cancelled') {
+      return {
+        finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'threshold_crossed',
+        headline: `🚫 ${eventName} CANCELLED`,
+        detail: `"${eventName}" has been cancelled by the organizer on ${platform}. Check the event page for refund information.`,
+        data: { eventName, status: 'cancelled', platform, url: data?.url },
+        cost_usdc: 0,
+        agent_reasoning: `Event status changed to cancelled. Auto-pausing watcher. User should check refund policy.`
+      };
+    }
+
+    if (data?.status === 'postponed') {
+      return {
+        finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'threshold_crossed',
+        headline: `⏸️ ${eventName} POSTPONED`,
+        detail: `"${eventName}" has been postponed. A new date has not been announced yet. Check ${data?.url || 'the event page'} for updates.`,
+        data: { eventName, status: 'postponed', platform, url: data?.url },
+        cost_usdc: 0,
+        agent_reasoning: `Event status changed to postponed. Auto-pausing watcher until a new date is announced.`
+      };
+    }
+
+    // Filter to specific tier if configured
+    let watchedTiers = tiers;
+    if (conditions.specificTier) {
+      watchedTiers = tiers.filter((t: any) =>
+        t.name.toLowerCase().includes(conditions.specificTier.toLowerCase())
+      );
+    }
+
+    // ── Availability checks (apply to both free and paid events) ──
+    const prevTiers = prev?.ticketTiers || [];
+    for (const tier of watchedTiers) {
+      const prevTier = prevTiers.find((pt: any) => pt.name === tier.name);
+
+      // Almost sold out
+      if (conditions.availabilityAlert !== false && tier.quantityRemaining !== null && tier.quantityRemaining !== undefined) {
+        const threshold = conditions.almostSoldOutThreshold || 10;
+        if (tier.quantityRemaining <= threshold && tier.quantityRemaining > 0) {
+          const prevQty = prevTier?.quantityRemaining;
+          if (prevQty === null || prevQty === undefined || prevQty > threshold) {
+            return {
+              finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'threshold_crossed',
+              headline: `🔥 ${tier.name} almost sold out — only ${tier.quantityRemaining} left!`,
+              detail: `"${eventName}" ${tier.name} tickets: only ${tier.quantityRemaining} remaining out of ${tier.quantityTotal || '?'}. Act fast!`,
+              data: { tierName: tier.name, quantityRemaining: tier.quantityRemaining, quantityTotal: tier.quantityTotal, eventName },
+              cost_usdc: 0,
+              agent_reasoning: `Quantity remaining (${tier.quantityRemaining}) dropped at or below the alert threshold of ${threshold}. First time crossing this threshold.`
+            };
+          }
+        }
+      }
+
+      // Availability change: sold out → available
+      if (conditions.availabilityAlert !== false && prevTier) {
+        if (!prevTier.available && tier.available) {
+          return {
+            finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'threshold_crossed',
+            headline: `🎉 ${tier.name} tickets are BACK for ${eventName}!`,
+            detail: `${tier.name} tier was sold out but is now available again. ${isFreeEvent ? 'Register now!' : `Price: ${currency} ${tier.minPrice}.`}`,
+            data: { tierName: tier.name, available: true, eventName, platform },
+            cost_usdc: 0,
+            agent_reasoning: `Availability changed from sold out to available. This is a high-priority restocking alert.`
+          };
+        }
+        if (prevTier.available && !tier.available) {
+          return {
+            finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'threshold_crossed',
+            headline: `⚠️ ${tier.name} SOLD OUT for ${eventName}`,
+            detail: `${tier.name} tier is no longer available for "${eventName}". Consider other tiers or waitlist options.`,
+            data: { tierName: tier.name, available: false, eventName, platform },
+            cost_usdc: 0,
+            agent_reasoning: `Tier went from available to sold out. Informational alert.`
+          };
+        }
+      }
+    }
+
+    // ── CRITICAL: Skip all price-related detections for free events ──
+    if (isFreeEvent) {
+      return null;
+    }
+
+    // ── Price below threshold ──
+    if (conditions.priceBelow) {
+      for (const tier of watchedTiers) {
+        if (tier.minPrice <= conditions.priceBelow) {
+          return {
+            finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'price_drop',
+            headline: `💰 ${tier.name} dropped to ${currency} ${tier.minPrice}!`,
+            detail: `${tier.name} tickets for "${eventName}" are now ${currency} ${tier.minPrice}, at or below your target of ${currency} ${conditions.priceBelow}. Platform: ${platform}.`,
+            data: { tierName: tier.name, currentPrice: tier.minPrice, targetPrice: conditions.priceBelow, currency, eventName, platform },
+            cost_usdc: 0,
+            agent_reasoning: `Price threshold alert: ${tier.name} min price (${currency} ${tier.minPrice}) is at or below the configured target of ${currency} ${conditions.priceBelow}.`
+          };
+        }
+      }
+    }
+
+    // ── Price drop by percentage ──
+    if (conditions.priceDropPercent && prev) {
+      for (const tier of watchedTiers) {
+        const prevTier = prevTiers.find((pt: any) => pt.name === tier.name);
+        if (prevTier && prevTier.minPrice > 0) {
+          const dropAmount = prevTier.minPrice - tier.minPrice;
+          const dropPercent = (dropAmount / prevTier.minPrice) * 100;
+
+          if (dropPercent >= conditions.priceDropPercent) {
+            return {
+              finding_id: '', watcher_id: '', user_id: '', check_id: '',
+              type: 'price_drop',
+              headline: `📉 ${tier.name} dropped ${Math.round(dropPercent)}% to ${currency} ${tier.minPrice}!`,
+              detail: `${tier.name} for "${eventName}" fell from ${currency} ${prevTier.minPrice} to ${currency} ${tier.minPrice} (${Math.round(dropPercent)}% drop). Platform: ${platform}.`,
+              data: { tierName: tier.name, oldPrice: prevTier.minPrice, newPrice: tier.minPrice, dropPercent: Math.round(dropPercent * 100) / 100, currency, eventName },
+              cost_usdc: 0,
+              agent_reasoning: `Percentage drop (${Math.round(dropPercent)}%) exceeds configured threshold of ${conditions.priceDropPercent}%. ${dropPercent > 25 ? 'High priority — significant drop.' : 'Moderate drop detected.'}`
+            };
+          }
+        }
+      }
+    }
+
+    // ── All-time low detection via price trend ──
+    try {
+      for (const tier of watchedTiers) {
+        const trend = await getPriceTrend(watcher.watcher_id, tier.name);
+        if (trend && trend.snapshotCount > 1) {
+          if (tier.minPrice <= trend.allTimeLowest && (trend.previousMin === null || tier.minPrice < trend.previousMin)) {
+            return {
+              finding_id: '', watcher_id: '', user_id: '', check_id: '', type: 'price_drop',
+              headline: `⭐ ALL-TIME LOW: ${tier.name} at ${currency} ${tier.minPrice}!`,
+              detail: `${tier.name} for "${eventName}" just hit its lowest price ever (${currency} ${tier.minPrice}). Previous low was ${currency} ${trend.allTimeLowest}. Tracked across ${trend.snapshotCount} price checks.`,
+              data: { tierName: tier.name, currentPrice: tier.minPrice, allTimeLow: trend.allTimeLowest, snapshotCount: trend.snapshotCount, currency, eventName },
+              cost_usdc: 0,
+              agent_reasoning: `All-time low confirmed across ${trend.snapshotCount} historical snapshots. This is a new record low, not a repeat of the previous check's price.`
+            };
+          }
+        }
+      }
+    } catch (e) {
+      // Non-fatal: trend data may not be available on first check
+    }
+
     return null;
   }
 }
