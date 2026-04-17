@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flare_app/core/utils/currency_formatter.dart';
 
 class TicketTierEntity extends Equatable {
   final String name;
@@ -24,10 +25,7 @@ class TicketTierEntity extends Equatable {
   });
 
   String get displayPrice {
-    if (minPrice == maxPrice) {
-      return '$currency ${minPrice.toStringAsFixed(2)}';
-    }
-    return '$currency ${minPrice.toStringAsFixed(2)} - ${maxPrice.toStringAsFixed(2)}';
+    return CurrencyFormatter.formatPriceRange(minPrice, maxPrice, currency: currency);
   }
 
   String get availabilityText {

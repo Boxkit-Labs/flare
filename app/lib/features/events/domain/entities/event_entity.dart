@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:intl/intl.dart';
+import 'package:flare_app/core/utils/currency_formatter.dart';
 import 'ticket_tier_entity.dart';
 
 class EventEntity extends Equatable {
@@ -58,7 +59,7 @@ class EventEntity extends Equatable {
         .fold<double?>(null, (prev, curr) => prev == null || curr < prev ? curr : prev);
     
     if (lowest == null) return 'Sold Out';
-    return '$currency ${lowest.toStringAsFixed(2)}';
+    return CurrencyFormatter.formatCurrency(lowest, currency);
   }
 
   String get priceRangeString {
@@ -69,8 +70,7 @@ class EventEntity extends Equatable {
     final min = prices.reduce((a, b) => a < b ? a : b);
     final max = prices.reduce((a, b) => a > b ? a : b);
 
-    if (min == max) return '$currency ${min.toStringAsFixed(2)}';
-    return '$currency ${min.toStringAsFixed(2)} - ${max.toStringAsFixed(2)}';
+    return CurrencyFormatter.formatPriceRange(min, max, currency: currency);
   }
 
   String get ticketsAvailability {
