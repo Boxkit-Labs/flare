@@ -4,8 +4,7 @@ class EventPricePointModel extends EventPricePointEntity {
   const EventPricePointModel({
     required super.checkedAt,
     required super.tierName,
-    required super.minPrice,
-    required super.maxPrice,
+    required super.price,
     required super.available,
     super.quantityRemaining,
   });
@@ -14,9 +13,8 @@ class EventPricePointModel extends EventPricePointEntity {
     return EventPricePointModel(
       checkedAt: DateTime.parse(json['checkedAt'] as String),
       tierName: json['tierName'] as String,
-      minPrice: (json['minPrice'] as num).toDouble(),
-      maxPrice: (json['maxPrice'] as num).toDouble(),
-      available: json['available'] as bool,
+      price: (json['price'] as num).toDouble(),
+      available: json['available'] as bool? ?? true,
       quantityRemaining: json['quantityRemaining'] as int?,
     );
   }
@@ -25,10 +23,9 @@ class EventPricePointModel extends EventPricePointEntity {
     return {
       'checkedAt': checkedAt.toIso8601String(),
       'tierName': tierName,
-      'minPrice': minPrice,
-      'maxPrice': maxPrice,
+      'price': price,
       'available': available,
-      'quantityRemaining': quantityRemaining,
+      if (quantityRemaining != null) 'quantityRemaining': quantityRemaining,
     };
   }
 }
