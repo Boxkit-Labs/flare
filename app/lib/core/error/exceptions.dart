@@ -36,6 +36,11 @@ class ValidationException extends AppException {
       : super(message, originalError: originalError);
 }
 
+class RateLimitException extends AppException {
+  RateLimitException([String message = 'Too many requests. Please slow down.', dynamic originalError])
+      : super(message, originalError: originalError);
+}
+
 class UnknownException extends AppException {
   UnknownException([String message = 'An unexpected error occurred', dynamic originalError])
       : super(message, originalError: originalError);
@@ -54,6 +59,8 @@ AppException mapDioException(DioException e) {
         return UnauthorizedException('Your session has expired. Please log in again.', e);
       } else if (statusCode == 404) {
         return NotFoundException('The requested resource was not found.', e);
+      } else if (statusCode == 429) {
+        return RateLimitException('You are being rate limited. Please wait a moment and try again.', e);
       } else if (statusCode != null && statusCode >= 500) {
         return ServerException('Our servers are experiencing a temporary hiccup. Please try again later.', e);
       } else if (statusCode == 400) {
