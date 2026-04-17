@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flare_app/features/events/presentation/bloc/event_search_bloc.dart';
 import 'package:flare_app/features/events/presentation/bloc/event_search_event.dart';
 import 'package:flare_app/features/events/presentation/bloc/event_search_state.dart';
@@ -57,6 +58,7 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
       body: Column(
         children: [
           _buildSearchAndFilters(),
+          _buildPlatformBanner(),
           _buildActiveFilters(),
           Expanded(
             child: BlocBuilder<EventSearchBloc, EventSearchState>(
@@ -166,6 +168,39 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
     );
   }
 
+  Widget _buildPlatformBanner() {
+    return BlocBuilder<EventSearchBloc, EventSearchState>(
+      builder: (context, state) {
+        final platform = state.filters.platform;
+        if (platform != null && platform.toLowerCase() != 'eventbrite') {
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF6366F1).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.2)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.info_outline, size: 16, color: Color(0xFF6366F1)),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Note: Eventbrite offers the best coverage for events in your region.',
+                    style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
   Widget _buildResultsList(EventSearchState state) {
     return RefreshIndicator(
       onRefresh: () async => context.read<EventSearchBloc>().add(SearchEvents()),
@@ -178,9 +213,10 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
             final event = state.events[index];
             return EventCard(
               event: event,
-              onTap: () {
-                // Navigate to Detail passing initial entity
-              },
+              onTap: () => context.push(
+                '/events/detail/${event.platform}/${event.externalId}',
+                extra: event,
+              ),
             );
           } else {
             return const Padding(
@@ -209,10 +245,10 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
             crossAxisSpacing: 12,
             childAspectRatio: 2.5,
             children: [
-              _CategoryCard(label: 'Concerts', emoji: '🎸', color: const Color(0xFF6366F1)),
-              _CategoryCard(label: 'Nightlife', emoji: '🍸', color: const Color(0xFFF43F5E)),
-              _CategoryCard(label: 'Food & Drink', emoji: '🍕', color: const Color(0xFF10B981)),
-              _CategoryCard(label: 'Business', emoji: '📈', color: const Color(0xFFF59E0B)),
+              _CategoryCard(label: 'Comedy', emoji: '😂', color: const Color(0xFFF59E0B)),
+              _CategoryCard(label: 'Music', emoji: '🎵', color: const Color(0xFF6366F1)),
+              _CategoryCard(label: 'Nightlife', emoji: '💃', color: const Color(0xFFF43F5E)),
+              _CategoryCard(label: 'Business', emoji: '📈', color: const Color(0xFF10B981)),
             ],
           ),
           const SizedBox(height: 32),

@@ -4,6 +4,7 @@ import 'package:flare_app/features/events/domain/usecases/search_events_usecase.
 import 'event_search_event.dart';
 import 'event_search_state.dart';
 import 'event_search_filters.dart';
+import 'package:flare_app/core/utils/locale_detector.dart';
 
 class EventSearchBloc extends Bloc<EventSearchEvent, EventSearchState> {
   final SearchEventsUseCase searchEventsUseCase;
@@ -26,6 +27,18 @@ class EventSearchBloc extends Bloc<EventSearchEvent, EventSearchState> {
   }
 
   Future<void> _onLoadInitialEvents(LoadInitialEvents event, Emitter<EventSearchState> emit) async {
+    final localeInfo = LocaleDetector.detect();
+    
+    // Initialize filters based on detected locale if currently at initial state
+    if (state is EventSearchInitial) {
+      final initialFilters = state.filters.copyWith(
+        city: localeInfo.defaultCity,
+        country: localeInfo.countryCode,
+        platform: localeInfo.defaultPlatform,
+      );
+      emit(EventSearchInitial(filters: initialFilters));
+    }
+    
     add(SearchEvents());
   }
 

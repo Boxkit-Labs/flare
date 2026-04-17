@@ -16,7 +16,7 @@ abstract class EventSearchState extends Equatable {
 }
 
 class EventSearchInitial extends EventSearchState {
-  const EventSearchInitial() : super();
+  const EventSearchInitial({super.filters});
 }
 
 class EventSearchLoading extends EventSearchState {

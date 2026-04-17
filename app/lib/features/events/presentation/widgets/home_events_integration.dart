@@ -6,6 +6,7 @@ import 'package:flare_app/features/events/presentation/bloc/event_search_event.d
 import 'package:flare_app/features/events/presentation/bloc/event_search_state.dart';
 import 'package:flare_app/features/events/presentation/widgets/event_mini_card.dart';
 import 'package:flare_app/core/theme/app_theme.dart';
+import 'package:flare_app/core/utils/locale_detector.dart';
 import 'package:go_router/go_router.dart';
 
 class HomeEventsIntegration extends StatelessWidget {
@@ -13,6 +14,9 @@ class HomeEventsIntegration extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localeInfo = LocaleDetector.detect();
+    final title = localeInfo.isNigerian ? 'Events in ${localeInfo.defaultCity}' : 'Trending Events';
+
     return BlocProvider(
       create: (context) => context.read<EventSearchBloc>()..add(LoadInitialEvents()),
       child: BlocBuilder<EventSearchBloc, EventSearchState>(
@@ -21,7 +25,7 @@ class HomeEventsIntegration extends StatelessWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(context, 'Trending Events'),
+                _buildHeader(context, title),
                 SizedBox(
                   height: 220,
                   child: ListView.builder(
