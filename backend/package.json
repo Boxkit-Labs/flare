@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "npx tsx --watch src/server.ts",
     "build": "tsc && node -e \"const fs = require('fs'); const path = require('path'); const destDir = path.join('dist', 'db'); if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true }); fs.copyFileSync(path.join('src', 'db', 'schema.sql'), path.join(destDir, 'schema.sql'))\"",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "test:events": "npx tsx src/tests/event_integration_test.ts"
   },
   "engines": {
     "node": ">=18"
