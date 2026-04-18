@@ -3,6 +3,7 @@ import 'package:flare_app/core/utils/currency_formatter.dart';
 import 'package:flare_app/features/events/presentation/bloc/event_search_filters.dart';
 import 'package:flare_app/features/events/presentation/widgets/category_chip.dart';
 import 'package:flare_app/features/events/presentation/widgets/location_picker_sheet.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
 
 class AdvancedFilterSheet extends StatefulWidget {
   final EventSearchFilters initialFilters;
@@ -60,7 +61,7 @@ class _AdvancedFilterSheetState extends State<AdvancedFilterSheet> {
       builder: (context, scrollController) {
         return Container(
           decoration: const BoxDecoration(
-            color: Color(0xFF0F172A),
+            color: AppTheme.background,
             borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
           ),
           child: Column(
@@ -96,12 +97,12 @@ class _AdvancedFilterSheetState extends State<AdvancedFilterSheet> {
         children: [
           TextButton(
             onPressed: () => setState(() => _tempFilters = const EventSearchFilters()),
-            child: const Text('Reset', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
+            child: const Text('Reset', style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.bold)),
           ),
-          const Text('Filters', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+          const Text('Filters', style: TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.w900)),
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.close, color: Colors.white),
+            icon: const Icon(Icons.close, color: AppTheme.textPrimary),
           ),
         ],
       ),
@@ -116,11 +117,11 @@ class _AdvancedFilterSheetState extends State<AdvancedFilterSheet> {
           padding: const EdgeInsets.symmetric(vertical: 16),
           child: Text(
             title.toUpperCase(),
-            style: const TextStyle(color: Color(0xFF64748B), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5),
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5),
           ),
         ),
         child,
-        const Divider(color: Colors.white12, height: 32),
+        Divider(color: Colors.black.withOpacity(0.05), height: 32),
       ],
     );
   }
@@ -131,19 +132,20 @@ class _AdvancedFilterSheetState extends State<AdvancedFilterSheet> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.black.withOpacity(0.05)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.location_on, color: Color(0xFF6366F1)),
+            const Icon(Icons.location_on, color: AppTheme.primary),
             const SizedBox(width: 12),
             Text(
               _tempFilters.city ?? 'Anywhere',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+              style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700),
             ),
             const Spacer(),
-            const Icon(Icons.chevron_right, color: Color(0xFF64748B)),
+            const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
           ],
         ),
       ),
@@ -168,15 +170,15 @@ class _AdvancedFilterSheetState extends State<AdvancedFilterSheet> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF6366F1).withOpacity(0.1) : const Color(0xFF1E293B),
+              color: isSelected ? AppTheme.primary.withOpacity(0.1) : AppTheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isSelected ? const Color(0xFF6366F1) : Colors.transparent),
+              border: Border.all(color: isSelected ? AppTheme.primary : Colors.black.withOpacity(0.05)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(p['name']!, style: TextStyle(color: isSelected ? Colors.white : const Color(0xFF94A3B8), fontWeight: FontWeight.w800)),
-                Text(p['info']!, style: TextStyle(color: isSelected ? const Color(0xFF818CF8) : const Color(0xFF64748B), fontSize: 10)),
+                Text(p['name']!, style: TextStyle(color: isSelected ? AppTheme.primary : AppTheme.textPrimary, fontWeight: FontWeight.w800)),
+                Text(p['info']!, style: TextStyle(color: isSelected ? AppTheme.primary.withOpacity(0.8) : AppTheme.textSecondary, fontSize: 10)),
               ],
             ),
           ),
@@ -231,23 +233,23 @@ class _AdvancedFilterSheetState extends State<AdvancedFilterSheet> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Price Range (${CurrencyFormatter.getCurrencySymbol(_currency)})', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            const Text('Any', style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold)),
+            Text('Price Range (${CurrencyFormatter.getCurrencySymbol(_currency)})', style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
+            const Text('Any', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
           ],
         ),
         RangeSlider(
           values: const RangeValues(0, 1000),
           min: 0,
           max: 1000,
-          activeColor: const Color(0xFF6366F1),
-          inactiveColor: const Color(0xFF1E293B),
+          activeColor: AppTheme.primary,
+          inactiveColor: AppTheme.surface,
           onChanged: (v) {},
         ),
         SwitchListTile(
-          title: const Text('Only show free events', style: TextStyle(color: Colors.white, fontSize: 14)),
+          title: const Text('Only show free events', style: TextStyle(color: AppTheme.textPrimary, fontSize: 14)),
           value: _tempFilters.isFreeOnly,
           onChanged: (v) => setState(() => _tempFilters = _tempFilters.copyWith(isFreeOnly: v)),
-          activeColor: const Color(0xFF10B981),
+          activeColor: AppTheme.primary,
           dense: true,
           contentPadding: EdgeInsets.zero,
         ),
@@ -259,17 +261,17 @@ class _AdvancedFilterSheetState extends State<AdvancedFilterSheet> {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 20, offset: const Offset(0, -10))],
+        color: AppTheme.background,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -10))],
       ),
       child: ElevatedButton(
         onPressed: () => Navigator.pop(context, _tempFilters),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF6366F1),
+          backgroundColor: AppTheme.primary,
           minimumSize: const Size(double.infinity, 56),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
-        child: const Text('Show Events', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+        child: const Text('Show Events', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
       ),
     );
   }
@@ -291,14 +293,15 @@ class _DateQuickChip extends StatelessWidget {
         width: fullWidth ? double.infinity : null,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black.withOpacity(0.05)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (icon != null) ...[Icon(icon, size: 16, color: const Color(0xFF6366F1)), const SizedBox(width: 8)],
-            Text(label, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+            if (icon != null) ...[Icon(icon, size: 16, color: AppTheme.primary), const SizedBox(width: 8)],
+            Text(label, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w700)),
           ],
         ),
       ),

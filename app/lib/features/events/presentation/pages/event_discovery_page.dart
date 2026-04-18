@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flare_app/features/events/presentation/bloc/event_search_bloc.dart';
@@ -43,16 +44,16 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Find Events'),
+        title: const Text('Find Events', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.bold)),
         centerTitle: false,
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: AppTheme.background,
         elevation: 0,
         actions: [
           IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+            icon: const Icon(Icons.notifications_outlined, color: AppTheme.textPrimary),
           ),
         ],
       ),
@@ -95,12 +96,12 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
           // Search Bar
           TextField(
             controller: _searchController,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: AppTheme.textPrimary),
             onChanged: (value) =>
                 context.read<EventSearchBloc>().add(UpdateQuery(value)),
             decoration: InputDecoration(
               hintText: 'Search artists, venues, or cities...',
-              prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
+              prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondary),
               suffixIcon: BlocBuilder<EventSearchBloc, EventSearchState>(
                 builder: (context, state) {
                   if (state is EventSearchLoading) {
@@ -112,7 +113,7 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
                   return const SizedBox.shrink();
                 },
               ),
-              fillColor: const Color(0xFF1E293B),
+              fillColor: AppTheme.surface,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide.none,
@@ -216,7 +217,7 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
                 child: const Text(
                   'Clear All',
                   style: TextStyle(
-                    color: Color(0xFFF43F5E),
+                    color: AppTheme.error,
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
@@ -307,7 +308,7 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
           const Text(
             'Top Categories',
             style: TextStyle(
-              color: Colors.white,
+              color: AppTheme.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.w900,
             ),
@@ -331,7 +332,7 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
           const Text(
             'Upcoming Popular',
             style: TextStyle(
-              color: Colors.white,
+              color: AppTheme.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.w900,
             ),
@@ -342,7 +343,7 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
           const Center(
             child: Text(
               'Discover something new today',
-              style: TextStyle(color: Color(0xFF64748B)),
+              style: TextStyle(color: AppTheme.textSecondary),
             ),
           ),
         ],
@@ -373,12 +374,12 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.search_off, size: 64, color: Color(0xFF64748B)),
+          const Icon(Icons.search_off, size: 64, color: AppTheme.textSecondary),
           const SizedBox(height: 16),
           const Text(
             'No events found',
             style: TextStyle(
-              color: Colors.white,
+              color: AppTheme.textPrimary,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -386,14 +387,14 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
           const SizedBox(height: 8),
           const Text(
             'Try adjusting your filters or query',
-            style: TextStyle(color: Color(0xFF64748B)),
+            style: TextStyle(color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () =>
                 context.read<EventSearchBloc>().add(ClearFilters()),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6366F1),
+              backgroundColor: AppTheme.primary,
             ),
             child: const Text('Clear All Filters'),
           ),
@@ -409,11 +410,11 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Color(0xFFF43F5E)),
+            const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
             const SizedBox(height: 16),
             Text(
               message,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
+              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -447,18 +448,18 @@ class _FilterButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: AppTheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: Colors.black.withOpacity(0.05)),
         ),
         child: Row(
           children: [
-            Icon(icon, size: 16, color: const Color(0xFF6366F1)),
+            Icon(icon, size: 16, color: AppTheme.primary),
             const SizedBox(width: 6),
             Text(
               label,
               style: const TextStyle(
-                color: Color(0xFF94A3B8),
+                color: AppTheme.textSecondary,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -535,7 +536,7 @@ class _CategoryCard extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              color: Colors.white,
+              color: AppTheme.textPrimary,
               fontWeight: FontWeight.w800,
             ),
           ),

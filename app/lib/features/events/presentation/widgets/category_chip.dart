@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flare_app/core/theme/app_theme.dart';
 
 class CategoryChip extends StatelessWidget {
   final String category;
@@ -22,16 +23,16 @@ class CategoryChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF1E293B),
+          color: isSelected ? AppTheme.primary : AppTheme.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFF818CF8) : Colors.white.withOpacity(0.05),
+            color: isSelected ? AppTheme.primary : Colors.black.withOpacity(0.05),
             width: 1.5,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFF6366F1).withOpacity(0.3),
+                    color: AppTheme.primary.withOpacity(0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   )
@@ -46,7 +47,7 @@ class CategoryChip extends StatelessWidget {
             Text(
               category,
               style: TextStyle(
-                color: isSelected ? Colors.white : const Color(0xFF94A3B8),
+                color: isSelected ? Colors.white : AppTheme.textSecondary,
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
               ),
