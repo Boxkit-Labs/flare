@@ -23,6 +23,7 @@ class EventSearchBloc extends Bloc<EventSearchEvent, EventSearchState> {
     on<ToggleFreeOnly>(_onToggleFreeOnly);
     on<UpdateDateRange>(_onUpdateDateRange);
     on<ClearFilters>(_onClearFilters);
+    on<ApplyFilters>(_onApplyFilters);
     on<LoadMoreResults>(_onLoadMoreResults);
   }
 
@@ -131,6 +132,11 @@ class EventSearchBloc extends Bloc<EventSearchEvent, EventSearchState> {
 
   void _onClearFilters(ClearFilters event, Emitter<EventSearchState> emit) {
     emit(const EventSearchInitial());
+    add(SearchEvents());
+  }
+
+  void _onApplyFilters(ApplyFilters event, Emitter<EventSearchState> emit) {
+    emit(EventSearchLoading(events: state.events, filters: event.filters));
     add(SearchEvents());
   }
 

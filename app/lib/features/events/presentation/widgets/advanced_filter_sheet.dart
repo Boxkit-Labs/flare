@@ -152,9 +152,9 @@ class _AdvancedFilterSheetState extends State<AdvancedFilterSheet> {
 
   Widget _buildPlatformGrid() {
     final platforms = [
-      {'id': 'ticketmaster', 'name': 'Ticketmaster', 'info': '500+ events'},
-      {'id': 'eventbrite', 'name': 'Eventbrite', 'info': '1.2k events'},
-      {'id': 'skiddle', 'name': 'Skiddle', 'info': '200+ events'},
+      {'id': 'ticketmaster', 'name': 'Ticketmaster', 'info': 'Global Events'},
+      {'id': 'eventbrite', 'name': 'Eventbrite', 'info': 'Local Events'},
+      {'id': 'seatgeek', 'name': 'SeatGeek', 'info': 'Sports & Concerts'},
     ];
 
     return Wrap(

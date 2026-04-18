@@ -6,6 +6,7 @@ import 'package:flare_app/features/events/presentation/bloc/event_search_event.d
 import 'package:flare_app/features/events/presentation/bloc/event_search_state.dart';
 import 'package:flare_app/features/events/presentation/widgets/category_chip.dart';
 import 'package:flare_app/features/events/presentation/widgets/event_card.dart';
+import 'package:flare_app/features/events/presentation/widgets/advanced_filter_sheet.dart';
 
 class EventDiscoveryPage extends StatefulWidget {
   const EventDiscoveryPage({super.key});
@@ -125,9 +126,15 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
             child: Row(
               children: [
                 _FilterButton(
-                  icon: Icons.location_on_outlined,
-                  label: 'Lagos, Nigeria', // Mock for now
-                  onTap: () {},
+                  icon: Icons.tune,
+                  label: 'Filters & Providers',
+                  onTap: () async {
+                    final currentFilters = context.read<EventSearchBloc>().state.filters;
+                    final newFilters = await AdvancedFilterSheet.show(context, currentFilters);
+                    if (newFilters != null && context.mounted) {
+                      context.read<EventSearchBloc>().add(ApplyFilters(newFilters));
+                    }
+                  },
                 ),
                 const SizedBox(width: 8),
                 const CategoryChip(
@@ -168,6 +175,15 @@ class _EventDiscoveryPageState extends State<EventDiscoveryPage> {
               label: filters.query!,
               onRemove: () =>
                   context.read<EventSearchBloc>().add(const UpdateQuery('')),
+            ),
+          );
+        }
+        if (filters.platform != null) {
+          activeFilters.add(
+            _FilterPill(
+              label: '${filters.platform!.substring(0,1).toUpperCase()}${filters.platform!.substring(1)}',
+              onRemove: () =>
+                  context.read<EventSearchBloc>().add(const UpdatePlatform(null)),
             ),
           );
         }

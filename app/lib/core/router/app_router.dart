@@ -18,6 +18,9 @@ import 'package:flare_app/features/wallet/presentation/screens/payment_stream_sc
 import 'package:flare_app/features/wallet/presentation/screens/stellar_proof_screen.dart';
 import 'package:flare_app/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:flare_app/features/home/presentation/screens/shell_screen.dart';
+import 'package:flare_app/features/events/presentation/pages/event_discovery_page.dart';
+import 'package:flare_app/features/events/presentation/pages/event_detail_page.dart';
+import 'package:flare_app/features/events/domain/entities/event_entity.dart';
 
 class AppRouter {
   AppRouter._();
@@ -209,6 +212,20 @@ class AppRouter {
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
             },
+          ),
+        ),
+        GoRoute(
+          path: '/events/discovery',
+          name: 'eventDiscovery',
+          builder: (context, state) => const EventDiscoveryPage(),
+        ),
+        GoRoute(
+          path: '/events/detail/:platform/:id',
+          name: 'eventDetail',
+          builder: (context, state) => EventDetailPage(
+            platform: state.pathParameters['platform']!,
+            externalId: state.pathParameters['id']!,
+            initialEvent: state.extra as EventEntity?,
           ),
         ),
       ],

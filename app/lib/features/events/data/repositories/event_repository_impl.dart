@@ -53,13 +53,17 @@ class EventRepositoryImpl implements EventRepository {
         page: page,
         limit: limit,
       );
+      print('✅ SUCCESS in searchEvents: Found ${results.length} events');
       _searchCache[cacheKey] = (DateTime.now(), results);
       return Right(results);
     } on RateLimitException catch (e) {
+      print('⚠️ RATE LIMIT ERROR in searchEvents: ${e.message}');
       return Left(ServerFailure('${e.message}. System will retry in 5 minutes.'));
     } on AppException catch (e) {
+      print('❌ API ERROR in searchEvents: ${e.message}');
       return Left(ServerFailure(e.message));
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('🔥 UNEXPECTED ERROR in searchEvents: $e\n$stackTrace');
       return const Left(ServerFailure('An unexpected error occurred during search'));
     }
   }
@@ -68,10 +72,13 @@ class EventRepositoryImpl implements EventRepository {
   Future<Either<Failure, EventEntity>> getEventDetail(String platform, String externalId) async {
     try {
       final result = await remoteDataSource.getEventDetail(platform, externalId);
+      print('✅ SUCCESS in getEventDetail: Fetched details for $externalId on $platform');
       return Right(result);
     } on AppException catch (e) {
+      print('❌ API ERROR in getEventDetail: ${e.message}');
       return Left(ServerFailure(e.message));
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('🔥 UNEXPECTED ERROR in getEventDetail: $e\n$stackTrace');
       return const Left(ServerFailure('An unexpected error occurred while fetching event details'));
     }
   }
@@ -81,11 +88,14 @@ class EventRepositoryImpl implements EventRepository {
     if (_cachedPlatforms != null) return Right(_cachedPlatforms!);
     try {
       final result = await remoteDataSource.getPlatforms();
+      print('✅ SUCCESS in getPlatforms: Fetched ${result.length} platforms');
       _cachedPlatforms = result;
       return Right(result);
     } on AppException catch (e) {
+      print('❌ API ERROR in getPlatforms: ${e.message}');
       return Left(ServerFailure(e.message));
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('🔥 UNEXPECTED ERROR in getPlatforms: $e\n$stackTrace');
       return const Left(ServerFailure('An unexpected error occurred while fetching platforms'));
     }
   }
@@ -95,11 +105,14 @@ class EventRepositoryImpl implements EventRepository {
     if (_cachedCategories != null) return Right(_cachedCategories!);
     try {
       final result = await remoteDataSource.getCategories();
+      print('✅ SUCCESS in getCategories: Fetched ${result.length} categories');
       _cachedCategories = result;
       return Right(result);
     } on AppException catch (e) {
+      print('❌ API ERROR in getCategories: ${e.message}');
       return Left(ServerFailure(e.message));
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('🔥 UNEXPECTED ERROR in getCategories: $e\n$stackTrace');
       return const Left(ServerFailure('An unexpected error occurred while fetching categories'));
     }
   }
@@ -109,11 +122,14 @@ class EventRepositoryImpl implements EventRepository {
     if (_cachedCountries != null) return Right(_cachedCountries!);
     try {
       final result = await remoteDataSource.getCountries();
+      print('✅ SUCCESS in getCountries: Fetched ${result.length} countries');
       _cachedCountries = result;
       return Right(result);
     } on AppException catch (e) {
+      print('❌ API ERROR in getCountries: ${e.message}');
       return Left(ServerFailure(e.message));
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('🔥 UNEXPECTED ERROR in getCountries: $e\n$stackTrace');
       return const Left(ServerFailure('An unexpected error occurred while fetching countries'));
     }
   }
@@ -122,10 +138,13 @@ class EventRepositoryImpl implements EventRepository {
   Future<Either<Failure, List<EventPricePointEntity>>> getEventPriceHistory(String platform, String externalId) async {
     try {
       final result = await remoteDataSource.getEventPriceHistory(platform, externalId);
+      print('✅ SUCCESS in getEventPriceHistory: Fetched ${result.length} price points for $externalId on $platform');
       return Right(result);
     } on AppException catch (e) {
+      print('❌ API ERROR in getEventPriceHistory: ${e.message}');
       return Left(ServerFailure(e.message));
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('🔥 UNEXPECTED ERROR in getEventPriceHistory: $e\n$stackTrace');
       return const Left(ServerFailure('An unexpected error occurred while fetching price history'));
     }
   }

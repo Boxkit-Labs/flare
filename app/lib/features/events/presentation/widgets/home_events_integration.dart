@@ -71,7 +71,7 @@ class HomeEventsIntegration extends StatelessWidget {
             ),
           ),
           TextButton(
-            onPressed: () => context.go('/events'),
+            onPressed: () => context.push('/events/discovery'),
             child: const Text(
               'EXPLORE',
               style: TextStyle(

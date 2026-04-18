@@ -67,7 +67,7 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
 
   void _onTypeSelect(String typeId) {
     if (typeId == 'events') {
-      context.push('/events');
+      context.push('/events/discovery');
       return;
     }
     setState(() {
@@ -171,7 +171,7 @@ class _CreateWatcherScreenState extends State<CreateWatcherScreen> {
 
   void _handleEventVoiceSearch(String text, Map<String, dynamic> params) {
     // Navigate to events page with filters pre-filled
-    context.push('/events', extra: params);
+    context.push('/events/discovery', extra: params);
   }
 
   void _launchWatcher() {

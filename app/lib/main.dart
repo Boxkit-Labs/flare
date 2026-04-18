@@ -1,3 +1,7 @@
+import 'package:flare_app/features/events/presentation/bloc/event_detail_bloc.dart';
+import 'package:flare_app/features/events/presentation/bloc/event_price_history_bloc.dart';
+import 'package:flare_app/features/events/presentation/bloc/event_search_bloc.dart';
+import 'package:flare_app/features/events/presentation/bloc/event_watch_setup_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -37,23 +41,25 @@ Future<void> main() async {
   runApp(
     MultiBlocProvider(
       providers: [
-        BlocProvider<AuthBloc>.value(
-          value: authBloc,
-        ),
-        BlocProvider<WatchersBloc>(
-          create: (context) => di.sl<WatchersBloc>(),
-        ),
-        BlocProvider<FindingsBloc>(
-          create: (context) => di.sl<FindingsBloc>(),
-        ),
-        BlocProvider<BriefingBloc>(
-          create: (context) => di.sl<BriefingBloc>(),
-        ),
-        BlocProvider<WalletBloc>(
-          create: (context) => di.sl<WalletBloc>(),
-        ),
+        BlocProvider<AuthBloc>.value(value: authBloc),
+        BlocProvider<WatchersBloc>(create: (context) => di.sl<WatchersBloc>()),
+        BlocProvider<FindingsBloc>(create: (context) => di.sl<FindingsBloc>()),
+        BlocProvider<BriefingBloc>(create: (context) => di.sl<BriefingBloc>()),
+        BlocProvider<WalletBloc>(create: (context) => di.sl<WalletBloc>()),
         BlocProvider<NotificationsBloc>(
           create: (context) => di.sl<NotificationsBloc>(),
+        ),
+        BlocProvider<EventSearchBloc>(
+          create: (context) => di.sl<EventSearchBloc>(),
+        ),
+        BlocProvider<EventDetailBloc>(
+          create: (context) => di.sl<EventDetailBloc>(),
+        ),
+        BlocProvider<EventPriceHistoryBloc>(
+          create: (context) => di.sl<EventPriceHistoryBloc>(),
+        ),
+        BlocProvider<EventWatchSetupBloc>(
+          create: (context) => di.sl<EventWatchSetupBloc>(),
         ),
       ],
       child: const FlareApp(),

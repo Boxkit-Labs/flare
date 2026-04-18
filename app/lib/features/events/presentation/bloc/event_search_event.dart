@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flare_app/features/events/presentation/bloc/event_search_filters.dart';
 
 abstract class EventSearchEvent extends Equatable {
   const EventSearchEvent();
@@ -71,5 +72,13 @@ class UpdateDateRange extends EventSearchEvent {
 }
 
 class ClearFilters extends EventSearchEvent {}
+
+class ApplyFilters extends EventSearchEvent {
+  final EventSearchFilters filters;
+  const ApplyFilters(this.filters);
+
+  @override
+  List<Object?> get props => [filters];
+}
 
 class LoadMoreResults extends EventSearchEvent {}
